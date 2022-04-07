@@ -1,0 +1,60 @@
+// Copyright (c) 2021-2022 The MetabaseNet developers
+// Distributed under the MIT/X11 software license, see the accompanying
+// file COPYING or http://www.opensource.org/licenses/mit-license.php.
+
+#include "delegateverify.h"
+
+using namespace std;
+using namespace hnbase;
+
+namespace metabasenet
+{
+namespace delegate
+{
+
+//////////////////////////////
+// CDelegateVerify
+
+CDelegateVerify::CDelegateVerify(const map<CDestination, size_t>& mapWeight,
+                                 const map<CDestination, vector<unsigned char>>& mapEnrollData)
+{
+    Enroll(mapWeight, mapEnrollData);
+}
+
+bool CDelegateVerify::VerifyProof(const vector<unsigned char>& vchProof, uint256& nAgreement,
+                                  size_t& nWeight, map<CDestination, size_t>& mapBallot, bool fCheckRepeated)
+{
+    uint256 nAgreementParse;
+    try
+    {
+        unsigned char nWeightParse;
+        vector<CDelegateData> vPublish;
+        CBufStream is(vchProof);
+        is >> nWeightParse >> nAgreementParse;
+        if (nWeightParse == 0 && nAgreementParse == 0)
+        {
+            return true;
+        }
+        is >> vPublish;
+        for (size_t i = 0; i < vPublish.size(); i++)
+        {
+            const CDelegateData& delegateData = vPublish[i];
+            if (!VerifySignature(delegateData) || !witness.Collect(delegateData.nIdentFrom, delegateData.mapShare, fCheckRepeated))
+            {
+                return false;
+            }
+        }
+    }
+    catch (exception& e)
+    {
+        StdError(__PRETTY_FUNCTION__, e.what());
+        return false;
+    }
+
+    GetAgreement(nAgreement, nWeight, mapBallot);
+
+    return (nAgreement == nAgreementParse);
+}
+
+} // namespace delegate
+} // namespace metabasenet
