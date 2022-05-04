@@ -254,13 +254,14 @@ Errno CCoreProtocol::ValidateTransaction(const CTransaction& tx, int nHeight)
                          tx.nGasLimit.GetHex().c_str(), nNeedGas.GetHex().c_str());
         }
     }
+    /*
     else
     {
         if (tx.GetTxFee() != 0)
         {
             return DEBUG(ERR_TRANSACTION_OUTPUT_INVALID, "non token tx, txfee nonzero, fee: 0x%s", tx.GetTxFee().GetHex().c_str());
         }
-    }
+    }*/
 
     if (GetSerializeSize(tx) > MAX_TX_SIZE)
     {
