@@ -146,6 +146,7 @@ private:
     rpc::CRPCResultPtr RPCGetContractAddress(rpc::CRPCParamPtr param);
     rpc::CRPCResultPtr RPCMakeTemplate(rpc::CRPCParamPtr param);
     rpc::CRPCResultPtr RPCDecodeTransaction(rpc::CRPCParamPtr param);
+    rpc::CRPCResultPtr GetDefiRelation(rpc::CRPCParamPtr param);
     rpc::CRPCResultPtr RPCGetTxFee(rpc::CRPCParamPtr param);
     rpc::CRPCResultPtr RPCMakeSha256(rpc::CRPCParamPtr param);
     rpc::CRPCResultPtr RPCAesEncrypt(rpc::CRPCParamPtr param);

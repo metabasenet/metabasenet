@@ -297,6 +297,8 @@ CRPCMod::CRPCMod()
         //
         ("decodetransaction", &CRPCMod::RPCDecodeTransaction)
         //
+        ("getdefirelation", &CRPCMod::GetDefiRelation)
+        //
         ("gettxfee", &CRPCMod::RPCGetTxFee)
         //
         ("makesha256", &CRPCMod::RPCMakeSha256)
@@ -3314,6 +3316,35 @@ CRPCResultPtr CRPCMod::RPCDecodeTransaction(CRPCParamPtr param)
     }*/
 
     return MakeCDecodeTransactionResultPtr(TxToJSON(rawTx.GetHash(), rawTx, uint256(), -1, 0));
+}
+
+CRPCResultPtr CRPCMod::GetDefiRelation(CRPCParamPtr param)
+{
+    auto spParam = CastParamPtr<CGetDefiRelationParam>(param);
+
+    CDestination address(spParam->strAddress);
+    if (address.IsNull())
+    {
+        throw CRPCException(RPC_INVALID_PARAMETER, "Invalid address");
+    }
+
+    uint256 hashFork;
+    if (!GetForkHashOfDef(spParam->strFork, hashFork))
+    {
+        throw CRPCException(RPC_INVALID_PARAMETER, "Invalid fork");
+    }
+    if (!pService->HaveFork(hashFork))
+    {
+        throw CRPCException(RPC_INVALID_PARAMETER, "Unknown fork");
+    }
+
+    CDestination destParent;
+    if (!pService->RetrieveInviteParent(hashFork, address, destParent))
+    {
+        throw CRPCException(RPC_INVALID_ADDRESS_OR_KEY, "Invalid invite address");
+    }
+
+    return MakeCGetDefiRelationResultPtr(destParent.ToString());
 }
 
 CRPCResultPtr CRPCMod::RPCGetTxFee(rpc::CRPCParamPtr param)

@@ -891,6 +891,17 @@ bool CService::GetDestTemplateData(const uint256& hashFork, const CDestination& 
     return true;
 }
 
+bool CService::RetrieveInviteParent(const uint256& hashFork, const CDestination& destSub, CDestination& destParent)
+{
+    uint256 hashLastBlock;
+    if (!pBlockChain->RetrieveForkLast(hashFork, hashLastBlock))
+    {
+        StdLog("CService", "Retrieve invite parent: Retrieve fork last fail, fork: %s", hashFork.GetHex().c_str());
+        return false;
+    }
+    return pBlockChain->RetrieveInviteParent(hashFork, hashLastBlock, destSub, destParent);
+}
+
 bool CService::GetWork(vector<unsigned char>& vchWorkData, int& nPrevBlockHeight,
                        uint256& hashPrev, uint32& nPrevTime, int& nAlgo,
                        int& nBits, const CTemplateMintPtr& templMint)
