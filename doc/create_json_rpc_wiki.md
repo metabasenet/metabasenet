@@ -1,8 +1,8 @@
 # Create JSON-RPC wiki
 ## Introduction
-`script/create_json_rpc_wiki.py` is a semi-automatic stand-alone script to generate two parts of [JSON-RPC wiki](https://github.com/Block-Way/metabasenet/wiki/JSON-RPC).  
-one part is [command line format](https://github.com/Block-Way/metabasenet/wiki/JSON-RPC#command-line-format),
-and another is [commands](https://github.com/Block-Way/metabasenet/wiki/JSON-RPC#commands)
+`script/create_json_rpc_wiki.py` is a semi-automatic stand-alone script to generate two parts of [JSON-RPC wiki](https://github.com/metabasenet/metabasenet/wiki/JSON-RPC).  
+one part is [command line format](https://github.com/metabasenet/metabasenet/wiki/JSON-RPC#command-line-format),
+and another is [commands](https://github.com/metabasenet/metabasenet/wiki/JSON-RPC#commands)
 
 ## Usage
  - If modified `script/template/rpc.json` or rpc part of `script/template/options.json`, needs stand-alone run the script `script/create_json_rpc_wiki.py`
@@ -10,5 +10,5 @@ and another is [commands](https://github.com/Block-Way/metabasenet/wiki/JSON-RPC
  - The script will output result to screen. Or use `script/create_json_rpc_wiki.py > filename` to output to file.
  - example: `script/create_json_rpc_wiki.py > doc/wikidoc/JSON-RPC.md`.
  - The result contains two parts.
-   + Copy between `## command line format:` and `## commands` to [command line format](https://github.com/Block-Way/metabasenet/wiki/JSON-RPC#command-line-format). **Don't cover [command param format rule](https://github.com/Block-Way/metabasenet/wiki/JSON-RPC#command-param-format-rule)**
-   + Copy between `## commands` and end of result to [commands](https://github.com/Block-Way/metabasenet/wiki/JSON-RPC#commands)
+   + Copy between `## command line format:` and `## commands` to [command line format](https://github.com/metabasenet/metabasenet/wiki/JSON-RPC#command-line-format). **Don't cover [command param format rule](https://github.com/metabasenet/metabasenet/wiki/JSON-RPC#command-param-format-rule)**
+   + Copy between `## commands` and end of result to [commands](https://github.com/metabasenet/metabasenet/wiki/JSON-RPC#commands)

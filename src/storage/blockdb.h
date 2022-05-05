@@ -13,6 +13,7 @@
 #include "delegatedb.h"
 #include "forkcontext.h"
 #include "forkdb.h"
+#include "invitedb.h"
 #include "statedb.h"
 #include "transaction.h"
 #include "txindexdb.h"
@@ -94,6 +95,10 @@ public:
     bool AddVoteReward(const uint256& hashFork, const uint256& hashPrevBlock, const uint256& hashBlock, const uint32 nBlockHeight, const std::map<CDestination, uint256>& mapVoteReward, uint256& hashNewRoot);
     bool ListVoteReward(const uint256& hashFork, const uint256& hashBlock, const CDestination& dest, const uint32 nGetCount, std::vector<std::pair<uint32, uint256>>& vVoteReward);
 
+    bool AddInviteRelation(const uint256& hashFork, const uint256& hashPrevBlock, const uint256& hashBlock, const std::map<CDestination, CDestination>& mapInviteContext, uint256& hashNewRoot);
+    bool RetrieveInviteParent(const uint256& hashFork, const uint256& hashBlock, const CDestination& destSub, CDestination& destParent);
+    bool ListInviteRelation(const uint256& hashFork, const uint256& hashBlock, std::map<CDestination, CDestination>& mapInviteContext);
+
     bool VerifyBlockRoot(const bool fPrimary, const uint256& hashFork, const uint256& hashPrevBlock, const uint256& hashBlock,
                          const uint256& hashLocalStateRoot, CBlockRoot& localBlockRoot, const bool fVerifyAllNode = true);
 
@@ -112,6 +117,7 @@ protected:
     CAddressDB dbAddress;
     CCodeDB dbCode;
     CVoteRewardDB dbVoteReward;
+    CInviteDB dbInvite;
     CVerifyDB dbVerify;
     CWasmDB dbWasm;
 

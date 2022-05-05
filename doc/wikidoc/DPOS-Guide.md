@@ -1,4 +1,4 @@
-Complete all settings for POW mining with the help of [POW operation guide](https://github.com/Block-Way/metabasenet/wiki/POW-Guide)
+Complete all settings for POW mining with the help of [POW operation guide](https://github.com/metabasenet/metabasenet/wiki/POW-Guide)
 --------------------------------------------------------------------------------------------------------------
 
 **NOTE:**  
@@ -8,7 +8,7 @@ Complete all settings for POW mining with the help of [POW operation guide](http
 2) Download address of executable program (please select the latest version):  
 
 ```  
-https://github.com/Block-Way/metabasenet/releases  
+https://github.com/metabasenet/metabasenet/releases  
 ```
 
 3) In the windows operating system,when executing the program in your current directory, please change the "./metabasenet" command to "metabasenet". Same below. 
@@ -40,7 +40,7 @@ Second key pairs (for mining):
 
 Modify the configuration file used in POW
 --------------------------------------------------------------------------------------------------------------
-In the previous [POW Guide](https://github.com/Block-Way/metabasenet/wiki/pow-guide),we have described the configuration file **"metabasenet.conf"**, which we will modify it as follows:
+In the previous [POW Guide](https://github.com/metabasenet/metabasenet/wiki/pow-guide),we have described the configuration file **"metabasenet.conf"**, which we will modify it as follows:
 
 ```
 # use test net,do not set this parameter in real environment

@@ -6,7 +6,7 @@
 2) Download address of executable program (please select the latest version):  
 
 ```  
-https://github.com/Block-Way/metabasenet/releases  
+https://github.com/metabasenet/metabasenet/releases  
 ```
 
 3) In the windows operating system,when executing the program in your current directory, please change the "./metabasenet" command to "metabasenet". Same below. 
@@ -65,7 +65,7 @@ If multiple DPOS nodes are configured on the same host,the port and rpcport para
 command: metabasenet -daemon -debug
 ```
 
-## 5. Import DPOS mining template into Wallet (Use different escape character on Different OS, see [Tips on Different OS](https://github.com/Block-Way/metabasenet/wiki/JSON-RPC#tips-on-different-os))
+## 5. Import DPOS mining template into Wallet (Use different escape character on Different OS, see [Tips on Different OS](https://github.com/metabasenet/metabasenet/wiki/JSON-RPC#tips-on-different-os))
 
 ```
 command:
@@ -94,7 +94,7 @@ metabasenet sendfrom 1fyxnvvgvh6ry2znpj7z5adqt1dqce9mwz8wcj353zzahkwmm0p74y0t4 2
 ```
 NOTE: You need to generate a vote template address to be voted for based on the other's DPoS template address and your wallet address,and then vote for the newly generated vote address.This voting method is redeemable. Direct voting for DPOS mining template addresses is non-redeemable.
 
-1) Generate a vote template address (Use different escape character on Different OS, see [Tips on Different OS](https://github.com/Block-Way/metabasenet/wiki/JSON-RPC#tips-on-different-os))
+1) Generate a vote template address (Use different escape character on Different OS, see [Tips on Different OS](https://github.com/metabasenet/metabasenet/wiki/JSON-RPC#tips-on-different-os))
 command:
 metabasenet addnewtemplate vote '{"delegate": "The other's DPOS template address", "owner": "Your spending address/Your wallet address", "rewardmode": "0: reward to vote address, 1: reward to owner address"}'
 
@@ -115,7 +115,7 @@ metabasenet sendfrom 1tefq9nem7mdkr14gx3man2sr1bvvvfhey0evvctp3tdj6r4d279sr9p7 2
 ```
 NOTE: Because the whole chain of transactions needs to be loaded when importing the voice template address, it takes time. If you do not need to import the voice template address, you can use the following methods:
 
-1) Generate a vote template address (Use different escape character on Different OS, see [Tips on Different OS](https://github.com/Block-Way/metabasenet/wiki/JSON-RPC#tips-on-different-os))
+1) Generate a vote template address (Use different escape character on Different OS, see [Tips on Different OS](https://github.com/metabasenet/metabasenet/wiki/JSON-RPC#tips-on-different-os))
 command:
 metabasenet maketemplate vote '{"delegate": "The other's DPOS template address", "owner": "Your spending address/Your wallet address", "cycle": "cycle: 7,14,30,90", "nonce": "nonce"}}'
 

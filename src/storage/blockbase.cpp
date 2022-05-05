@@ -1154,6 +1154,13 @@ bool CBlockBase::SaveBlock(const uint256& hashFork, const uint256& hashBlock, co
             break;
         }
 
+        if (!UpdateBlockInvite(hashFork, hashBlock, block, blockRoot.hashInviteRoot))
+        {
+            StdError("BlockBase", "Save block: Update block invite failed, block: %s", hashBlock.ToString().c_str());
+            fRet = false;
+            break;
+        }
+
         if (fCfgFullDb)
         {
             uint256 hashAddressTxInfoRoot;
@@ -3085,15 +3092,51 @@ bool CBlockBase::UpdateBlockVoteReward(const uint256& hashFork, const uint256& h
     std::map<CDestination, uint256> mapVoteReward;
     for (const auto& tx : block.vtx)
     {
-        if (tx.nType == CTransaction::TX_VOTE_REWARD)
+        if (tx.nType == CTransaction::TX_DEFI_REWARD)
         {
-            mapVoteReward.insert(std::make_pair(tx.to, tx.nAmount));
+            uint256 nVoteReward;
+            try
+            {
+                bytes btData;
+                if (tx.GetTxData(CTransaction::DF_VOTEREWARD, btData))
+                {
+                    hnbase::CBufStream ss(btData);
+                    ss >> nVoteReward;
+                }
+            }
+            catch (std::exception& e)
+            {
+                hnbase::StdError(__PRETTY_FUNCTION__, e.what());
+            }
+            if (nVoteReward > 0)
+            {
+                mapVoteReward.insert(std::make_pair(tx.to, nVoteReward));
+            }
         }
     }
 
     if (!dbBlock.AddVoteReward(hashFork, block.hashPrev, hashBlock, block.GetBlockHeight(), mapVoteReward, hashNewRoot))
     {
         StdLog("BlockBase", "Update block vote reward: Add vote reward fail, block: %s", hashBlock.GetHex().c_str());
+        return false;
+    }
+    return true;
+}
+
+bool CBlockBase::UpdateBlockInvite(const uint256& hashFork, const uint256& hashBlock, const CBlockEx& block, uint256& hashNewRoot)
+{
+    std::map<CDestination, CDestination> mapInviteContext;
+    for (const auto& tx : block.vtx)
+    {
+        if (tx.nType == CTransaction::TX_DEFI_RELATION)
+        {
+            mapInviteContext.insert(std::make_pair(tx.to, tx.from));
+        }
+    }
+
+    if (!dbBlock.AddInviteRelation(hashFork, block.hashPrev, hashBlock, mapInviteContext, hashNewRoot))
+    {
+        StdLog("BlockBase", "Update block invite: Add invite context fail, block: %s", hashBlock.GetHex().c_str());
         return false;
     }
     return true;
@@ -4121,6 +4164,16 @@ bool CBlockBase::RetrieveAddressTxInfo(const uint256& hashFork, const uint256& h
     return dbBlock.RetrieveAddressTxInfo(hashFork, hashBlock, dest, nTxIndex, ctxtAddressTxInfo);
 }
 
+bool CBlockBase::ListDestState(const uint256& hashFork, const uint256& hashBlock, std::map<CDestination, CDestState>& mapBlockState)
+{
+    CBlockIndex* pIndex = nullptr;
+    if (!RetrieveIndex(hashBlock, &pIndex))
+    {
+        return false;
+    }
+    return dbBlock.ListDestState(hashFork, pIndex->hashStateRoot, mapBlockState);
+}
+
 bool CBlockBase::ListAddressTxInfo(const uint256& hashFork, const uint256& hashBlock, const CDestination& dest, const uint64 nBeginTxIndex, const uint64 nGetTxCount, const bool fReverse, std::vector<CDestTxInfo>& vAddressTxInfo)
 {
     return dbBlock.ListAddressTxInfo(hashFork, hashBlock, dest, nBeginTxIndex, nGetTxCount, fReverse, vAddressTxInfo);
@@ -4129,6 +4182,16 @@ bool CBlockBase::ListAddressTxInfo(const uint256& hashFork, const uint256& hashB
 bool CBlockBase::ListVoteReward(const uint256& hashFork, const uint256& hashBlock, const CDestination& dest, const uint32 nGetCount, std::vector<std::pair<uint32, uint256>>& vVoteReward)
 {
     return dbBlock.ListVoteReward(hashFork, hashBlock, dest, nGetCount, vVoteReward);
+}
+
+bool CBlockBase::RetrieveInviteParent(const uint256& hashFork, const uint256& hashBlock, const CDestination& destSub, CDestination& destParent)
+{
+    return dbBlock.RetrieveInviteParent(hashFork, hashBlock, destSub, destParent);
+}
+
+bool CBlockBase::ListInviteRelation(const uint256& hashFork, const uint256& hashBlock, std::map<CDestination, CDestination>& mapInviteContext)
+{
+    return dbBlock.ListInviteRelation(hashFork, hashBlock, mapInviteContext);
 }
 
 bool CBlockBase::GetTxIndex(const uint256& txid, CTxIndex& txIndex, uint256& hashAtFork)

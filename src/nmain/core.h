@@ -38,7 +38,6 @@ public:
     virtual uint256 MinEnrollAmount() override;
     virtual uint32 DPoSTimestamp(const CBlockIndex* pIndexPrev) override;
     virtual uint32 GetNextBlockTimeStamp(uint16 nPrevMintType, uint32 nPrevTimeStamp, uint16 nTargetMintType) override;
-    virtual uint32 CalcSingleBlockDistributeVoteRewardTxCount() override;
 
 protected:
     bool HandleInitialize() override;

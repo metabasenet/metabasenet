@@ -658,7 +658,7 @@ boost::optional<std::string> CService::CreateTransaction(const uint256& hashFork
     {
         nNewTxNonce = nNonce;
     }
-    if (nTxType != CTransaction::TX_TOKEN && nTxType != CTransaction::TX_DEFI_RELATION)
+    if (!CTransaction::IsUserTx(nTxType))
     {
         StdLog("CService", "Create Transaction: tx type error, tx type: %ld", nTxType);
         return std::string("tx type error");

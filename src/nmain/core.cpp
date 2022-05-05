@@ -192,12 +192,12 @@ Errno CCoreProtocol::ValidateTransaction(const CTransaction& tx, int nHeight)
             }
         }
     }
-    else if (tx.nType == CTransaction::TX_VOTE_REWARD)
+    else if (tx.nType == CTransaction::TX_DEFI_REWARD)
     {
         CTransaction txTemp;
 
         hnbase::CBufStream ss;
-        ss << CDestination();
+        ss << ~uint256();
         bytes btTempData;
         ss.GetData(btTempData);
         txTemp.AddTxData(CTransaction::DF_VOTEREWARD, btTempData);
@@ -212,7 +212,7 @@ Errno CCoreProtocol::ValidateTransaction(const CTransaction& tx, int nHeight)
             return DEBUG(ERR_TRANSACTION_INVALID, "tx data error, tx type: %s", tx.GetTypeString().c_str());
         }
     }
-    else if (tx.nType == CTransaction::TX_DEFI_REWARD)
+    else if (tx.nType == CTransaction::TX_DEFI_RELATION)
     {
         CTransaction txTemp;
         bytes btTempData;
@@ -240,7 +240,7 @@ Errno CCoreProtocol::ValidateTransaction(const CTransaction& tx, int nHeight)
     //{
     //    return DEBUG(ERR_TRANSACTION_OUTPUT_INVALID, "txfee overflow, fee: 0x%s", tx.GetTxFee().GetHex().c_str());
     //}
-    if (tx.nType == CTransaction::TX_TOKEN)
+    if (CTransaction::IsUserTx(tx.nType))
     {
         if (tx.nGasPrice < MIN_GAS_PRICE)
         {
@@ -254,14 +254,13 @@ Errno CCoreProtocol::ValidateTransaction(const CTransaction& tx, int nHeight)
                          tx.nGasLimit.GetHex().c_str(), nNeedGas.GetHex().c_str());
         }
     }
-    /*
     else
     {
         if (tx.GetTxFee() != 0)
         {
             return DEBUG(ERR_TRANSACTION_OUTPUT_INVALID, "non token tx, txfee nonzero, fee: 0x%s", tx.GetTxFee().GetHex().c_str());
         }
-    }*/
+    }
 
     if (GetSerializeSize(tx) > MAX_TX_SIZE)
     {
@@ -968,40 +967,6 @@ uint32 CCoreProtocol::GetNextBlockTimeStamp(uint16 nPrevMintType, uint32 nPrevTi
     return nPrevTimeStamp + BLOCK_TARGET_SPACING;
 }
 
-uint32 CCoreProtocol::CalcSingleBlockDistributeVoteRewardTxCount()
-{
-    static uint32 nDistributeTxCount = 0;
-    if (nDistributeTxCount == 0)
-    {
-        CBlock block;
-
-        CProofOfHashWork proof;
-        proof.Save(block.vchProof);
-        size_t nMaxTxSize = MAX_BLOCK_SIZE - hnbase::GetSerializeSize(block);
-
-        CTransaction txReward;
-        txReward.nType = CTransaction::TX_VOTE_REWARD;
-        txReward.hashFork = GetGenesisBlockHash();
-        txReward.nTimeStamp = 0;
-        txReward.nTxNonce = 1;
-        txReward.to = CDestination();
-        txReward.nAmount = ~uint256();
-
-        hnbase::CBufStream ss;
-        ss << CDestination();
-        bytes btTempData;
-        btTempData.assign(ss.GetData(), ss.GetData() + ss.GetSize());
-        txReward.AddTxData(CTransaction::DF_VOTEREWARD, btTempData);
-
-        nDistributeTxCount = (uint32)(nMaxTxSize / hnbase::GetSerializeSize(txReward));
-        if (nDistributeTxCount > 100)
-        {
-            nDistributeTxCount -= 100;
-        }
-    }
-    return nDistributeTxCount;
-}
-
 bool CCoreProtocol::CheckBlockSignature(const CBlock& block)
 {
     if (block.GetHash() != GetGenesisBlockHash())
@@ -1260,6 +1225,14 @@ Errno CCoreProtocol::VerifyDefiRelationTx(const uint256& hashPrev, const CTransa
     if (!crypto::CryptoVerify(sharedPubKey, parentSignHashStr.begin(), parentSignHashStr.size(), parentSign))
     {
         StdLog("CoreProtocol", "Verify defi relation Tx: DeFi tx parent signature in vchData is not currect, txid: %s", tx.GetHash().GetHex().c_str());
+        return ERR_TRANSACTION_INVALID;
+    }
+
+    CDestination destParent;
+    if (pBlockChain->RetrieveInviteParent(tx.hashFork, hashPrev, tx.to, destParent))
+    {
+        StdLog("CoreProtocol", "Verify defi relation Tx: To address has been invited, to: %s, txid: %s",
+               tx.to.ToString().c_str(), tx.GetHash().GetHex().c_str());
         return ERR_TRANSACTION_INVALID;
     }
     return OK;

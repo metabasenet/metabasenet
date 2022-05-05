@@ -57,7 +57,7 @@ sudo make install
 ```
 **Download code and compile**
 ```
-git clone https://github.com/Block-Way/MetabaseNet.git
+git clone https://github.com/metabasenet/MetabaseNet.git
 cd metabasenet
 ./INSTALL.sh
 ```

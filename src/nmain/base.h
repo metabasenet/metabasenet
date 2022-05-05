@@ -58,7 +58,6 @@ public:
     virtual uint256 MinEnrollAmount() = 0;
     virtual uint32 DPoSTimestamp(const CBlockIndex* pIndexPrev) = 0;
     virtual uint32 GetNextBlockTimeStamp(uint16 nPrevMintType, uint32 nPrevTimeStamp, uint16 nTargetMintType) = 0;
-    virtual uint32 CalcSingleBlockDistributeVoteRewardTxCount() = 0;
 };
 
 class IBlockChain : public hnbase::IBase
@@ -143,6 +142,7 @@ public:
     virtual bool VerifyAddressVoteRedeem(const CDestination& dest, const uint256& hashPrevBlock) = 0;
     virtual bool GetVoteRewardLockedAmount(const uint256& hashFork, const uint256& hashPrevBlock, const CDestination& dest, uint256& nLockedAmount) = 0;
     virtual bool VerifyForkName(const uint256& hashFork, const std::string& strForkName, const uint256& hashBlock = uint256()) = 0;
+    virtual bool RetrieveInviteParent(const uint256& hashFork, const uint256& hashBlock, const CDestination& destSub, CDestination& destParent) = 0;
 
     /////////////    CheckPoints    /////////////////////
     virtual bool HasCheckPoints(const uint256& hashFork) const = 0;

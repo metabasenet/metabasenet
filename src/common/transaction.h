@@ -33,13 +33,13 @@ public:
     enum
     {
         TX_TOKEN = 0x0000,         // normal Tx 0
-        TX_CERT = 0xff00,          // Enroll Tx 65280
-        TX_GENESIS = 0x0100,       // 256
-        TX_STAKE = 0x0200,         // DPoS mint Tx 512
-        TX_WORK = 0x0300,          // PoW mint Tx 768
-        TX_VOTE_REWARD = 0x0400,   // Vote reward Tx
-        TX_DEFI_REWARD = 0x0500,   // DeFi reward Tx
-        TX_DEFI_RELATION = 0x0001, // DeFi bind relation Tx
+        TX_DEFI_RELATION = 0x0001, // DeFi invite relation Tx
+
+        TX_CERT = 0xff00,        // Enroll Tx 65280
+        TX_GENESIS = 0x0100,     // 256
+        TX_STAKE = 0x0200,       // DPoS mint Tx 512
+        TX_WORK = 0x0300,        // PoW mint Tx 768
+        TX_DEFI_REWARD = 0x0400, // DeFi reward Tx
     };
     enum
     {
@@ -91,13 +91,17 @@ public:
     }
     bool IsNoMintRewardTx() const
     {
-        return (nType == TX_VOTE_REWARD || nType == TX_DEFI_REWARD);
+        return (nType == TX_DEFI_REWARD);
     }
     bool IsRewardTx() const
     {
         return (IsMintTx() || IsNoMintRewardTx());
     }
-    static std::string GetTypeStringStatic(uint16 nTxType)
+    static bool IsUserTx(const uint16 nTxType)
+    {
+        return (nTxType == TX_TOKEN || nTxType == TX_DEFI_RELATION);
+    }
+    static std::string GetTypeStringStatic(const uint16 nTxType)
     {
         if (nTxType == TX_TOKEN)
             return std::string("token");
@@ -109,8 +113,6 @@ public:
             return std::string("stake");
         else if (nTxType == TX_WORK)
             return std::string("work");
-        else if (nTxType == TX_VOTE_REWARD)
-            return std::string("vote-reward");
         else if (nTxType == TX_DEFI_REWARD)
             return std::string("defi-reward");
         else if (nTxType == TX_DEFI_RELATION)
@@ -338,8 +340,7 @@ public:
     bool IsRewardTx() const
     {
         return (nTxType == CTransaction::TX_GENESIS || nTxType == CTransaction::TX_STAKE
-                || nTxType == CTransaction::TX_WORK || nTxType == CTransaction::TX_VOTE_REWARD
-                || nTxType == CTransaction::TX_DEFI_REWARD);
+                || nTxType == CTransaction::TX_WORK || nTxType == CTransaction::TX_DEFI_REWARD);
     }
 
 public:

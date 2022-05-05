@@ -15,6 +15,7 @@ set(sources
     txpooldata.cpp      txpooldata.h
     delegatedb.cpp      delegatedb.h
     forkdb.cpp          forkdb.h
+    invitedb.cpp        invitedb.h
     purger.cpp          purger.h
     leveldbeng.cpp      leveldbeng.h
     txindexdb.cpp       txindexdb.h

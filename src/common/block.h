@@ -162,6 +162,7 @@ public:
     {
         if (nType == BLOCK_EXTENDED || nType == BLOCK_VACANT)
         {
+            nMintCoin = 0;
             return true;
         }
         bytes btTempData;
@@ -323,6 +324,7 @@ public:
     uint256 nGasUsed;
     uint256 nChainTrust;
     uint256 nBlockReward;
+    uint256 nMintReward;
     uint256 nMoneySupply;
     uint256 nMoneyDestroy;
     uint8 nProofAlgo;
@@ -354,6 +356,7 @@ public:
         nGasUsed = 0;
         nChainTrust = uint64(0);
         nBlockReward = 0;
+        nMintReward = 0;
         nMoneySupply = 0;
         nMoneyDestroy = 0;
         nProofAlgo = 0;
@@ -393,6 +396,7 @@ public:
         nGasUsed = block.nGasUsed;
         nChainTrust = uint64(0);
         nBlockReward = block.GetBlockTotalReward();
+        block.GetBlockMint(nMintReward);
         nMoneySupply = 0;
         nMoneyDestroy = 0;
         nProofAlgo = 0;
@@ -457,6 +461,10 @@ public:
     uint256 GetBlockReward() const
     {
         return nBlockReward;
+    }
+    uint256 GetMintReward() const
+    {
+        return nMintReward;
     }
     uint256 GetMoneySupply() const
     {
@@ -605,6 +613,7 @@ protected:
         s.Serialize(nGasUsed, opt);
         s.Serialize(nChainTrust, opt);
         s.Serialize(nBlockReward, opt);
+        s.Serialize(nMintReward, opt);
         s.Serialize(nMoneySupply, opt);
         s.Serialize(nMoneyDestroy, opt);
         s.Serialize(nProofAlgo, opt);
@@ -693,6 +702,7 @@ public:
     uint256 hashDelegateRoot;
     uint256 hashVoteRoot;
     uint256 hashVoteRewardRoot;
+    uint256 hashInviteRoot;
 
 protected:
     template <typename O>
@@ -706,6 +716,7 @@ protected:
         s.Serialize(hashDelegateRoot, opt);
         s.Serialize(hashVoteRoot, opt);
         s.Serialize(hashVoteRewardRoot, opt);
+        s.Serialize(hashInviteRoot, opt);
     }
 };
 

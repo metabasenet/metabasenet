@@ -81,6 +81,7 @@ public:
     bool VerifyAddressVoteRedeem(const CDestination& dest, const uint256& hashPrevBlock) override;
     bool GetVoteRewardLockedAmount(const uint256& hashFork, const uint256& hashPrevBlock, const CDestination& dest, uint256& nLockedAmount) override;
     bool VerifyForkName(const uint256& hashFork, const std::string& strForkName, const uint256& hashBlock = uint256()) override;
+    bool RetrieveInviteParent(const uint256& hashFork, const uint256& hashBlock, const CDestination& destSub, CDestination& destParent) override;
 
     /////////////    CheckPoints    /////////////////////
     typedef std::map<int, CCheckPoint> MapCheckPointsType;
@@ -104,9 +105,6 @@ public:
     bool VerifyContractAddress(const uint256& hashFork, const uint256& hashBlock, const CDestination& destContract) override;
     bool VerifyCreateContractTx(const uint256& hashFork, const uint256& hashBlock, const CTransaction& tx) override;
 
-public:
-    static int64 GetBlockInvestRewardTxMaxCount();
-
 protected:
     bool HandleInitialize() override;
     void HandleDeinitialize() override;
@@ -128,9 +126,13 @@ protected:
     bool VerifyVoteRewardTx(const CBlock& block, std::size_t& nRewardTxCount);
     Errno VerifyBlockTx(const uint256& hashFork, const uint256& hashBlock, const CBlock& block, const uint256& nReward,
                         const std::size_t nIgnoreVerifyTx, const std::map<uint256, CAddressContext>& mapBlockAddress);
+
+    uint32 GetBlockInvestRewardTxMaxCount();
     bool CalcEndVoteReward(const uint256& hashPrev, const uint16 nBlockType, const int nBlockHeight, const uint32 nBlockTime,
                            const uint256& hashFork, const uint256& hashCalcEndBlock, std::vector<std::vector<CTransaction>>& vRewardList);
-    bool CalcDistributeVoteReward(const uint256& hashCalcEndBlock, std::map<CDestination, std::pair<CDestination, uint256>>& mapVoteReward);
+    bool CalcDistributeVoteReward(const uint256& hashCalcEndBlock, uint256& nTotalMintReward, std::map<CDestination, std::pair<CDestination, uint256>>& mapVoteReward);
+
+    bool CalcInviteRelationReward(const uint256& hashFork, const uint256& hashCalcEndBlock, const uint256& nTotalReward, std::map<CDestination, uint256>& mapInviteReward);
 
 protected:
     enum

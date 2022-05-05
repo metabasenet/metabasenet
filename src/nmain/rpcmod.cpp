@@ -1883,7 +1883,7 @@ CRPCResultPtr CRPCMod::RPCSendFrom(CRPCParamPtr param)
     if (spParam->nTxtype.IsValid())
     {
         nTxType = spParam->nTxtype;
-        if (nTxType != CTransaction::TX_TOKEN && nTxType != CTransaction::TX_DEFI_RELATION)
+        if (!CTransaction::IsUserTx(nTxType))
         {
             throw CRPCException(RPC_INVALID_PARAMETER, "Invalid txtype");
         }
@@ -2028,7 +2028,7 @@ CRPCResultPtr CRPCMod::RPCCreateTransaction(CRPCParamPtr param)
     if (spParam->nTxtype.IsValid())
     {
         nTxType = spParam->nTxtype;
-        if (nTxType != CTransaction::TX_TOKEN && nTxType != CTransaction::TX_DEFI_RELATION)
+        if (!CTransaction::IsUserTx(nTxType))
         {
             throw CRPCException(RPC_INVALID_PARAMETER, "Invalid txtype");
         }

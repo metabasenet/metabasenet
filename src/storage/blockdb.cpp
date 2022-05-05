@@ -73,6 +73,10 @@ bool CBlockDB::Initialize(const boost::filesystem::path& pathData, const uint256
     {
         return false;
     }
+    if (!dbInvite.Initialize(pathData))
+    {
+        return false;
+    }
     if (fCfgFullDb)
     {
         if (!dbAddressTxInfo.Initialize(pathData))
@@ -85,6 +89,7 @@ bool CBlockDB::Initialize(const boost::filesystem::path& pathData, const uint256
 
 void CBlockDB::Deinitialize()
 {
+    dbInvite.Deinitialize();
     dbVoteReward.Deinitialize();
     dbWasm.Deinitialize();
     dbCode.Deinitialize();
@@ -104,6 +109,7 @@ void CBlockDB::Deinitialize()
 
 void CBlockDB::RemoveAll()
 {
+    dbInvite.Clear();
     dbVoteReward.Clear();
     dbWasm.Clear();
     dbCode.Clear();
@@ -192,6 +198,11 @@ bool CBlockDB::AddNewFork(const uint256& hashFork)
         RemoveFork(hashFork);
         return false;
     }
+    if (!dbInvite.AddNewFork(hashFork))
+    {
+        RemoveFork(hashFork);
+        return false;
+    }
     if (fCfgFullDb)
     {
         if (!dbAddressTxInfo.AddNewFork(hashFork))
@@ -229,6 +240,10 @@ bool CBlockDB::LoadFork(const uint256& hashFork)
     {
         return false;
     }
+    if (!dbInvite.LoadFork(hashFork))
+    {
+        return false;
+    }
     if (fCfgFullDb)
     {
         if (!dbAddressTxInfo.LoadFork(hashFork))
@@ -247,6 +262,7 @@ bool CBlockDB::RemoveFork(const uint256& hashFork)
     dbCode.RemoveFork(hashFork);
     dbWasm.RemoveFork(hashFork);
     dbVoteReward.RemoveFork(hashFork);
+    dbInvite.RemoveFork(hashFork);
     if (fCfgFullDb)
     {
         dbAddressTxInfo.RemoveFork(hashFork);
@@ -491,6 +507,21 @@ bool CBlockDB::ListVoteReward(const uint256& hashFork, const uint256& hashBlock,
     return dbVoteReward.ListVoteReward(hashFork, hashBlock, dest, nGetCount, vVoteReward);
 }
 
+bool CBlockDB::AddInviteRelation(const uint256& hashFork, const uint256& hashPrevBlock, const uint256& hashBlock, const std::map<CDestination, CDestination>& mapInviteContext, uint256& hashNewRoot)
+{
+    return dbInvite.AddInviteRelation(hashFork, hashPrevBlock, hashBlock, mapInviteContext, hashNewRoot);
+}
+
+bool CBlockDB::RetrieveInviteParent(const uint256& hashFork, const uint256& hashBlock, const CDestination& destSub, CDestination& destParent)
+{
+    return dbInvite.RetrieveInviteParent(hashFork, hashBlock, destSub, destParent);
+}
+
+bool CBlockDB::ListInviteRelation(const uint256& hashFork, const uint256& hashBlock, std::map<CDestination, CDestination>& mapInviteContext)
+{
+    return dbInvite.ListInviteRelation(hashFork, hashBlock, mapInviteContext);
+}
+
 bool CBlockDB::VerifyBlockRoot(const bool fPrimary, const uint256& hashFork, const uint256& hashPrevBlock, const uint256& hashBlock,
                                const uint256& hashLocalStateRoot, CBlockRoot& localBlockRoot, const bool fVerifyAllNode)
 {
@@ -538,6 +569,11 @@ bool CBlockDB::VerifyBlockRoot(const bool fPrimary, const uint256& hashFork, con
         StdError("CBlockDB", "Verify block root: Verify reward lock fail, block: %s", hashBlock.GetHex().c_str());
         return false;
     }
+    if (!dbInvite.VerifyInviteContext(hashFork, hashPrevBlock, hashBlock, localBlockRoot.hashInviteRoot, fVerifyAllNode))
+    {
+        StdError("CBlockDB", "Verify block root: Verify invite fail, block: %s", hashBlock.GetHex().c_str());
+        return false;
+    }
     if (fCfgFullDb)
     {
         uint256 hashAddressTxInfoRoot;
@@ -582,6 +618,10 @@ bool CBlockDB::LoadAllFork()
             return false;
         }
         if (!dbVoteReward.LoadFork(kv.first))
+        {
+            return false;
+        }
+        if (!dbInvite.LoadFork(kv.first))
         {
             return false;
         }

@@ -280,6 +280,7 @@ public:
     bool UpdateBlockCode(const uint256& hashFork, const uint256& hashBlock, const CBlock& block, const uint32 nFile, const uint32 nBlockOffset,
                          const std::map<uint256, CWasmRunCodeContext>& mapWasmRunCodeContextIn, uint256& hashCodeRoot);
     bool UpdateBlockVoteReward(const uint256& hashFork, const uint256& hashBlock, const CBlockEx& block, uint256& hashNewRoot);
+    bool UpdateBlockInvite(const uint256& hashFork, const uint256& hashBlock, const CBlockEx& block, uint256& hashNewRoot);
     bool RetrieveWasmState(const uint256& hashFork, const uint256& hashWasmRoot, const uint256& key, bytes& value);
     bool AddBlockWasmState(const uint256& hashFork, const uint256& hashPrevRoot, uint256& hashWasmRoot, const std::map<uint256, bytes>& mapWasmState);
     bool RetrieveAddressContext(const uint256& hashFork, const uint256& hashBlock, const uint256& dest, CAddressContext& ctxtAddress);
@@ -298,8 +299,11 @@ public:
     bool VerifyCreateContractTx(const uint256& hashFork, const uint256& hashBlock, const CTransaction& tx);
     bool GetAddressTxCount(const uint256& hashFork, const uint256& hashBlock, const CDestination& dest, uint64& nTxCount);
     bool RetrieveAddressTxInfo(const uint256& hashFork, const uint256& hashBlock, const CDestination& dest, const uint64 nTxIndex, CDestTxInfo& ctxtAddressTxInfo);
+    bool ListDestState(const uint256& hashFork, const uint256& hashBlock, std::map<CDestination, CDestState>& mapBlockState);
     bool ListAddressTxInfo(const uint256& hashFork, const uint256& hashBlock, const CDestination& dest, const uint64 nBeginTxIndex, const uint64 nGetTxCount, const bool fReverse, std::vector<CDestTxInfo>& vAddressTxInfo);
     bool ListVoteReward(const uint256& hashFork, const uint256& hashBlock, const CDestination& dest, const uint32 nGetCount, std::vector<std::pair<uint32, uint256>>& vVoteReward);
+    bool RetrieveInviteParent(const uint256& hashFork, const uint256& hashBlock, const CDestination& destSub, CDestination& destParent);
+    bool ListInviteRelation(const uint256& hashFork, const uint256& hashBlock, std::map<CDestination, CDestination>& mapInviteContext);
 
 protected:
     CBlockIndex* GetIndex(const uint256& hash) const;

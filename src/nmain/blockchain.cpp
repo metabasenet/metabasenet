@@ -660,6 +660,7 @@ bool CBlockChain::GetBlockMintReward(const uint256& hashPrev, uint256& nReward)
             nReward = profile.nMintReward / uint256(u);
         }
     }
+    nReward = nReward / 2;
     return true;
 }
 
@@ -1933,6 +1934,11 @@ bool CBlockChain::VerifyForkName(const uint256& hashFork, const std::string& str
     return true;
 }
 
+bool CBlockChain::RetrieveInviteParent(const uint256& hashFork, const uint256& hashBlock, const CDestination& destSub, CDestination& destParent)
+{
+    return cntrBlock.RetrieveInviteParent(hashFork, hashBlock, destSub, destParent);
+}
+
 bool CBlockChain::CalcBlockVoteRewardTx(const uint256& hashPrev, const uint16 nBlockType, const int nBlockHeight, const uint32 nBlockTime, vector<CTransaction>& vVoteRewardTx)
 {
     boost::unique_lock<boost::shared_mutex> wlock(rwCvrAccess);
@@ -2048,38 +2054,6 @@ bool CBlockChain::CalcBlockVoteRewardTx(const uint256& hashPrev, const uint16 nB
         }
     }
     return true;
-}
-
-int64 CBlockChain::GetBlockInvestRewardTxMaxCount()
-{
-    CBlock block;
-
-    metabasenet::crypto::CPubKey pubkey(uint256("d1e1a33b30ec21b3675608679b7750ef2dd38d9bb8847ddf8a8e5c19273357ac"));
-    const CDestination dest = CDestination(metabasenet::crypto::CPubKey(uint256("2ae5c9621cd4ca80653a6fa4438ad8f31b240c29344c9655e6e64c88c213ee10")));
-
-    CTemplatePtr ptrDelegate = CTemplate::CreateTemplatePtr(new CTemplateDelegate(pubkey, dest, 500));
-    CTemplatePtr ptrProof = CTemplateMint::CreateTemplatePtr(new CTemplateProof(pubkey, dest));
-
-    size_t nMintDataSize = ptrDelegate->GetTemplateData().size();
-    if (nMintDataSize < ptrProof->GetTemplateData().size())
-    {
-        nMintDataSize = ptrProof->GetTemplateData().size();
-    }
-
-    size_t nSigSize = nMintDataSize + 64 + 2;
-    size_t nProofSize = 680;
-    size_t nMaxTxSize = MAX_BLOCK_SIZE - GetSerializeSize(block) - nSigSize - nProofSize;
-    nMaxTxSize = nMaxTxSize * 9 / 10;
-
-    CTransaction txReward;
-
-    hnbase::CBufStream ss;
-    ss << CDestination();
-    bytes btTempData;
-    btTempData.assign(ss.GetData(), ss.GetData() + ss.GetSize());
-    txReward.AddTxData(CTransaction::DF_VOTEREWARD, btTempData);
-
-    return (nMaxTxSize / GetSerializeSize(txReward));
 }
 
 uint256 CBlockChain::GetPrimaryBlockReward(const uint256& hashPrev)
@@ -2357,59 +2331,141 @@ Errno CBlockChain::VerifyBlockTx(const uint256& hashFork, const uint256& hashBlo
     return OK;
 }
 
+uint32 CBlockChain::GetBlockInvestRewardTxMaxCount()
+{
+    CBlock block;
+
+    CProofOfHashWork proof;
+    proof.Save(block.vchProof);
+    size_t nMaxTxSize = MAX_BLOCK_SIZE - hnbase::GetSerializeSize(block);
+
+    CTransaction txReward;
+    txReward.nType = CTransaction::TX_DEFI_REWARD;
+    txReward.hashFork = ~uint256();
+    txReward.nTimeStamp = 0;
+    txReward.nTxNonce = 1;
+    txReward.to = CDestination();
+    txReward.nAmount = ~uint256();
+
+    hnbase::CBufStream ss;
+    ss << ~uint256();
+    bytes btTempData;
+    ss.GetData(btTempData);
+    txReward.AddTxData(CTransaction::DF_VOTEREWARD, btTempData);
+
+    uint32 nDistributeVoteTxCount = (uint32)(nMaxTxSize / hnbase::GetSerializeSize(txReward));
+    if (nDistributeVoteTxCount > 100)
+    {
+        nDistributeVoteTxCount -= 100;
+    }
+    return nDistributeVoteTxCount;
+    /*
+    CBlock block;
+
+    metabasenet::crypto::CPubKey pubkey(uint256("d1e1a33b30ec21b3675608679b7750ef2dd38d9bb8847ddf8a8e5c19273357ac"));
+    const CDestination dest = CDestination(metabasenet::crypto::CPubKey(uint256("2ae5c9621cd4ca80653a6fa4438ad8f31b240c29344c9655e6e64c88c213ee10")));
+
+    CTemplatePtr ptrDelegate = CTemplate::CreateTemplatePtr(new CTemplateDelegate(pubkey, dest, 500));
+    CTemplatePtr ptrProof = CTemplateMint::CreateTemplatePtr(new CTemplateProof(pubkey, dest));
+
+    size_t nMintDataSize = ptrDelegate->GetTemplateData().size();
+    if (nMintDataSize < ptrProof->GetTemplateData().size())
+    {
+        nMintDataSize = ptrProof->GetTemplateData().size();
+    }
+
+    size_t nSigSize = nMintDataSize + 64 + 2;
+    size_t nProofSize = 680;
+    size_t nMaxTxSize = MAX_BLOCK_SIZE - GetSerializeSize(block) - nSigSize - nProofSize;
+    nMaxTxSize = nMaxTxSize * 9 / 10;
+
+    CTransaction txReward;
+
+    hnbase::CBufStream ss;
+    ss << ~uint256();
+    bytes btTempData;
+    btTempData.assign(ss.GetData(), ss.GetData() + ss.GetSize());
+    txReward.AddTxData(CTransaction::DF_VOTEREWARD, btTempData);
+
+    return (nMaxTxSize / GetSerializeSize(txReward));*/
+}
+
 bool CBlockChain::CalcEndVoteReward(const uint256& hashPrev, const uint16 nBlockType, const int nBlockHeight, const uint32 nBlockTime,
                                     const uint256& hashFork, const uint256& hashCalcEndBlock, vector<vector<CTransaction>>& vRewardList)
 {
+    uint256 nTotalMintReward;
     map<CDestination, pair<CDestination, uint256>> mapVoteReward;
-    if (!CalcDistributeVoteReward(hashCalcEndBlock, mapVoteReward))
+    if (!CalcDistributeVoteReward(hashCalcEndBlock, nTotalMintReward, mapVoteReward))
     {
         StdError("BlockChain", "Calc end vote reward tx: Calc distribute pledge reward fail, hashCalcEndBlock: %s", hashCalcEndBlock.GetHex().c_str());
         return false;
     }
 
-    if (!mapVoteReward.empty())
+    map<CDestination, uint256> mapInviteReward;
+    if (!CalcInviteRelationReward(hashFork, hashCalcEndBlock, nTotalMintReward, mapInviteReward))
     {
-        uint32 nSingleBlockTxCount = pCoreProtocol->CalcSingleBlockDistributeVoteRewardTxCount();
+        StdError("BlockChain", "Calc end vote reward tx: Calc distribute invite reward fail, hashCalcEndBlock: %s", hashCalcEndBlock.GetHex().c_str());
+        return false;
+    }
+
+    class CReward
+    {
+    public:
+        CReward() {}
+
+        uint256 nTotalReward;
+        uint256 nVoteReward;
+    };
+
+    map<CDestination, CReward> mapReward;
+    for (const auto& kv : mapVoteReward)
+    {
+        auto& reward = mapReward[kv.second.first];
+        reward.nTotalReward += kv.second.second;
+        reward.nVoteReward += kv.second.second;
+    }
+    for (const auto& kv : mapInviteReward)
+    {
+        mapReward[kv.first].nTotalReward += kv.second;
+    }
+
+    if (!mapReward.empty())
+    {
+        const uint32 nSingleBlockTxCount = nMaxBlockRewardTxCount;
         if (nSingleBlockTxCount == 0)
         {
             StdError("BlockChain", "Calc end vote reward tx: Calc Single Block Distribute Vote Reward Tx Count fail, hashCalcEndBlock: %s", hashCalcEndBlock.GetHex().c_str());
             return false;
         }
         uint32 nAddBlockCount = 0;
-        if (mapVoteReward.size() > 0)
+        if (mapReward.size() > 0)
         {
-            nAddBlockCount = mapVoteReward.size() / nSingleBlockTxCount;
-            if ((mapVoteReward.size() % nSingleBlockTxCount) > 0)
+            nAddBlockCount = mapReward.size() / nSingleBlockTxCount;
+            if ((mapReward.size() % nSingleBlockTxCount) > 0)
             {
                 nAddBlockCount++;
             }
         }
         StdDebug("BlockChain", "Calc end vote reward tx: Single block tx count: %d, Pledge reward address count: %lu, Add block count: %d",
-                 nSingleBlockTxCount, mapVoteReward.size(), nAddBlockCount);
+                 nSingleBlockTxCount, mapReward.size(), nAddBlockCount);
 
         vRewardList.resize(nAddBlockCount);
 
         uint32 nAddTxCount = 0;
-        for (const auto& kv : mapVoteReward)
+        for (const auto& kv : mapReward)
         {
-            if (!kv.first.IsTemplate())
-            {
-                StdError("BlockChain", "Calc end vote reward tx: address error, vote: %s", kv.first.ToString().c_str());
-                return false;
-            }
-
             CTransaction txReward;
-            txReward.nType = CTransaction::TX_VOTE_REWARD;
+            txReward.nType = CTransaction::TX_DEFI_REWARD;
             txReward.hashFork = hashFork;
             txReward.nTimeStamp = 0;
             txReward.nTxNonce = nAddTxCount;
-            txReward.to = kv.second.first;
-            txReward.nAmount = kv.second.second;
+            txReward.to = kv.first;
+            txReward.nAmount = kv.second.nTotalReward;
 
             hnbase::CBufStream ss;
-            ss << kv.first;
+            ss << kv.second.nVoteReward;
             bytes btTempData;
-            btTempData.assign(ss.GetData(), ss.GetData() + ss.GetSize());
+            ss.GetData(btTempData);
             txReward.AddTxData(CTransaction::DF_VOTEREWARD, btTempData);
 
             if (txReward.to.IsTemplate())
@@ -2465,7 +2521,7 @@ bool CBlockChain::CalcEndVoteReward(const uint256& hashPrev, const uint16 nBlock
     return true;
 }
 
-bool CBlockChain::CalcDistributeVoteReward(const uint256& hashCalcEndBlock, std::map<CDestination, std::pair<CDestination, uint256>>& mapVoteReward)
+bool CBlockChain::CalcDistributeVoteReward(const uint256& hashCalcEndBlock, uint256& nTotalMintReward, std::map<CDestination, std::pair<CDestination, uint256>>& mapVoteReward)
 {
     // hashCalcEndBlock at 4320 height or multiple
     const int nDistributeHeight = VOTE_REWARD_DISTRIBUTE_HEIGHT;
@@ -2502,6 +2558,7 @@ bool CBlockChain::CalcDistributeVoteReward(const uint256& hashCalcEndBlock, std:
     CBlockIndex* pIndex = pTailIndex;
     while (pIndex && pIndex->pPrev && !pIndex->IsOrigin() && pIndex->GetBlockHeight() >= nBeginHeight)
     {
+        nTotalMintReward += pIndex->GetMintReward();
         if ((pIndex->IsPrimary() && pIndex->nMintType == CTransaction::TX_STAKE)
             || (!pIndex->IsPrimary() && (pIndex->IsSubsidiary() || pIndex->IsExtended())))
         {
@@ -2654,6 +2711,109 @@ bool CBlockChain::CalcDistributeVoteReward(const uint256& hashCalcEndBlock, std:
     {
         StdLog("BlockChain", "Calculate block vote reward: Walk through day vote fail, hashCalcEndBlock: %s", hashCalcEndBlock.GetHex().c_str());
         return false;
+    }
+    return true;
+}
+
+bool CBlockChain::CalcInviteRelationReward(const uint256& hashFork, const uint256& hashCalcEndBlock, const uint256& nTotalReward, std::map<CDestination, uint256>& mapInviteReward)
+{
+    std::map<CDestination, CDestination> mapInviteContext; // key: sub, value: parent
+    if (!cntrBlock.ListInviteRelation(hashFork, hashCalcEndBlock, mapInviteContext))
+    {
+        StdLog("BlockChain", "Calculate block invite reward: List invite relation fail, hashFork: %s, hashCalcEndBlock: %s",
+               hashFork.GetHex().c_str(), hashCalcEndBlock.GetHex().c_str());
+        return false;
+    }
+
+    std::map<CDestination, CDestState> mapBlockState;
+    if (!cntrBlock.ListDestState(hashFork, hashCalcEndBlock, mapBlockState))
+    {
+        StdLog("BlockChain", "Calculate block invite reward: List dest state fail, hashFork: %s, hashCalcEndBlock: %s",
+               hashFork.GetHex().c_str(), hashCalcEndBlock.GetHex().c_str());
+        return false;
+    }
+
+    class CInvitePower
+    {
+    public:
+        CInvitePower()
+          : nMaxBalance(0), nPower(0) {}
+
+    public:
+        std::map<CDestination, uint64> mapDestBalance;
+        uint64 nMaxBalance;
+        CDestination destMax;
+        uint64 nPower;
+    };
+
+    std::map<CDestination, CInvitePower> mapCalcDest;
+    for (const auto& kv : mapInviteContext)
+    {
+        uint64 nBalance = 0;
+        auto it = mapBlockState.find(kv.first);
+        if (it != mapBlockState.end())
+        {
+            nBalance = (it->second.GetBalance() / COIN).Get64();
+        }
+        CInvitePower& invitePower = mapCalcDest[kv.second];
+        invitePower.mapDestBalance[kv.first] = nBalance;
+        if (nBalance > invitePower.nMaxBalance)
+        {
+            invitePower.nMaxBalance = nBalance;
+            invitePower.destMax = kv.first;
+        }
+    }
+
+    uint256 nTotalPower;
+    const uint64 nBase = 10000;
+    for (auto& kv : mapCalcDest)
+    {
+        CInvitePower& invitePower = kv.second;
+        for (auto& vd : invitePower.mapDestBalance)
+        {
+            const uint64& nBalance = vd.second;
+            if (vd.first == invitePower.destMax)
+            {
+                invitePower.nPower += (uint64)(llround(pow(nBalance, 1.0 / 3)));
+            }
+            else
+            {
+                if (nBalance > nBase)
+                {
+                    invitePower.nPower += (nBase * 10);
+                    invitePower.nPower += (nBalance - nBase);
+                }
+                else
+                {
+                    invitePower.nPower += (nBalance * 10);
+                }
+            }
+        }
+        nTotalPower += invitePower.nPower;
+    }
+
+    uint256 nStatReward;
+    CDestination destFirst;
+    for (auto& kv : mapCalcDest)
+    {
+        if (kv.second.nPower > 0)
+        {
+            uint256 nReward = nTotalReward * uint256(kv.second.nPower) / nTotalPower;
+            mapInviteReward[kv.first] = nReward;
+            nStatReward += nReward;
+            if (destFirst.IsNull())
+            {
+                destFirst = kv.first;
+            }
+        }
+    }
+    if (destFirst.IsNull() && mapCalcDest.size() > 0 && nTotalReward > 0)
+    {
+        destFirst = mapCalcDest.begin()->first;
+    }
+    if (nStatReward < nTotalReward && !destFirst.IsNull())
+    {
+        mapInviteReward[destFirst] += (nTotalReward - nStatReward);
     }
     return true;
 }

@@ -3,7 +3,7 @@
 * Developers work in their own forks, then submit pull requests when they think their feature or bug fix is ready.
 * If it is a simple/trivial/non-controversial change, then one of the development team members simply pulls it.
 * If it is a more complicated or potentially controversial change, then the change may be discussed in the pull request.
-* The patch will be accepted if there is broad consensus that it is a good thing. Developers should expect to rework and resubmit patches if they don't match the project's coding conventions (see [the coding guides](https://github.com/Block-Way/metabasenet/wiki/MetabaseNet-Open-source-Style-Guides)) or are controversial.
+* The patch will be accepted if there is broad consensus that it is a good thing. Developers should expect to rework and resubmit patches if they don't match the project's coding conventions (see [the coding guides](https://github.com/metabasenet/metabasenet/wiki/MetabaseNet-Open-source-Style-Guides)) or are controversial.
 * From time to time a pull request will become outdated. If this occurs, and the pull is no longer automatically mergeable; a comment on the pull will be used to issue a warning of closure.  Pull requests closed in this manner will have their corresponding issue labeled 'stagnant'.
 
 ## Installation (Ubuntu16.04/18.04)
@@ -57,7 +57,7 @@ cd ..
 ```
 ## Download code and compile
 ```
-git clone https://github.com/Block-Way/MetabaseNet.git
+git clone https://github.com/metabasenet/MetabaseNet.git
 cd metabasenet
 ./INSTALL.sh
 ```
