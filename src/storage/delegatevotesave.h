@@ -8,7 +8,7 @@
 #include <boost/filesystem.hpp>
 
 #include "delegate.h"
-#include "hnbase.h"
+#include "hcode.h"
 
 namespace metabasenet
 {

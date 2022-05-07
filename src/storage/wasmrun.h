@@ -9,7 +9,7 @@
 
 #include "block.h"
 #include "destination.h"
-#include "hnbase.h"
+#include "hcode.h"
 #include "transaction.h"
 #include "uint256.h"
 #include "wasmbase.h"

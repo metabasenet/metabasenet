@@ -9,7 +9,7 @@
 #include "leveldbeng.h"
 
 using namespace std;
-using namespace hnbase;
+using namespace hcode;
 
 namespace metabasenet
 {
@@ -30,17 +30,17 @@ bool CListForkTrieDBWalker::Walk(const bytes& btKey, const bytes& btValue, const
 {
     if (btKey.size() == 0 || btValue.size() == 0)
     {
-        hnbase::StdError("CListForkTrieDBWalker", "btKey.size() = %ld, btValue.size() = %ld", btKey.size(), btValue.size());
+        hcode::StdError("CListForkTrieDBWalker", "btKey.size() = %ld, btValue.size() = %ld", btKey.size(), btValue.size());
         return false;
     }
     try
     {
-        hnbase::CBufStream ssKey(btKey);
+        hcode::CBufStream ssKey(btKey);
         string strName;
         ssKey >> strName;
         if (strName == DB_FORK_KEY_NAME_CTXT)
         {
-            hnbase::CBufStream ssValue(btValue);
+            hcode::CBufStream ssValue(btValue);
             uint256 hashFork;
             CForkContext ctxtFork;
             ssKey >> hashFork;
@@ -50,7 +50,7 @@ bool CListForkTrieDBWalker::Walk(const bytes& btKey, const bytes& btValue, const
     }
     catch (std::exception& e)
     {
-        hnbase::StdError(__PRETTY_FUNCTION__, e.what());
+        hcode::StdError(__PRETTY_FUNCTION__, e.what());
         return false;
     }
     return true;
@@ -166,7 +166,7 @@ bool CForkDB::AddForkContext(const uint256& hashPrevBlock, const uint256& hashBl
         }
 
         {
-            hnbase::CBufStream ssKey, ssValue;
+            hcode::CBufStream ssKey, ssValue;
             bytes btKey, btValue;
 
             ssKey << DB_FORK_KEY_NAME_CTXT << kv.first;
@@ -179,7 +179,7 @@ bool CForkDB::AddForkContext(const uint256& hashPrevBlock, const uint256& hashBl
         }
 
         {
-            hnbase::CBufStream ssKey, ssValue;
+            hcode::CBufStream ssKey, ssValue;
             bytes btKey, btValue;
 
             ssKey << DB_FORK_KEY_NAME_FORKNAME << kv.second.strName;
@@ -192,7 +192,7 @@ bool CForkDB::AddForkContext(const uint256& hashPrevBlock, const uint256& hashBl
         }
 
         {
-            hnbase::CBufStream ssKey, ssValue;
+            hcode::CBufStream ssKey, ssValue;
             bytes btKey, btValue;
 
             ssKey << DB_FORK_KEY_NAME_FORKSN << nForkSn;
@@ -294,7 +294,7 @@ bool CForkDB::RetrieveForkContext(const uint256& hashFork, CForkContext& ctxt, c
         return false;
     }
 
-    hnbase::CBufStream ssKey, ssValue;
+    hcode::CBufStream ssKey, ssValue;
     bytes btKey, btValue;
     ssKey << DB_FORK_KEY_NAME_CTXT << hashFork;
     ssKey.GetData(btKey);
@@ -309,7 +309,7 @@ bool CForkDB::RetrieveForkContext(const uint256& hashFork, CForkContext& ctxt, c
     }
     catch (std::exception& e)
     {
-        hnbase::StdError(__PRETTY_FUNCTION__, e.what());
+        hcode::StdError(__PRETTY_FUNCTION__, e.what());
         return false;
     }
     return true;
@@ -387,7 +387,7 @@ bool CForkDB::GetForkIdByForkName(const std::string& strForkName, uint256& hashF
         return false;
     }
 
-    hnbase::CBufStream ssKey, ssValue;
+    hcode::CBufStream ssKey, ssValue;
     bytes btKey, btValue;
     ssKey << DB_FORK_KEY_NAME_FORKNAME << strForkName;
     ssKey.GetData(btKey);
@@ -402,7 +402,7 @@ bool CForkDB::GetForkIdByForkName(const std::string& strForkName, uint256& hashF
     }
     catch (std::exception& e)
     {
-        hnbase::StdError(__PRETTY_FUNCTION__, e.what());
+        hcode::StdError(__PRETTY_FUNCTION__, e.what());
         return false;
     }
     return true;
@@ -442,7 +442,7 @@ bool CForkDB::GetForkIdByForkSn(const uint16 nForkSn, uint256& hashFork, const u
         return false;
     }
 
-    hnbase::CBufStream ssKey, ssValue;
+    hcode::CBufStream ssKey, ssValue;
     bytes btKey, btValue;
     ssKey << DB_FORK_KEY_NAME_FORKSN << nForkSn;
     ssKey.GetData(btKey);
@@ -457,7 +457,7 @@ bool CForkDB::GetForkIdByForkSn(const uint16 nForkSn, uint256& hashFork, const u
     }
     catch (std::exception& e)
     {
-        hnbase::StdError(__PRETTY_FUNCTION__, e.what());
+        hcode::StdError(__PRETTY_FUNCTION__, e.what());
         return false;
     }
     return true;
@@ -567,7 +567,7 @@ bool CForkDB::ReadTrieRoot(const uint256& hashBlock, uint256& hashTrieRoot)
 
 void CForkDB::AddPrevRoot(const uint256& hashPrevRoot, const uint256& hashBlock, bytesmap& mapKv)
 {
-    hnbase::CBufStream ssKey, ssValue;
+    hcode::CBufStream ssKey, ssValue;
     bytes btKey, btValue;
 
     ssKey << DB_FORK_KEY_NAME_PREVROOT;
@@ -581,7 +581,7 @@ void CForkDB::AddPrevRoot(const uint256& hashPrevRoot, const uint256& hashBlock,
 
 bool CForkDB::GetPrevRoot(const uint256& hashRoot, uint256& hashPrevRoot, uint256& hashBlock)
 {
-    hnbase::CBufStream ssKey, ssValue;
+    hcode::CBufStream ssKey, ssValue;
     bytes btKey, btValue;
     ssKey << DB_FORK_KEY_NAME_PREVROOT;
     ssKey.GetData(btKey);
@@ -596,7 +596,7 @@ bool CForkDB::GetPrevRoot(const uint256& hashRoot, uint256& hashPrevRoot, uint25
     }
     catch (std::exception& e)
     {
-        hnbase::StdError(__PRETTY_FUNCTION__, e.what());
+        hcode::StdError(__PRETTY_FUNCTION__, e.what());
         return false;
     }
     return true;
@@ -770,7 +770,7 @@ bool CForkDB::ListDbForkContext(const uint256& hashBlock, std::map<uint256, CFor
         return false;
     }
 
-    hnbase::CBufStream ssKeyPrefix;
+    hcode::CBufStream ssKeyPrefix;
     ssKeyPrefix << DB_FORK_KEY_NAME_CTXT;
     bytes btKeyPrefix;
     ssKeyPrefix.GetData(btKeyPrefix);

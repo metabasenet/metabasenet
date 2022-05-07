@@ -11,7 +11,7 @@
 #include "block.h"
 
 using namespace std;
-using namespace hnbase;
+using namespace hcode;
 
 namespace metabasenet
 {
@@ -56,13 +56,13 @@ bool CForkWasmDB::AddBlockWasmState(const uint256& hashPrevRoot, uint256& hashBl
     bytesmap mapKv;
     for (const auto& kv : mapWasmState)
     {
-        hnbase::CBufStream ssKey;
+        hcode::CBufStream ssKey;
         bytes btKey, btValue;
 
         ssKey << kv.first;
         ssKey.GetData(btKey);
 
-        hnbase::CBufStream ssValue;
+        hcode::CBufStream ssValue;
         ssValue << kv.second;
         btValue.assign(ssValue.GetData(), ssValue.GetData() + ssValue.GetSize());
 
@@ -78,7 +78,7 @@ bool CForkWasmDB::AddBlockWasmState(const uint256& hashPrevRoot, uint256& hashBl
 
 bool CForkWasmDB::RetrieveWasmState(const uint256& hashWasmRoot, const uint256& key, bytes& value)
 {
-    hnbase::CBufStream ssKey, ssValue;
+    hcode::CBufStream ssKey, ssValue;
     bytes btKey, btValue;
     ssKey << key;
     ssKey.GetData(btKey);
@@ -93,7 +93,7 @@ bool CForkWasmDB::RetrieveWasmState(const uint256& hashWasmRoot, const uint256& 
     }
     catch (std::exception& e)
     {
-        hnbase::StdError(__PRETTY_FUNCTION__, e.what());
+        hcode::StdError(__PRETTY_FUNCTION__, e.what());
         return false;
     }
     return true;

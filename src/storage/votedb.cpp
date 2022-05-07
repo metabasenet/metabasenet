@@ -12,7 +12,7 @@
 #include "param.h"
 
 using namespace std;
-using namespace hnbase;
+using namespace hcode;
 
 namespace metabasenet
 {
@@ -31,17 +31,17 @@ bool CListAllVoteTrieDBWalker::Walk(const bytes& btKey, const bytes& btValue, co
 {
     if (btKey.size() == 0 || btValue.size() == 0)
     {
-        hnbase::StdError("CListAllVoteTrieDBWalker", "btKey.size() = %ld, btValue.size() = %ld", btKey.size(), btValue.size());
+        hcode::StdError("CListAllVoteTrieDBWalker", "btKey.size() = %ld, btValue.size() = %ld", btKey.size(), btValue.size());
         return false;
     }
     try
     {
-        hnbase::CBufStream ssKey(btKey);
+        hcode::CBufStream ssKey(btKey);
         string strName;
         ssKey >> strName;
         if (strName == DB_VOTE_KEY_NAME_VOTE_DEST)
         {
-            hnbase::CBufStream ssValue(btValue);
+            hcode::CBufStream ssValue(btValue);
 
             CDestination destVote;
             CVoteContext ctxtVote;
@@ -53,7 +53,7 @@ bool CListAllVoteTrieDBWalker::Walk(const bytes& btKey, const bytes& btValue, co
     }
     catch (std::exception& e)
     {
-        hnbase::StdError(__PRETTY_FUNCTION__, e.what());
+        hcode::StdError(__PRETTY_FUNCTION__, e.what());
         return false;
     }
     return true;
@@ -66,17 +66,17 @@ bool CListMoreIncVoteTrieDBWalker::Walk(const bytes& btKey, const bytes& btValue
 {
     if (btKey.size() == 0 || btValue.size() == 0)
     {
-        hnbase::StdError("CListMoreIncVoteTrieDBWalker", "btKey.size() = %ld, btValue.size() = %ld", btKey.size(), btValue.size());
+        hcode::StdError("CListMoreIncVoteTrieDBWalker", "btKey.size() = %ld, btValue.size() = %ld", btKey.size(), btValue.size());
         return false;
     }
     try
     {
-        hnbase::CBufStream ssKey(btKey);
+        hcode::CBufStream ssKey(btKey);
         string strName;
         ssKey >> strName;
         if (strName == DB_VOTE_KEY_NAME_HEIGHT_DEST)
         {
-            hnbase::CBufStream ssValue(btValue);
+            hcode::CBufStream ssValue(btValue);
 
             uint32 nBlockHeight;
             CDestination destVote;
@@ -97,7 +97,7 @@ bool CListMoreIncVoteTrieDBWalker::Walk(const bytes& btKey, const bytes& btValue
     }
     catch (std::exception& e)
     {
-        hnbase::StdError(__PRETTY_FUNCTION__, e.what());
+        hcode::StdError(__PRETTY_FUNCTION__, e.what());
         return false;
     }
     return true;
@@ -147,7 +147,7 @@ bool CVoteDB::AddBlockVote(const uint256& hashPrev, const uint256& hashBlock, co
     for (const auto& kv : mapBlockVote)
     {
         {
-            hnbase::CBufStream ssKey, ssValue;
+            hcode::CBufStream ssKey, ssValue;
             bytes btKey, btValue;
 
             ssKey << DB_VOTE_KEY_NAME_VOTE_DEST << kv.first;
@@ -160,7 +160,7 @@ bool CVoteDB::AddBlockVote(const uint256& hashPrev, const uint256& hashBlock, co
         }
 
         {
-            hnbase::CBufStream ssKey, ssValue;
+            hcode::CBufStream ssKey, ssValue;
             bytes btKey, btValue;
 
             ssKey << DB_VOTE_KEY_NAME_HEIGHT_DEST << nBlockHeight << kv.first;
@@ -205,7 +205,7 @@ bool CVoteDB::RetrieveAllDelegateVote(const uint256& hashBlock, std::map<CDestin
     }
 
     bytes btKeyPrefix;
-    hnbase::CBufStream ssKeyPrefix;
+    hcode::CBufStream ssKeyPrefix;
     ssKeyPrefix << DB_VOTE_KEY_NAME_VOTE_DEST;
     ssKeyPrefix.GetData(btKeyPrefix);
 
@@ -233,7 +233,7 @@ bool CVoteDB::RetrieveDestVoteContext(const uint256& hashBlock, const CDestinati
         return false;
     }
 
-    hnbase::CBufStream ssKey, ssValue;
+    hcode::CBufStream ssKey, ssValue;
     bytes btKey, btValue;
     ssKey << DB_VOTE_KEY_NAME_VOTE_DEST << destVote;
     ssKey.GetData(btKey);
@@ -249,7 +249,7 @@ bool CVoteDB::RetrieveDestVoteContext(const uint256& hashBlock, const CDestinati
     }
     catch (std::exception& e)
     {
-        hnbase::StdError(__PRETTY_FUNCTION__, e.what());
+        hcode::StdError(__PRETTY_FUNCTION__, e.what());
         return false;
     }
     return true;
@@ -425,7 +425,7 @@ bool CVoteDB::ReadTrieRoot(const uint256& hashBlock, uint256& hashTrieRoot, uint
 
 void CVoteDB::AddPrevRoot(const uint256& hashPrevRoot, const uint256& hashBlock, bytesmap& mapKv)
 {
-    hnbase::CBufStream ssKey, ssValue;
+    hcode::CBufStream ssKey, ssValue;
     bytes btKey, btValue;
 
     ssKey << DB_VOTE_KEY_NAME_PREVROOT;
@@ -439,7 +439,7 @@ void CVoteDB::AddPrevRoot(const uint256& hashPrevRoot, const uint256& hashBlock,
 
 bool CVoteDB::GetPrevRoot(const uint256& hashRoot, uint256& hashPrevRoot, uint256& hashBlock)
 {
-    hnbase::CBufStream ssKey, ssValue;
+    hcode::CBufStream ssKey, ssValue;
     bytes btKey, btValue;
     ssKey << DB_VOTE_KEY_NAME_PREVROOT;
     ssKey.GetData(btKey);
@@ -454,7 +454,7 @@ bool CVoteDB::GetPrevRoot(const uint256& hashRoot, uint256& hashPrevRoot, uint25
     }
     catch (std::exception& e)
     {
-        hnbase::StdError(__PRETTY_FUNCTION__, e.what());
+        hcode::StdError(__PRETTY_FUNCTION__, e.what());
         return false;
     }
     return true;
@@ -482,7 +482,7 @@ bool CVoteDB::GetMoreIncVote(const uint256& hashBeginBlock, const uint256& hashT
     bytes btKeyPrefix;
     bytes btBeginKeyTail;
 
-    hnbase::CBufStream ssKeyPrefix;
+    hcode::CBufStream ssKeyPrefix;
     ssKeyPrefix << DB_VOTE_KEY_NAME_HEIGHT_DEST;
     ssKeyPrefix.GetData(btKeyPrefix);
 

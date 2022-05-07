@@ -6,7 +6,7 @@
 #define NETWORK_PROTO_H
 
 #include "crc24q.h"
-#include "hnbase.h"
+#include "hcode.h"
 #include "uint256.h"
 
 namespace metabasenet
@@ -66,7 +66,7 @@ enum
 
 class CPeerMessageHeader
 {
-    friend class hnbase::CStream;
+    friend class hcode::CStream;
 
 public:
     uint32 nMagic;
@@ -103,7 +103,7 @@ public:
     }
 
 protected:
-    void Serialize(hnbase::CStream& s, hnbase::SaveType&)
+    void Serialize(hcode::CStream& s, hcode::SaveType&)
     {
         char buf[MESSAGE_HEADER_SIZE + 1];
         *(uint32*)&buf[0] = nMagic;
@@ -113,7 +113,7 @@ protected:
         *(uint32*)&buf[13] = nHeaderChecksum;
         s.Write(buf, MESSAGE_HEADER_SIZE);
     }
-    void Serialize(hnbase::CStream& s, hnbase::LoadType&)
+    void Serialize(hcode::CStream& s, hcode::LoadType&)
     {
         char buf[MESSAGE_HEADER_SIZE + 1];
         s.Read(buf, MESSAGE_HEADER_SIZE);
@@ -123,7 +123,7 @@ protected:
         nPayloadChecksum = *(uint32*)&buf[9];
         nHeaderChecksum = *(uint32*)&buf[13] & 0xFFFFFF;
     }
-    void Serialize(hnbase::CStream& s, std::size_t& serSize)
+    void Serialize(hcode::CStream& s, std::size_t& serSize)
     {
         (void)s;
         serSize += MESSAGE_HEADER_SIZE;
@@ -132,7 +132,7 @@ protected:
 
 class CMsgRsp
 {
-    friend class hnbase::CStream;
+    friend class hcode::CStream;
 
 public:
     CMsgRsp()
@@ -143,7 +143,7 @@ public:
 
 protected:
     template <typename O>
-    void Serialize(hnbase::CStream& s, O& opt)
+    void Serialize(hcode::CStream& s, O& opt)
     {
         s.Serialize(nReqMsgType, opt);
         s.Serialize(nReqMsgSubType, opt);
@@ -158,7 +158,7 @@ public:
 
 class CInv
 {
-    friend class hnbase::CStream;
+    friend class hcode::CStream;
 
 public:
     enum
@@ -188,7 +188,7 @@ public:
 
 protected:
     template <typename O>
-    void Serialize(hnbase::CStream& s, O& opt)
+    void Serialize(hcode::CStream& s, O& opt)
     {
         s.Serialize(nType, opt);
         s.Serialize(nHash, opt);
@@ -199,7 +199,7 @@ public:
     uint256 nHash;
 };
 
-class CEndpoint : public hnbase::CBinary
+class CEndpoint : public hcode::CBinary
 {
 public:
     enum
@@ -224,7 +224,7 @@ protected:
 
 class CAddress
 {
-    friend class hnbase::CStream;
+    friend class hcode::CStream;
 
 public:
     CAddress() {}
@@ -235,7 +235,7 @@ public:
 
 protected:
     template <typename O>
-    void Serialize(hnbase::CStream& s, O& opt)
+    void Serialize(hcode::CStream& s, O& opt)
     {
         s.Serialize(nService, opt);
         s.Serialize(ssEndpoint, opt);

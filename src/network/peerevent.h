@@ -6,11 +6,11 @@
 #define NETWORK_PEEREVENT_H
 
 #include "block.h"
-#include "hnbase.h"
+#include "hcode.h"
 #include "proto.h"
 #include "transaction.h"
 
-using namespace hnbase;
+using namespace hcode;
 
 namespace metabasenet
 {
@@ -19,7 +19,7 @@ namespace network
 
 enum
 {
-    EVENT_PEER_BASE = hnbase::EVENT_USER_BASE,
+    EVENT_PEER_BASE = hcode::EVENT_USER_BASE,
     //PEER
     EVENT_PEER_ACTIVE,
     EVENT_PEER_DEACTIVE,
@@ -40,15 +40,15 @@ enum
 };
 
 template <int type, typename L, typename D>
-class CEventPeerData : public hnbase::CEvent
+class CEventPeerData : public hcode::CEvent
 {
-    friend class hnbase::CStream;
+    friend class hcode::CStream;
 
 public:
     CEventPeerData(uint64 nNonceIn, const uint256& hashForkIn)
       : CEvent(nNonceIn, type), hashFork(hashForkIn) {}
     virtual ~CEventPeerData() {}
-    virtual bool Handle(hnbase::CEventListener& listener)
+    virtual bool Handle(hcode::CEventListener& listener)
     {
         try
         {
@@ -67,7 +67,7 @@ public:
 
 protected:
     template <typename O>
-    void Serialize(hnbase::CStream& s, O& opt)
+    void Serialize(hcode::CStream& s, O& opt)
     {
         s.Serialize(hashFork, opt);
         s.Serialize(data, opt);
@@ -79,15 +79,15 @@ public:
 };
 
 template <int type, typename L, typename D>
-class CEventPeerDelegated : public hnbase::CEvent
+class CEventPeerDelegated : public hcode::CEvent
 {
-    friend class hnbase::CStream;
+    friend class hcode::CStream;
 
 public:
     CEventPeerDelegated(uint64 nNonceIn, const uint256& hashAnchorIn)
       : CEvent(nNonceIn, type), hashAnchor(hashAnchorIn) {}
     virtual ~CEventPeerDelegated() {}
-    virtual bool Handle(hnbase::CEventListener& listener)
+    virtual bool Handle(hcode::CEventListener& listener)
     {
         try
         {
@@ -106,7 +106,7 @@ public:
 
 protected:
     template <typename O>
-    void Serialize(hnbase::CStream& s, O& opt)
+    void Serialize(hcode::CStream& s, O& opt)
     {
         s.Serialize(hashAnchor, opt);
         s.Serialize(data, opt);
@@ -119,7 +119,7 @@ public:
 
 class CEventPeerDelegatedBulletin
 {
-    friend class hnbase::CStream;
+    friend class hcode::CStream;
 
 public:
     class CDelegatedBitmap
@@ -130,7 +130,7 @@ public:
         {
         }
         template <typename O>
-        void Serialize(hnbase::CStream& s, O& opt)
+        void Serialize(hcode::CStream& s, O& opt)
         {
             s.Serialize(hashAnchor, opt);
             s.Serialize(bitmap, opt);
@@ -149,7 +149,7 @@ public:
 
 protected:
     template <typename O>
-    void Serialize(hnbase::CStream& s, O& opt)
+    void Serialize(hcode::CStream& s, O& opt)
     {
         s.Serialize(bmDistribute, opt);
         s.Serialize(bmPublish, opt);
@@ -164,11 +164,11 @@ public:
 
 class CEventPeerDelegatedGetData
 {
-    friend class hnbase::CStream;
+    friend class hcode::CStream;
 
 protected:
     template <typename O>
-    void Serialize(hnbase::CStream& s, O& opt)
+    void Serialize(hcode::CStream& s, O& opt)
     {
         s.Serialize(nInvType, opt);
         s.Serialize(destDelegate, opt);
@@ -181,11 +181,11 @@ public:
 
 class CEventPeerDelegatedData
 {
-    friend class hnbase::CStream;
+    friend class hcode::CStream;
 
 protected:
     template <typename O>
-    void Serialize(hnbase::CStream& s, O& opt)
+    void Serialize(hcode::CStream& s, O& opt)
     {
         s.Serialize(destDelegate, opt);
         s.Serialize(vchData, opt);
@@ -199,7 +199,7 @@ public:
 class CBbPeerEventListener;
 
 #define TYPE_PEEREVENT(type, body) \
-    hnbase::CEventCategory<type, CBbPeerEventListener, body, bool>
+    hcode::CEventCategory<type, CBbPeerEventListener, body, bool>
 
 #define TYPE_PEERDATAEVENT(type, body) \
     CEventPeerData<type, CBbPeerEventListener, body>
@@ -224,7 +224,7 @@ typedef TYPE_PEERDELEGATEDEVENT(EVENT_PEER_GETDELEGATED, CEventPeerDelegatedGetD
 typedef TYPE_PEERDELEGATEDEVENT(EVENT_PEER_DISTRIBUTE, CEventPeerDelegatedData) CEventPeerDistribute;
 typedef TYPE_PEERDELEGATEDEVENT(EVENT_PEER_PUBLISH, CEventPeerDelegatedData) CEventPeerPublish;
 
-class CBbPeerEventListener : virtual public hnbase::CEventListener
+class CBbPeerEventListener : virtual public hcode::CEventListener
 {
 public:
     virtual ~CBbPeerEventListener() {}

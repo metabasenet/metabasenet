@@ -12,13 +12,13 @@
 #include <vector>
 
 #include "base.h"
-#include "hnbase.h"
+#include "hcode.h"
 #include "rpc/rpc.h"
 
 namespace metabasenet
 {
 
-class CRPCClient : public hnbase::IIOModule, virtual public hnbase::CHttpEventListener
+class CRPCClient : public hcode::IIOModule, virtual public hcode::CHttpEventListener
 {
 public:
     CRPCClient(bool fConsole = true);
@@ -33,7 +33,7 @@ protected:
     void HandleHalt() override;
     const CRPCClientConfig* Config();
 
-    bool HandleEvent(hnbase::CEventHttpGetRsp& event) override;
+    bool HandleEvent(hcode::CEventHttpGetRsp& event) override;
     bool GetResponse(uint64 nNonce, const std::string& content);
     bool CallRPC(rpc::CRPCParamPtr spParam, int nReqId);
     bool CallConsoleCommand(const std::vector<std::string>& vCommand);
@@ -45,11 +45,11 @@ protected:
     void LeaveLoop();
 
 protected:
-    hnbase::IIOProc* pHttpGet;
-    hnbase::CThread thrDispatch;
+    hcode::IIOProc* pHttpGet;
+    hcode::CThread thrDispatch;
     std::vector<std::string> vArgs;
     uint64 nLastNonce;
-    hnbase::CIOCompletion ioComplt;
+    hcode::CIOCompletion ioComplt;
     std::atomic<bool> isConsoleRunning;
 };
 

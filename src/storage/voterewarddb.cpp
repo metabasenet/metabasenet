@@ -5,7 +5,7 @@
 #include "voterewarddb.h"
 
 using namespace std;
-using namespace hnbase;
+using namespace hcode;
 
 namespace metabasenet
 {
@@ -32,13 +32,13 @@ bool CListVoteRewardTrieDBWalker::Walk(const bytes& btKey, const bytes& btValue,
         string strName;
         CDestination dest;
         uint32 nBlockHeight;
-        hnbase::CBufStream ssKey(btKey);
+        hcode::CBufStream ssKey(btKey);
         ssKey >> strName >> dest >> nBlockHeight;
 
         nBlockHeight = BSwap32(nBlockHeight);
 
         uint256 nRewardAmount;
-        hnbase::CBufStream ssValue(btValue);
+        hcode::CBufStream ssValue(btValue);
         ssValue >> nRewardAmount;
 
         vVoteReward.push_back(std::make_pair(nBlockHeight, nRewardAmount));
@@ -49,7 +49,7 @@ bool CListVoteRewardTrieDBWalker::Walk(const bytes& btKey, const bytes& btValue,
     }
     catch (std::exception& e)
     {
-        hnbase::StdError(__PRETTY_FUNCTION__, e.what());
+        hcode::StdError(__PRETTY_FUNCTION__, e.what());
         return false;
     }
     return true;
@@ -106,7 +106,7 @@ bool CForkVoteRewardDB::AddVoteReward(const uint256& hashPrevBlock, const uint25
     bytesmap mapKv;
     for (const auto& kv : mapVoteReward)
     {
-        hnbase::CBufStream ssKey, ssValue;
+        hcode::CBufStream ssKey, ssValue;
         bytes btKey, btValue;
 
         ssKey << DB_VOTE_REWARD_KEY_NAME_DEST << kv.first << BSwap32(nBlockHeight);
@@ -144,7 +144,7 @@ bool CForkVoteRewardDB::ListVoteReward(const uint256& hashBlock, const CDestinat
         return false;
     }
 
-    hnbase::CBufStream ssKeyPrefix;
+    hcode::CBufStream ssKeyPrefix;
     ssKeyPrefix << DB_VOTE_REWARD_KEY_NAME_DEST << dest;
     bytes btKeyPrefix;
     ssKeyPrefix.GetData(btKeyPrefix);
@@ -208,7 +208,7 @@ bool CForkVoteRewardDB::VerifyVoteReward(const uint256& hashPrevBlock, const uin
 ///////////////////////////////////
 bool CForkVoteRewardDB::WriteTrieRoot(const uint256& hashBlock, const uint256& hashTrieRoot)
 {
-    hnbase::CBufStream ss;
+    hcode::CBufStream ss;
     ss << DB_VOTE_REWARD_KEY_NAME_TRIEROOT << hashBlock;
     uint256 hashKey = metabasenet::crypto::CryptoHash(ss.GetData(), ss.GetSize());
 
@@ -228,7 +228,7 @@ bool CForkVoteRewardDB::ReadTrieRoot(const uint256& hashBlock, uint256& hashTrie
         return true;
     }
 
-    hnbase::CBufStream ss;
+    hcode::CBufStream ss;
     ss << DB_VOTE_REWARD_KEY_NAME_TRIEROOT << hashBlock;
     uint256 hashKey = metabasenet::crypto::CryptoHash(ss.GetData(), ss.GetSize());
 
@@ -243,7 +243,7 @@ bool CForkVoteRewardDB::ReadTrieRoot(const uint256& hashBlock, uint256& hashTrie
 
 void CForkVoteRewardDB::AddPrevRoot(const uint256& hashPrevRoot, const uint256& hashBlock, bytesmap& mapKv)
 {
-    hnbase::CBufStream ssKey, ssValue;
+    hcode::CBufStream ssKey, ssValue;
     bytes btKey, btValue;
 
     ssKey << DB_VOTE_REWARD_KEY_NAME_PREVROOT;
@@ -257,7 +257,7 @@ void CForkVoteRewardDB::AddPrevRoot(const uint256& hashPrevRoot, const uint256& 
 
 bool CForkVoteRewardDB::GetPrevRoot(const uint256& hashRoot, uint256& hashPrevRoot, uint256& hashBlock)
 {
-    hnbase::CBufStream ssKey, ssValue;
+    hcode::CBufStream ssKey, ssValue;
     bytes btKey, btValue;
     ssKey << DB_VOTE_REWARD_KEY_NAME_PREVROOT;
     ssKey.GetData(btKey);
@@ -272,7 +272,7 @@ bool CForkVoteRewardDB::GetPrevRoot(const uint256& hashRoot, uint256& hashPrevRo
     }
     catch (std::exception& e)
     {
-        hnbase::StdError(__PRETTY_FUNCTION__, e.what());
+        hcode::StdError(__PRETTY_FUNCTION__, e.what());
         return false;
     }
     return true;

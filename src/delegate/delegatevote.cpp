@@ -7,7 +7,7 @@
 #include "crypto.h"
 
 using namespace std;
-using namespace hnbase;
+using namespace hcode;
 
 namespace metabasenet
 {

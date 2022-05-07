@@ -304,8 +304,8 @@ protected:
     CSchedule& GetSchedule(const uint256& hashFork);
     void NotifyPeerUpdate(uint64 nNonce, bool fActive, const network::CAddress& addrPeer);
     void DispatchGetBlocksEvent(uint64 nNonce, const uint256& hashFork);
-    void DispatchAwardEvent(uint64 nNonce, hnbase::CEndpointManager::Bonus bonus);
-    void DispatchMisbehaveEvent(uint64 nNonce, hnbase::CEndpointManager::CloseReason reason, const std::string& strCaller = "");
+    void DispatchAwardEvent(uint64 nNonce, hcode::CEndpointManager::Bonus bonus);
+    void DispatchMisbehaveEvent(uint64 nNonce, hcode::CEndpointManager::CloseReason reason, const std::string& strCaller = "");
     void SchedulePeerInv(uint64 nNonce, const uint256& hashFork, CSchedule& sched);
     bool GetMissingPrevTx(const CTransaction& tx, std::set<uint256>& setMissingPrevTx);
     bool CheckPrevTx(const CTransaction& tx, uint64 nNonce, const uint256& hashFork, CSchedule& sched, const std::set<uint64>& setSchedPeer);
@@ -329,7 +329,7 @@ protected:
 
     const CBasicConfig* Config()
     {
-        return dynamic_cast<const CBasicConfig*>(hnbase::IBase::Config());
+        return dynamic_cast<const CBasicConfig*>(hcode::IBase::Config());
     }
 
 protected:

@@ -11,7 +11,7 @@
 #include "uint256.h"
 #include "util.h"
 
-using namespace hnbase;
+using namespace hcode;
 using namespace metabasenet::crypto;
 
 BOOST_FIXTURE_TEST_SUITE(slowhash_tests, BasicUtfSetup)

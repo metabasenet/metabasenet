@@ -308,7 +308,7 @@ Expect<uint32_t> EEICallStatic::body(Runtime::Instance::MemoryInstance* MemInst,
         {
             return Unexpect(Res);
         }
-        //std::cout << "contract_addr:" << hnbase::ToHexString(contract_addr.bytes, sizeof(contract_addr.bytes)) << std::endl;
+        //std::cout << "contract_addr:" << hcode::ToHexString(contract_addr.bytes, sizeof(contract_addr.bytes)) << std::endl;
 
         evmc::bytes32 salt;
         if (auto Res = loadBytes32(*MemInst, DataOffset + 32))

@@ -33,7 +33,7 @@ public:
 
 class CDelegate
 {
-    friend class hnbase::CStream;
+    friend class hcode::CStream;
 
 public:
     CDelegate();
@@ -59,7 +59,7 @@ public:
 
 protected:
     template <typename O>
-    void Serialize(hnbase::CStream& s, O& opt)
+    void Serialize(hcode::CStream& s, O& opt)
     {
         s.Serialize(mapVote, opt);
         s.Serialize(mapDistributeVote, opt);

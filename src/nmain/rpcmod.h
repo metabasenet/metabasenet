@@ -9,31 +9,31 @@
 #include <boost/function.hpp>
 
 #include "base.h"
-#include "hnbase.h"
+#include "hcode.h"
 #include "rpc/rpc.h"
 
 namespace metabasenet
 {
 
-class CRPCMod : public hnbase::IIOModule, virtual public hnbase::CHttpEventListener
+class CRPCMod : public hcode::IIOModule, virtual public hcode::CHttpEventListener
 {
 public:
     typedef rpc::CRPCResultPtr (CRPCMod::*RPCFunc)(rpc::CRPCParamPtr param);
     CRPCMod();
     ~CRPCMod();
-    bool HandleEvent(hnbase::CEventHttpReq& eventHttpReq) override;
-    bool HandleEvent(hnbase::CEventHttpBroken& eventHttpBroken) override;
+    bool HandleEvent(hcode::CEventHttpReq& eventHttpReq) override;
+    bool HandleEvent(hcode::CEventHttpBroken& eventHttpBroken) override;
 
 protected:
     bool HandleInitialize() override;
     void HandleDeinitialize() override;
     const CBasicConfig* BasicConfig()
     {
-        return dynamic_cast<const CBasicConfig*>(hnbase::IBase::Config());
+        return dynamic_cast<const CBasicConfig*>(hcode::IBase::Config());
     }
     const CNetworkConfig* Config()
     {
-        return dynamic_cast<const CNetworkConfig*>(hnbase::IBase::Config());
+        return dynamic_cast<const CNetworkConfig*>(hcode::IBase::Config());
     }
     const CRPCServerConfig* RPCServerConfig()
     {
@@ -160,7 +160,7 @@ private:
     rpc::CRPCResultPtr RPCQueryStat(rpc::CRPCParamPtr param);
 
 protected:
-    hnbase::IIOProc* pHttpServer;
+    hcode::IIOProc* pHttpServer;
     ICoreProtocol* pCoreProtocol;
     IService* pService;
     IDataStat* pDataStat;

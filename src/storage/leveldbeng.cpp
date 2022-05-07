@@ -9,7 +9,7 @@
 #include "leveldb/cache.h"
 #include "leveldb/filter_policy.h"
 
-using namespace hnbase;
+using namespace hcode;
 
 namespace metabasenet
 {

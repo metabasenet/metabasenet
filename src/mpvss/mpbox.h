@@ -15,7 +15,7 @@ class CMPSealedBox;
 
 class CMPOpenedBox
 {
-    friend class hnbase::CStream;
+    friend class hcode::CStream;
 
 public:
     CMPOpenedBox();
@@ -41,7 +41,7 @@ public:
 
 protected:
     template <typename O>
-    void Serialize(hnbase::CStream& s, O& opt)
+    void Serialize(hcode::CStream& s, O& opt)
     {
         s.Serialize(vCoeff, opt);
         s.Serialize(nPrivKey, opt);
@@ -54,7 +54,7 @@ public:
 
 class CMPSealedBox
 {
-    friend class hnbase::CStream;
+    friend class hcode::CStream;
 
 public:
     CMPSealedBox();
@@ -71,7 +71,7 @@ public:
 
 protected:
     template <typename O>
-    void Serialize(hnbase::CStream& s, O& opt)
+    void Serialize(hcode::CStream& s, O& opt)
     {
         s.Serialize(vEncryptedCoeff, opt);
         s.Serialize(vEncryptedShare, opt);

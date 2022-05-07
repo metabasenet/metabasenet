@@ -15,7 +15,7 @@
 
 class CTransaction
 {
-    friend class hnbase::CStream;
+    friend class hcode::CStream;
 
 public:
     uint16 nVersion;
@@ -133,7 +133,7 @@ public:
     }
     uint256 GetHash() const
     {
-        hnbase::CBufStream ss;
+        hcode::CBufStream ss;
         ss << (*this);
 
         uint256 hash = metabasenet::crypto::CryptoHash(ss.GetData(), ss.GetSize());
@@ -142,7 +142,7 @@ public:
     }
     uint256 GetSignatureHash() const
     {
-        hnbase::CBufStream ss;
+        hcode::CBufStream ss;
         ss << nVersion << nType << nTimeStamp << hashFork << nTxNonce << from << to << nAmount << nGasPrice << nGasLimit << mapTxData;
         return metabasenet::crypto::CryptoHash(ss.GetData(), ss.GetSize());
     }
@@ -166,13 +166,13 @@ public:
     }
     std::size_t GetTxDataSize() const
     {
-        hnbase::CBufStream ss;
+        hcode::CBufStream ss;
         ss << mapTxData;
         return ss.GetSize();
     }
     uint256 GetTxDataGas() const
     {
-        hnbase::CBufStream ss;
+        hcode::CBufStream ss;
         ss << mapTxData;
         std::size_t nTxDataSize = ss.GetSize();
         if (nTxDataSize <= 1)
@@ -192,7 +192,7 @@ public:
     }
     void GetTxData(bytes& btData) const
     {
-        hnbase::CBufStream ss;
+        hcode::CBufStream ss;
         ss << mapTxData;
         ss.GetData(btData);
     }
@@ -230,7 +230,7 @@ public:
 
 protected:
     template <typename O>
-    void Serialize(hnbase::CStream& s, O& opt)
+    void Serialize(hcode::CStream& s, O& opt)
     {
         s.Serialize(nVersion, opt);
         s.Serialize(nType, opt);
@@ -249,7 +249,7 @@ protected:
 
 class CTxIndex
 {
-    friend class hnbase::CStream;
+    friend class hcode::CStream;
 
 public:
     uint32 nBlockHeight;
@@ -286,7 +286,7 @@ public:
 
 protected:
     template <typename O>
-    void Serialize(hnbase::CStream& s, O& opt)
+    void Serialize(hcode::CStream& s, O& opt)
     {
         s.Serialize(nBlockHeight, opt);
         s.Serialize(nBlockNumber, opt);
@@ -361,7 +361,7 @@ public:
 
 class CAddrTxIndex
 {
-    friend class hnbase::CStream;
+    friend class hcode::CStream;
 
 public:
     CDestination dest;
@@ -414,7 +414,7 @@ public:
 
 protected:
     template <typename O>
-    void Serialize(hnbase::CStream& s, O& opt)
+    void Serialize(hcode::CStream& s, O& opt)
     {
         s.Serialize(dest, opt);
         s.Serialize(nHeightSeq, opt);
@@ -424,7 +424,7 @@ protected:
 
 class CDestTxInfo
 {
-    friend class hnbase::CStream;
+    friend class hcode::CStream;
 
 public:
     uint8 nDirection;
@@ -489,7 +489,7 @@ public:
 
 protected:
     template <typename O>
-    void Serialize(hnbase::CStream& s, O& opt)
+    void Serialize(hcode::CStream& s, O& opt)
     {
         s.Serialize(nDirection, opt);
         s.Serialize(nBlockNumber, opt);
@@ -517,7 +517,7 @@ public:
 
 class CTransactionLogs
 {
-    friend class hnbase::CStream;
+    friend class hcode::CStream;
 
 public:
     bytes address;
@@ -526,7 +526,7 @@ public:
 
 protected:
     template <typename O>
-    void Serialize(hnbase::CStream& s, O& opt)
+    void Serialize(hcode::CStream& s, O& opt)
     {
         s.Serialize(address, opt);
         s.Serialize(data, opt);
@@ -536,7 +536,7 @@ protected:
 
 class CTransactionReceipt
 {
-    friend class hnbase::CStream;
+    friend class hcode::CStream;
 
 public:
     int nTxIndex;
@@ -556,7 +556,7 @@ public:
 
 protected:
     template <typename O>
-    void Serialize(hnbase::CStream& s, O& opt)
+    void Serialize(hcode::CStream& s, O& opt)
     {
         s.Serialize(nTxIndex, opt);
         s.Serialize(nBlockNumber, opt);
@@ -575,7 +575,7 @@ protected:
 
 class CTxContractData
 {
-    friend class hnbase::CStream;
+    friend class hcode::CStream;
 
 public:
     CTxContractData()
@@ -666,7 +666,7 @@ public:
 
 protected:
     template <typename O>
-    void Serialize(hnbase::CStream& s, O& opt)
+    void Serialize(hcode::CStream& s, O& opt)
     {
         s.Serialize(nMuxType, opt);
         s.Serialize(strType, opt);
@@ -683,7 +683,7 @@ protected:
 
 class CContractDestCodeContext
 {
-    friend class hnbase::CStream;
+    friend class hcode::CStream;
 
 public:
     CContractDestCodeContext() {}
@@ -696,7 +696,7 @@ public:
 
 protected:
     template <typename O>
-    void Serialize(hnbase::CStream& s, O& opt)
+    void Serialize(hcode::CStream& s, O& opt)
     {
         s.Serialize(hashWasmCreateCode, opt);
         s.Serialize(hashWasmRunCode, opt);
@@ -705,7 +705,7 @@ protected:
 
 class CContracSourceCodeContext
 {
-    friend class hnbase::CStream;
+    friend class hcode::CStream;
 
 public:
     CContracSourceCodeContext() {}
@@ -749,7 +749,7 @@ public:
 
 protected:
     template <typename O>
-    void Serialize(hnbase::CStream& s, O& opt)
+    void Serialize(hcode::CStream& s, O& opt)
     {
         s.Serialize(strName, opt);
         s.Serialize(destCodeOwner, opt);
@@ -759,7 +759,7 @@ protected:
 
 class CWasmCreateCodeContext
 {
-    friend class hnbase::CStream;
+    friend class hcode::CStream;
 
 public:
     CWasmCreateCodeContext() {}
@@ -786,7 +786,7 @@ public:
 
 protected:
     template <typename O>
-    void Serialize(hnbase::CStream& s, O& opt)
+    void Serialize(hcode::CStream& s, O& opt)
     {
         s.Serialize(strName, opt);
         s.Serialize(destCodeOwner, opt);
@@ -798,7 +798,7 @@ protected:
 
 class CWasmRunCodeContext
 {
-    friend class hnbase::CStream;
+    friend class hcode::CStream;
 
 public:
     CWasmRunCodeContext() {}
@@ -820,7 +820,7 @@ public:
 
 protected:
     template <typename O>
-    void Serialize(hnbase::CStream& s, O& opt)
+    void Serialize(hcode::CStream& s, O& opt)
     {
         s.Serialize(hashWasmCreateCode, opt);
         s.Serialize(btWasmRunCode, opt);
@@ -845,7 +845,7 @@ public:
 
 class CTemplateAddressContext
 {
-    friend class hnbase::CStream;
+    friend class hcode::CStream;
 
 public:
     CTemplateAddressContext() {}
@@ -859,7 +859,7 @@ public:
 
 protected:
     template <typename O>
-    void Serialize(hnbase::CStream& s, O& opt)
+    void Serialize(hcode::CStream& s, O& opt)
     {
         s.Serialize(strName, opt);
         s.Serialize(strDescribe, opt);
@@ -869,7 +869,7 @@ protected:
 
 class CContractAddressContext
 {
-    friend class hnbase::CStream;
+    friend class hcode::CStream;
 
 public:
     CContractAddressContext() {}
@@ -890,7 +890,7 @@ public:
 
 protected:
     template <typename O>
-    void Serialize(hnbase::CStream& s, O& opt)
+    void Serialize(hcode::CStream& s, O& opt)
     {
         s.Serialize(strType, opt);
         s.Serialize(destCodeOwner, opt);
@@ -905,7 +905,7 @@ protected:
 
 class CAddressContext
 {
-    friend class hnbase::CStream;
+    friend class hcode::CStream;
 
 public:
     CAddressContext()
@@ -916,7 +916,7 @@ public:
       : nType(nTypeIn), btData(btDataIn), nBlockNumber(nBlockNumberIn) {}
     CAddressContext(const CTemplateAddressContext& ctxtTemplateIn, const uint64 nBlockNumberIn)
     {
-        hnbase::CBufStream ss;
+        hcode::CBufStream ss;
         ss << ctxtTemplateIn;
         btData.assign(ss.GetData(), ss.GetData() + ss.GetSize());
         nType = CDestination::PREFIX_TEMPLATE;
@@ -924,7 +924,7 @@ public:
     }
     CAddressContext(const CContractAddressContext& ctxtContractIn, const uint64 nBlockNumberIn)
     {
-        hnbase::CBufStream ss;
+        hcode::CBufStream ss;
         ss << ctxtContractIn;
         btData.assign(ss.GetData(), ss.GetData() + ss.GetSize());
         nType = CDestination::PREFIX_CONTRACT;
@@ -954,7 +954,7 @@ public:
         {
             try
             {
-                hnbase::CBufStream ss(btData);
+                hcode::CBufStream ss(btData);
                 ss >> ctxtTemplate;
             }
             catch (std::exception& e)
@@ -971,7 +971,7 @@ public:
         {
             try
             {
-                hnbase::CBufStream ss(btData);
+                hcode::CBufStream ss(btData);
                 ss >> ctxtContract;
             }
             catch (std::exception& e)
@@ -990,7 +990,7 @@ public:
 
 protected:
     template <typename O>
-    void Serialize(hnbase::CStream& s, O& opt)
+    void Serialize(hcode::CStream& s, O& opt)
     {
         s.Serialize(nType, opt);
         s.Serialize(nBlockNumber, opt);

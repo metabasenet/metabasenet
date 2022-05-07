@@ -15,7 +15,7 @@
 #include "version.h"
 
 using namespace std;
-using namespace hnbase;
+using namespace hcode;
 using namespace json_spirit;
 using namespace metabasenet::rpc;
 using boost::asio::ip::tcp;

@@ -9,7 +9,7 @@
 
 #include "block.h"
 #include "destination.h"
-#include "hnbase.h"
+#include "hcode.h"
 #include "timeseries.h"
 #include "transaction.h"
 #include "triedb.h"
@@ -98,7 +98,7 @@ protected:
     {
         VOTE_CACHE_SIZE = 8
     };
-    hnbase::CRWAccess rwAccess;
+    hcode::CRWAccess rwAccess;
     std::map<uint256, CCacheCalcVoteRewardContext> mapCacheCalcVote; // key: day end block hash, value: a day of voting data
     CTrieDB dbTrie;
 };

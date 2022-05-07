@@ -33,7 +33,7 @@ public:
 
 class CDestination
 {
-    friend class hnbase::CStream;
+    friend class hcode::CStream;
 
 public:
     uint8 prefix;
@@ -102,13 +102,13 @@ public:
     std::string ToStringHex() const;
 
 protected:
-    void Serialize(hnbase::CStream& s, hnbase::LoadType& opt)
+    void Serialize(hcode::CStream& s, hcode::LoadType& opt)
     {
         s.Serialize(prefix, opt);
         s.Serialize(data, opt);
     }
     template <typename O>
-    void Serialize(hnbase::CStream& s, O& opt) const
+    void Serialize(hcode::CStream& s, O& opt) const
     {
         s.Serialize(prefix, opt);
         s.Serialize(data, opt);

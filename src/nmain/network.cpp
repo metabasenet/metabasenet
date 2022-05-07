@@ -10,7 +10,7 @@
 #include "version.h"
 
 using namespace std;
-using namespace hnbase;
+using namespace hcode;
 using boost::asio::ip::tcp;
 
 namespace metabasenet

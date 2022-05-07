@@ -6,7 +6,7 @@
 
 #include "crypto.h"
 #include "ctsdb.h"
-#include "hnbase.h"
+#include "hcode.h"
 #include "test_big.h"
 #include "uint256.h"
 
@@ -16,7 +16,7 @@ using namespace metabasenet::storage;
 
 class CMetaData
 {
-    friend class hnbase::CStream;
+    friend class hcode::CStream;
 
 public:
     uint224 hash;
@@ -26,7 +26,7 @@ public:
 
 protected:
     template <typename O>
-    void Serialize(hnbase::CStream& s, O& opt)
+    void Serialize(hcode::CStream& s, O& opt)
     {
         s.Serialize(hash, opt);
         s.Serialize(file, opt);
@@ -72,15 +72,15 @@ BOOST_AUTO_TEST_CASE(ctsdb)
                 }
             }
         }
-        hnbase::CTicks t1;
+        hcode::CTicks t1;
         BOOST_CHECK(db.Flush());
-        hnbase::CTicks t2;
+        hcode::CTicks t2;
         BOOST_CHECK(db.Flush());
         std::cout << "Flush : " << (t2 - t1) << " " << (t2.Elapse() / 1000) << "\n";
     }
 
     {
-        hnbase::CTicks t;
+        hcode::CTicks t;
         for (int i = 0; i < vTest.size(); i++)
         {
             CMetaData data;

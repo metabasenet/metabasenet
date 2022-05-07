@@ -40,7 +40,7 @@
 #define MINIMUM_HARD_DISK_AVAILABLE 104857600
 
 using namespace std;
-using namespace hnbase;
+using namespace hcode;
 using namespace boost::filesystem;
 
 const char* GetGitVersion();

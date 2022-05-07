@@ -20,7 +20,7 @@
 #include "vote.h"
 
 using namespace std;
-using namespace hnbase;
+using namespace hcode;
 using namespace metabasenet::crypto;
 using namespace metabasenet::rpc;
 

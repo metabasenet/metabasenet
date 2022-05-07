@@ -15,7 +15,7 @@
 namespace metabasenet
 {
 
-using namespace hnbase;
+using namespace hcode;
 
 class CWalletKeyStore
 {

@@ -5,7 +5,7 @@
 #ifndef NETWORK_PEERNET_H
 #define NETWORK_PEERNET_H
 
-#include "hnbase.h"
+#include "hcode.h"
 #include "peerevent.h"
 #include "proto.h"
 
@@ -14,7 +14,7 @@ namespace metabasenet
 namespace network
 {
 
-class INetChannel : public hnbase::IIOModule, virtual public CBbPeerEventListener
+class INetChannel : public hcode::IIOModule, virtual public CBbPeerEventListener
 {
 public:
     INetChannel()
@@ -30,7 +30,7 @@ public:
     virtual bool AddCacheLocalPowBlock(const CBlock& block) = 0;
 };
 
-class IDelegatedChannel : public hnbase::IIOModule, virtual public CBbPeerEventListener
+class IDelegatedChannel : public hcode::IIOModule, virtual public CBbPeerEventListener
 {
 public:
     IDelegatedChannel()
@@ -43,17 +43,17 @@ public:
         = 0;
 };
 
-class CBbPeerNet : public hnbase::CPeerNet, virtual public CBbPeerEventListener
+class CBbPeerNet : public hcode::CPeerNet, virtual public CBbPeerEventListener
 {
 public:
     CBbPeerNet();
     ~CBbPeerNet();
-    virtual void BuildHello(hnbase::CPeer* pPeer, hnbase::CBufStream& ssPayload);
-    virtual uint32 BuildPing(hnbase::CPeer* pPeer, hnbase::CBufStream& ssPayload);
-    void HandlePeerWriten(hnbase::CPeer* pPeer) override;
-    virtual bool HandlePeerHandshaked(hnbase::CPeer* pPeer, uint32 nTimerId);
-    virtual bool HandlePeerRecvMessage(hnbase::CPeer* pPeer, int nChannel, int nCommand,
-                                       hnbase::CBufStream& ssPayload);
+    virtual void BuildHello(hcode::CPeer* pPeer, hcode::CBufStream& ssPayload);
+    virtual uint32 BuildPing(hcode::CPeer* pPeer, hcode::CBufStream& ssPayload);
+    void HandlePeerWriten(hcode::CPeer* pPeer) override;
+    virtual bool HandlePeerHandshaked(hcode::CPeer* pPeer, uint32 nTimerId);
+    virtual bool HandlePeerRecvMessage(hcode::CPeer* pPeer, int nChannel, int nCommand,
+                                       hcode::CBufStream& ssPayload);
     uint32 SetPingTimer(uint32 nOldTimerId, uint64 nNonce, int64 nElapse);
 
 protected:
@@ -72,14 +72,14 @@ protected:
     bool HandleEvent(CEventPeerGetDelegated& eventGetDelegated) override;
     bool HandleEvent(CEventPeerDistribute& eventDistribute) override;
     bool HandleEvent(CEventPeerPublish& eventPublish) override;
-    hnbase::CPeer* CreatePeer(hnbase::CIOClient* pClient, uint64 nNonce, bool fInBound) override;
-    void DestroyPeer(hnbase::CPeer* pPeer) override;
-    hnbase::CPeerInfo* GetPeerInfo(hnbase::CPeer* pPeer, hnbase::CPeerInfo* pInfo) override;
+    hcode::CPeer* CreatePeer(hcode::CIOClient* pClient, uint64 nNonce, bool fInBound) override;
+    void DestroyPeer(hcode::CPeer* pPeer) override;
+    hcode::CPeerInfo* GetPeerInfo(hcode::CPeer* pPeer, hcode::CPeerInfo* pInfo) override;
     CAddress GetGateWayAddress(const CNetHost& gateWayAddr);
-    bool SendDataMessage(uint64 nNonce, int nCommand, hnbase::CBufStream& ssPayload);
-    bool SendDelegatedMessage(uint64 nNonce, int nCommand, hnbase::CBufStream& ssPayload);
+    bool SendDataMessage(uint64 nNonce, int nCommand, hcode::CBufStream& ssPayload);
+    bool SendDelegatedMessage(uint64 nNonce, int nCommand, hcode::CBufStream& ssPayload);
     bool SetInvTimer(uint64 nNonce, std::vector<CInv>& vInv);
-    virtual void ProcessAskFor(hnbase::CPeer* pPeer);
+    virtual void ProcessAskFor(hcode::CPeer* pPeer);
     void Configure(uint32 nMagicNumIn, uint32 nVersionIn, uint64 nServiceIn,
                    const std::string& subVersionIn, bool fEnclosedIn, const uint256& hashGenesisIn)
     {

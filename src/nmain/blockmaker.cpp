@@ -12,7 +12,7 @@
 #include "util.h"
 
 using namespace std;
-using namespace hnbase;
+using namespace hcode;
 
 #define INITIAL_HASH_RATE (8)
 #define WAIT_AGREEMENT_TIME_OFFSET -5
@@ -378,7 +378,7 @@ bool CBlockMaker::ArrangeBlockTx(CBlock& block, const uint256& hashFork, const C
 
     if (!block.IsExtended())
     {
-        hnbase::CBufStream ss;
+        hcode::CBufStream ss;
         ss << nMintCoin;
         bytes btTempData;
         ss.GetData(btTempData);
@@ -386,7 +386,7 @@ bool CBlockMaker::ArrangeBlockTx(CBlock& block, const uint256& hashFork, const C
     }
 
     {
-        hnbase::CBufStream ss;
+        hcode::CBufStream ss;
         ss << nTotalMintReward;
         bytes btTempData;
         ss.GetData(btTempData);

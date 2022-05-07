@@ -46,8 +46,8 @@ public:
     std::size_t GetSignatureSize() const
     {
         std::size_t size = templMint->GetTemplateData().size() + 64;
-        hnbase::CVarInt var(size);
-        return (size + hnbase::GetSerializeSize(var));
+        hcode::CVarInt var(size);
+        return (size + hcode::GetSerializeSize(var));
     }
     const CDestination GetDestination() const
     {
@@ -111,8 +111,8 @@ private:
     void PowThreadFunc();
 
 protected:
-    hnbase::CThread thrMaker;
-    hnbase::CThread thrPow;
+    hcode::CThread thrMaker;
+    hcode::CThread thrPow;
     boost::mutex mutex;
     boost::condition_variable condExit;
     boost::condition_variable condBlock;

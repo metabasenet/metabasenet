@@ -84,7 +84,7 @@ static std::string getSignatureHash(std::string fun)
     Keccak h(256);
     h.addData((uint8_t*)fun.c_str(), 0, fun.size());
     std::vector<uint8_t> ret = h.digest();
-    return hnbase::ToHexString(std::vector<uint8_t>(ret.begin() + 28, ret.end()));
+    return hcode::ToHexString(std::vector<uint8_t>(ret.begin() + 28, ret.end()));
 }
 
 evmc_result evmc_vm_execute(evmc_vm* vm, evmc::address sender,
@@ -151,7 +151,7 @@ BOOST_AUTO_TEST_CASE(Run__2_check_balance_of_sender)
     struct evmc_vm* vm = evmc_load_and_create();
     //70a08231: balanceOf(address)
     std::string fun_sign = getSignatureHash("balanceOf(address)");
-    std::string CallDataStr = fun_sign + hnbase::ToHexString(sender.bytes, 32);
+    std::string CallDataStr = fun_sign + hcode::ToHexString(sender.bytes, 32);
     evmc_result result = evmc_vm_execute(vm, sender, CallDataStr);
     BOOST_CHECK(result.status_code == EVMC_SUCCESS);
     BOOST_CHECK(result.output_size == 32);
@@ -182,7 +182,7 @@ BOOST_AUTO_TEST_CASE(Run__4_transfer_20)
 {
     struct evmc_vm* vm = evmc_load_and_create();
     std::string CallDataStr = getSignatureHash("transfer(address,uint256)")
-                              + hnbase::ToHexString(sender_b.bytes, 32) + uint256(transfer_amount).GetHex();
+                              + hcode::ToHexString(sender_b.bytes, 32) + uint256(transfer_amount).GetHex();
     evmc_result result = evmc_vm_execute(vm, sender, CallDataStr);
 
     BOOST_CHECK(result.status_code == EVMC_SUCCESS);
@@ -200,7 +200,7 @@ BOOST_AUTO_TEST_CASE(Run__5_check_balance_of_sender_b)
 
     struct evmc_vm* vm = evmc_load_and_create();
     std::string fun_sign = getSignatureHash("balanceOf(address)");
-    std::string CallDataStr = fun_sign + hnbase::ToHexString(sender_b.bytes, 32);
+    std::string CallDataStr = fun_sign + hcode::ToHexString(sender_b.bytes, 32);
     evmc_result result = evmc_vm_execute(vm, sender, CallDataStr);
     BOOST_CHECK(result.status_code == EVMC_SUCCESS);
     BOOST_CHECK(result.output_size == 32);
@@ -217,7 +217,7 @@ BOOST_AUTO_TEST_CASE(Run__6_approve_10_from_sender_for_sender_b)
     struct evmc_vm* vm = evmc_load_and_create();
     std::string fun_sign = getSignatureHash("approve(address,uint256)");
 
-    std::string CallDataStr = fun_sign + hnbase::ToHexString(sender_b.bytes, 32) + uint256(transfer_amount).GetHex();
+    std::string CallDataStr = fun_sign + hcode::ToHexString(sender_b.bytes, 32) + uint256(transfer_amount).GetHex();
     evmc_result result = evmc_vm_execute(vm, sender, CallDataStr);
 
     BOOST_CHECK(result.status_code == EVMC_SUCCESS);
@@ -235,7 +235,7 @@ BOOST_AUTO_TEST_CASE(Run__7_check_allowance_from_0x7FFFFFFF_by_0x01)
 
     struct evmc_vm* vm = evmc_load_and_create();
     std::string fun_sign = getSignatureHash("allowance(address,address)");
-    std::string CallDataStr = fun_sign + hnbase::ToHexString(sender.bytes, 32) + hnbase::ToHexString(sender_b.bytes, 32);
+    std::string CallDataStr = fun_sign + hcode::ToHexString(sender.bytes, 32) + hcode::ToHexString(sender_b.bytes, 32);
     evmc_result result = evmc_vm_execute(vm, sender, CallDataStr);
 
     BOOST_CHECK(result.status_code == EVMC_SUCCESS);
@@ -253,7 +253,7 @@ BOOST_AUTO_TEST_CASE(Run__8_transfer_3_from)
     struct evmc_vm* vm = evmc_load_and_create();
     //23b872dd: transferFrom(address,address,uint256)
     std::string fun_sign = getSignatureHash("transferFrom(address,address,uint256)");
-    std::string CallDataStr = fun_sign + hnbase::ToHexString(sender.bytes, 32) + hnbase::ToHexString(sender_b.bytes, 32) + uint256(transfer_amount).GetHex();
+    std::string CallDataStr = fun_sign + hcode::ToHexString(sender.bytes, 32) + hcode::ToHexString(sender_b.bytes, 32) + uint256(transfer_amount).GetHex();
 
     evmc_result result = evmc_vm_execute(vm, sender_b, CallDataStr);
     BOOST_CHECK(result.status_code == EVMC_SUCCESS);
@@ -270,7 +270,7 @@ BOOST_AUTO_TEST_CASE(Run__9_check_balance_of_0x7FFFFFFF)
 {
     struct evmc_vm* vm = evmc_load_and_create();
     std::string fun_sign = getSignatureHash("balanceOf(address)");
-    std::string CallDataStr = fun_sign + hnbase::ToHexString(sender.bytes, 32);
+    std::string CallDataStr = fun_sign + hcode::ToHexString(sender.bytes, 32);
     evmc_result result = evmc_vm_execute(vm, sender, CallDataStr);
     BOOST_CHECK(result.status_code == EVMC_SUCCESS);
     BOOST_CHECK(result.output_size == 32);

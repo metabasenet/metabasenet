@@ -24,11 +24,11 @@ protected:
     void HandleDeinitialize() override;
     const CNetworkConfig* NetworkConfig()
     {
-        return dynamic_cast<const CNetworkConfig*>(hnbase::IBase::Config());
+        return dynamic_cast<const CNetworkConfig*>(hcode::IBase::Config());
     }
     const CStorageConfig* StorageConfig()
     {
-        return dynamic_cast<const CStorageConfig*>(hnbase::IBase::Config());
+        return dynamic_cast<const CStorageConfig*>(hcode::IBase::Config());
     }
 
 protected:

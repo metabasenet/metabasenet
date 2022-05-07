@@ -13,7 +13,7 @@
 #include "transaction.h"
 #include "util.h"
 
-using namespace hnbase;
+using namespace hcode;
 
 namespace metabasenet
 {

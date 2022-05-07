@@ -8,7 +8,7 @@
 #include "template/delegate.h"
 
 using namespace std;
-using namespace hnbase;
+using namespace hcode;
 
 namespace metabasenet
 {
@@ -39,7 +39,7 @@ bool CDelegateContext::BuildEnrollTx(CTransaction& tx, const int nBlockHeight, c
     tx.to = destDelegate;
     tx.nAmount = 1;
 
-    hnbase::CBufStream ss;
+    hcode::CBufStream ss;
     ss << nBlockHeight << vchData;
     bytes btTempData;
     ss.GetData(btTempData);

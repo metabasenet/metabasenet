@@ -32,7 +32,7 @@ set(sources
 
 add_executable(test_big ${sources})
 
-include_directories(../src/nmain ../src/hnbase ../src/crypto ../src/common ../src/storage ../src/network ../src/mpvss ../src/delegate ../src/wvm/utils)
+include_directories(../src/nmain ../src/hcode ../src/crypto ../src/common ../src/storage ../src/network ../src/mpvss ../src/delegate ../src/wvm/utils)
 
 target_link_libraries(test_big
     ${Boost_UNIT_TEST_FRAMEWORK_LIBRARY}
@@ -46,7 +46,7 @@ target_link_libraries(test_big
     crypto
     common
     libmetabasenet
-    hnbase
+    hcode
     storage
     ssvmCommon
     ssvmEVMCUtilEVMCLoader
@@ -69,7 +69,7 @@ target_link_libraries(wasm_test
     crypto
     common
     libmetabasenet
-    hnbase
+    hcode
     storage
     ssvmCommon
     ssvmEVMCUtilEVMCLoader
@@ -91,7 +91,7 @@ target_link_libraries(wasm_erc20
     crypto
     common
     libmetabasenet
-    hnbase
+    hcode
     storage
     ssvmCommon
     ssvmEVMCUtilEVMCLoader

@@ -12,7 +12,7 @@
 #include <vector>
 
 #include "destination.h"
-#include "hnbase.h"
+#include "hcode.h"
 #include "param.h"
 #include "templateid.h"
 #include "util.h"

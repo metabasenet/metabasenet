@@ -11,7 +11,7 @@
 #include "template/vote.h"
 
 using namespace std;
-using namespace hnbase;
+using namespace hcode;
 
 extern void Shutdown();
 
@@ -1072,7 +1072,7 @@ Errno CService::SubmitWork(const vector<unsigned char>& vchWorkData,
     }
 
     {
-        hnbase::CBufStream ss;
+        hcode::CBufStream ss;
         ss << nMintCoin;
         bytes btTempData;
         ss.GetData(btTempData);
@@ -1111,7 +1111,7 @@ bool CService::SetContractTransaction(const bytes& btFormatData, const bytes& bt
             CTxContractData txcdDux;
             try
             {
-                hnbase::CBufStream ss(btFormatData);
+                hcode::CBufStream ss(btFormatData);
                 ss >> txcdDux;
             }
             catch (std::exception& e)
@@ -1168,7 +1168,7 @@ bool CService::SetContractTransaction(const bytes& btFormatData, const bytes& bt
                     txcdDux.SetSetupHash(hashWasmCreateCode);
                 }
             }
-            hnbase::CBufStream ss;
+            hcode::CBufStream ss;
             ss << txcdDux;
             bytes btCodeData;
             ss.GetData(btCodeData);
@@ -1200,7 +1200,7 @@ bool CService::SetContractTransaction(const bytes& btFormatData, const bytes& bt
                 }
 
                 CTxContractData txcd(hashContract);
-                hnbase::CBufStream ss;
+                hcode::CBufStream ss;
                 ss << txcd;
                 bytes btCodeData;
                 ss.GetData(btCodeData);
@@ -1211,7 +1211,7 @@ bool CService::SetContractTransaction(const bytes& btFormatData, const bytes& bt
                 CDestination destContract;
                 try
                 {
-                    hnbase::CBufStream ss(btContractCode);
+                    hcode::CBufStream ss(btContractCode);
                     ss >> destContract;
                 }
                 catch (std::exception& e)
@@ -1268,7 +1268,7 @@ bool CService::SetContractTransaction(const bytes& btFormatData, const bytes& bt
                 }
 
                 CTxContractData txcd(ctxtContract.hashWasmCreateCode);
-                hnbase::CBufStream ss;
+                hcode::CBufStream ss;
                 ss << txcd;
                 bytes btCodeData;
                 ss.GetData(btCodeData);
@@ -1289,7 +1289,7 @@ bool CService::SetContractTransaction(const bytes& btFormatData, const bytes& bt
                 if (pBlockChain->RetrieveWasmCreateCodeContext(txNew.hashFork, hashLastBlock, hashWasmCreateCode, ctxtCode))
                 {
                     CTxContractData txcd(hashWasmCreateCode);
-                    hnbase::CBufStream ss;
+                    hcode::CBufStream ss;
                     ss << txcd;
                     bytes btCodeData;
                     ss.GetData(btCodeData);
@@ -1306,7 +1306,7 @@ bool CService::SetContractTransaction(const bytes& btFormatData, const bytes& bt
                     }
                     CTxContractData txcd(btCompressCode, true);
                     //CTxContractData txcd(btContractCode, false);
-                    hnbase::CBufStream ss;
+                    hcode::CBufStream ss;
                     ss << txcd;
                     bytes btCodeData;
                     ss.GetData(btCodeData);

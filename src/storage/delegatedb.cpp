@@ -9,7 +9,7 @@
 #include "leveldbeng.h"
 
 using namespace std;
-using namespace hnbase;
+using namespace hcode;
 
 namespace metabasenet
 {
@@ -29,14 +29,14 @@ bool CListDelegateVoteTrieDBWalker::Walk(const bytes& btKey, const bytes& btValu
 
     try
     {
-        hnbase::CBufStream ssKey;
+        hcode::CBufStream ssKey;
         ssKey.Write((char*)(btKey.data()), btKey.size());
 
         string strName;
         ssKey >> strName;
         if (strName == string("vote"))
         {
-            hnbase::CBufStream ssValue;
+            hcode::CBufStream ssValue;
             CDestination dest;
             uint256 nVote;
             ssValue.Write((char*)(btValue.data()), btValue.size());
@@ -50,7 +50,7 @@ bool CListDelegateVoteTrieDBWalker::Walk(const bytes& btKey, const bytes& btValu
     }
     catch (std::exception& e)
     {
-        hnbase::StdError(__PRETTY_FUNCTION__, e.what());
+        hcode::StdError(__PRETTY_FUNCTION__, e.what());
         return false;
     }
     return true;
@@ -269,7 +269,7 @@ bool CDelegateDB::Retrieve(const uint256& hashBlock, CDelegateContext& ctxtDeleg
 
 bool CDelegateDB::GetDestVote(const uint256& hashTrieRoot, const CDestination& dest, uint256& nVote)
 {
-    hnbase::CBufStream ssKey, ssValue;
+    hcode::CBufStream ssKey, ssValue;
     bytes btKey, btValue;
     ssKey << string("vote") << dest;
     ssKey.GetData(btKey);
@@ -286,7 +286,7 @@ bool CDelegateDB::GetDestVote(const uint256& hashTrieRoot, const CDestination& d
     }
     catch (std::exception& e)
     {
-        hnbase::StdError(__PRETTY_FUNCTION__, e.what());
+        hcode::StdError(__PRETTY_FUNCTION__, e.what());
         return false;
     }
     return true;
@@ -297,7 +297,7 @@ bool CDelegateDB::AddDelegateVote(const uint256& hashPrevRoot, const uint256& ha
     bytesmap mapKv;
     for (const auto& kv : mapVote)
     {
-        hnbase::CBufStream ssKey, ssValue;
+        hcode::CBufStream ssKey, ssValue;
         bytes btKey, btValue;
 
         ssKey << string("vote") << kv.first;
@@ -319,13 +319,13 @@ bool CDelegateDB::AddDelegateVote(const uint256& hashPrevRoot, const uint256& ha
 
 void CDelegateDB::AddPrevRoot(const uint256& hashPrevRoot, const uint256& hashBlock, bytesmap& mapKv)
 {
-    hnbase::CBufStream ssKey;
+    hcode::CBufStream ssKey;
     bytes btKey, btValue;
 
     ssKey << string("prevroot");
     ssKey.GetData(btKey);
 
-    hnbase::CBufStream ssValue;
+    hcode::CBufStream ssValue;
     ssValue << hashPrevRoot << hashBlock;
     btValue.assign(ssValue.GetData(), ssValue.GetData() + ssValue.GetSize());
 
@@ -334,7 +334,7 @@ void CDelegateDB::AddPrevRoot(const uint256& hashPrevRoot, const uint256& hashBl
 
 bool CDelegateDB::GetPrevRoot(const uint256& hashRoot, uint256& hashPrevRoot, uint256& hashBlock)
 {
-    hnbase::CBufStream ssKey, ssValue;
+    hcode::CBufStream ssKey, ssValue;
     bytes btKey, btValue;
     ssKey << string("prevroot");
     ssKey.GetData(btKey);
@@ -349,7 +349,7 @@ bool CDelegateDB::GetPrevRoot(const uint256& hashRoot, uint256& hashPrevRoot, ui
     }
     catch (std::exception& e)
     {
-        hnbase::StdError(__PRETTY_FUNCTION__, e.what());
+        hcode::StdError(__PRETTY_FUNCTION__, e.what());
         return false;
     }
     return true;

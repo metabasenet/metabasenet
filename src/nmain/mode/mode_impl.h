@@ -28,14 +28,14 @@ public:
 
     virtual bool PostLoad()
     {
-        std::vector<bool> v = { hnbase::CConfig::PostLoad(),
+        std::vector<bool> v = { hcode::CConfig::PostLoad(),
                                 CBasicConfig::PostLoad(), U::PostLoad()... };
         return std::find(v.begin(), v.end(), false) == v.end();
     }
 
     virtual std::string ListConfig() const
     {
-        std::vector<std::string> v = { hnbase::CConfig::ListConfig(),
+        std::vector<std::string> v = { hcode::CConfig::ListConfig(),
                                        CBasicConfig::ListConfig(),
                                        U::ListConfig()... };
         return std::accumulate(v.begin(), v.end(), std::string());
@@ -43,7 +43,7 @@ public:
 
     virtual std::string Help() const
     {
-        std::vector<std::string> v = { hnbase::CConfig::Help(),
+        std::vector<std::string> v = { hcode::CConfig::Help(),
                                        CBasicConfig::Help(),
                                        U::Help()... };
         return std::accumulate(v.begin(), v.end(), std::string());

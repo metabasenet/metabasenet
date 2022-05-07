@@ -23,7 +23,7 @@
 #include "version.h"
 
 using namespace std;
-using namespace hnbase;
+using namespace hcode;
 using namespace json_spirit;
 using namespace metabasenet::rpc;
 using namespace metabasenet;
@@ -83,9 +83,9 @@ CTransactionData TxToJSON(const uint256& txid, const CTransaction& tx, const uin
 
     bytes btTxData;
     tx.GetTxData(btTxData);
-    ret.strData = hnbase::ToHexString(btTxData);
+    ret.strData = hcode::ToHexString(btTxData);
 
-    ret.strSig = hnbase::ToHexString(tx.vchSig);
+    ret.strSig = hcode::ToHexString(tx.vchSig);
     ret.strFork = tx.hashFork.GetHex();
     if (blockHash != 0)
     {
@@ -1919,7 +1919,7 @@ CRPCResultPtr CRPCMod::RPCSendFrom(CRPCParamPtr param)
         auto strDataTmp = spParam->strData;
         if (((std::string)strDataTmp).substr(0, 4) == "msg:")
         {
-            auto hex = hnbase::ToHexString((const unsigned char*)strDataTmp.c_str(), strlen(strDataTmp.c_str()));
+            auto hex = hcode::ToHexString((const unsigned char*)strDataTmp.c_str(), strlen(strDataTmp.c_str()));
             vchData = ParseHexString(hex);
         }
         else
@@ -1958,7 +1958,7 @@ CRPCResultPtr CRPCMod::RPCSendFrom(CRPCParamPtr param)
                 CDestination dest(spParam->strContractcode);
                 if (dest.IsContract())
                 {
-                    hnbase::CBufStream ss;
+                    hcode::CBufStream ss;
                     ss << dest;
                     ss.GetData(btContractCode);
                 }
@@ -2064,7 +2064,7 @@ CRPCResultPtr CRPCMod::RPCCreateTransaction(CRPCParamPtr param)
         auto strDataTmp = spParam->strData;
         if (((std::string)strDataTmp).substr(0, 4) == "msg:")
         {
-            auto hex = hnbase::ToHexString((const unsigned char*)strDataTmp.c_str(), strlen(strDataTmp.c_str()));
+            auto hex = hcode::ToHexString((const unsigned char*)strDataTmp.c_str(), strlen(strDataTmp.c_str()));
             vchData = ParseHexString(hex);
         }
         else
@@ -2103,7 +2103,7 @@ CRPCResultPtr CRPCMod::RPCCreateTransaction(CRPCParamPtr param)
                 CDestination dest(spParam->strContractcode);
                 if (dest.IsContract())
                 {
-                    hnbase::CBufStream ss;
+                    hcode::CBufStream ss;
                     ss << dest;
                     ss.GetData(btContractCode);
                 }
@@ -2650,7 +2650,7 @@ CRPCResultPtr CRPCMod::RPCMakeOrigin(CRPCParamPtr param)
     //tx.vchData.assign(profile.strName.begin(), profile.strName.end());
 
     {
-        hnbase::CBufStream ss;
+        hcode::CBufStream ss;
         ss << tx.nAmount;
         bytes btTempData;
         ss.GetData(btTempData);
@@ -2658,7 +2658,7 @@ CRPCResultPtr CRPCMod::RPCMakeOrigin(CRPCParamPtr param)
     }
 
     {
-        hnbase::CBufStream sm;
+        hcode::CBufStream sm;
         sm << profile.strName;
         bytes btTempData;
         sm.GetData(btTempData);
@@ -2666,7 +2666,7 @@ CRPCResultPtr CRPCMod::RPCMakeOrigin(CRPCParamPtr param)
     }
 
     {
-        hnbase::CBufStream sm;
+        hcode::CBufStream sm;
         sm << nForkNonce;
         bytes btTempData;
         sm.GetData(btTempData);
@@ -2917,7 +2917,7 @@ CRPCResultPtr CRPCMod::RPCGetContractMuxCode(rpc::CRPCParamPtr param)
         throw CRPCException(RPC_DESERIALIZATION_ERROR, "Packet fail");
     }
 
-    hnbase::CBufStream ss;
+    hcode::CBufStream ss;
     ss << txcd;
     bytes btData;
     ss.GetData(btData);
@@ -3498,7 +3498,7 @@ CRPCResultPtr CRPCMod::RPCFuncSign(rpc::CRPCParamPtr param)
     std::vector<uint8> ret = crypto::CryptoKeccak(spParam->strFuncname.c_str(), spParam->strFuncname.size());
 
     auto spResult = MakeCFuncSignResultPtr();
-    spResult->strSign = hnbase::ToHexString(std::vector<uint8_t>(ret.end() - 4, ret.end()));
+    spResult->strSign = hcode::ToHexString(std::vector<uint8_t>(ret.end() - 4, ret.end()));
 
     return spResult;
 }

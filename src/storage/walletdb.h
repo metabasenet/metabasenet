@@ -10,7 +10,7 @@
 #include <boost/multi_index/ordered_index.hpp>
 #include <boost/multi_index/sequenced_index.hpp>
 #include <boost/multi_index_container.hpp>
-#include <hnbase.h>
+#include <hcode.h>
 
 #include "destination.h"
 #include "key.h"
@@ -27,7 +27,7 @@ public:
     virtual bool WalkTemplate(const CTemplateId& tid, const std::vector<unsigned char>& vchData) = 0;
 };
 
-class CWalletAddrDB : public hnbase::CKVDB
+class CWalletAddrDB : public hcode::CKVDB
 {
 public:
     CWalletAddrDB() {}
@@ -40,7 +40,7 @@ public:
     bool WalkThroughAddress(CWalletDBAddrWalker& walker);
 
 protected:
-    bool AddressDBWalker(hnbase::CBufStream& ssKey, hnbase::CBufStream& ssValue, CWalletDBAddrWalker& walker);
+    bool AddressDBWalker(hcode::CBufStream& ssKey, hcode::CBufStream& ssValue, CWalletDBAddrWalker& walker);
 };
 
 class CWalletDB

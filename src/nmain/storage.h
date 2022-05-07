@@ -6,14 +6,14 @@
 #define METABASENET_STORAGE_H
 
 #include <boost/filesystem.hpp>
-#include <hnbase.h>
+#include <hcode.h>
 
 #include "config.h"
 
 namespace metabasenet
 {
 
-class CEntry : public hnbase::CEntry
+class CEntry : public hcode::CEntry
 {
 public:
     CEntry();
@@ -25,8 +25,8 @@ public:
 protected:
     bool InitializeService();
     bool InitializeClient();
-    //    hnbase::CHttpHostConfig GetRPCHostConfig();
-    //    hnbase::CHttpHostConfig GetWebUIHostConfig();
+    //    hcode::CHttpHostConfig GetRPCHostConfig();
+    //    hcode::CHttpHostConfig GetWebUIHostConfig();
 
     boost::filesystem::path GetDefaultDataDir();
 
@@ -36,8 +36,8 @@ protected:
 
 protected:
     CConfig config;
-    hnbase::CLog log;
-    hnbase::CDocker docker;
+    hcode::CLog log;
+    hcode::CDocker docker;
 };
 
 } // namespace metabasenet

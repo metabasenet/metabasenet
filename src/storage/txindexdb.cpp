@@ -7,7 +7,7 @@
 #include <boost/bind.hpp>
 
 using namespace std;
-using namespace hnbase;
+using namespace hcode;
 
 namespace metabasenet
 {
@@ -25,18 +25,18 @@ bool CListTxIndexTrieDBWalker::Walk(const bytes& btKey, const bytes& btValue, co
 {
     if (btKey.size() == 0 || btValue.size() == 0)
     {
-        hnbase::StdError("CListTxIndexTrieDBWalker", "btKey.size() = %ld, btValue.size() = %ld", btKey.size(), btValue.size());
+        hcode::StdError("CListTxIndexTrieDBWalker", "btKey.size() = %ld, btValue.size() = %ld", btKey.size(), btValue.size());
         return false;
     }
     try
     {
-        hnbase::CBufStream ssKey;
+        hcode::CBufStream ssKey;
         ssKey.Write((char*)(btKey.data()), btKey.size());
         string strName;
         ssKey >> strName;
         if (strName == DB_TXINDEX_KEY_NAME_TXID)
         {
-            hnbase::CBufStream ssValue;
+            hcode::CBufStream ssValue;
             ssValue.Write((char*)(btValue.data()), btValue.size());
             uint256 txid;
             CTxIndex txIndex;
@@ -47,7 +47,7 @@ bool CListTxIndexTrieDBWalker::Walk(const bytes& btKey, const bytes& btValue, co
     }
     catch (std::exception& e)
     {
-        hnbase::StdError(__PRETTY_FUNCTION__, e.what());
+        hcode::StdError(__PRETTY_FUNCTION__, e.what());
         return false;
     }
     return true;
@@ -107,7 +107,7 @@ bool CForkTxIndexDB::AddBlockTxIndex(const uint256& hashPrevBlock, const uint256
     bytesmap mapKv;
     for (const auto& kv : mapBlockTxIndex)
     {
-        hnbase::CBufStream ssKey, ssValue;
+        hcode::CBufStream ssKey, ssValue;
         bytes btKey, btValue;
 
         ssKey << DB_TXINDEX_KEY_NAME_TXID << kv.first;
@@ -144,7 +144,7 @@ bool CForkTxIndexDB::RetrieveTxIndex(const uint256& hashBlock, const uint256& tx
         StdLog("CForkTxIndexDB", "Retrieve tx index: Read trie root fail, block: %s", hashBlock.GetHex().c_str());
         return false;
     }
-    hnbase::CBufStream ssKey, ssValue;
+    hcode::CBufStream ssKey, ssValue;
     bytes btKey, btValue;
     ssKey << DB_TXINDEX_KEY_NAME_TXID << txid;
     ssKey.GetData(btKey);
@@ -162,7 +162,7 @@ bool CForkTxIndexDB::RetrieveTxIndex(const uint256& hashBlock, const uint256& tx
     }
     catch (std::exception& e)
     {
-        hnbase::StdError(__PRETTY_FUNCTION__, e.what());
+        hcode::StdError(__PRETTY_FUNCTION__, e.what());
         return false;
     }
     return true;
@@ -261,13 +261,13 @@ bool CForkTxIndexDB::ReadTrieRoot(const uint256& hashBlock, uint256& hashTrieRoo
 
 void CForkTxIndexDB::AddPrevRoot(const uint256& hashPrevRoot, const uint256& hashBlock, bytesmap& mapKv)
 {
-    hnbase::CBufStream ssKey;
+    hcode::CBufStream ssKey;
     bytes btKey, btValue;
 
     ssKey << DB_TXINDEX_KEY_NAME_PREVROOT;
     ssKey.GetData(btKey);
 
-    hnbase::CBufStream ssValue;
+    hcode::CBufStream ssValue;
     ssValue << hashPrevRoot << hashBlock;
     btValue.assign(ssValue.GetData(), ssValue.GetData() + ssValue.GetSize());
 
@@ -276,7 +276,7 @@ void CForkTxIndexDB::AddPrevRoot(const uint256& hashPrevRoot, const uint256& has
 
 bool CForkTxIndexDB::GetPrevRoot(const uint256& hashRoot, uint256& hashPrevRoot, uint256& hashBlock)
 {
-    hnbase::CBufStream ssKey, ssValue;
+    hcode::CBufStream ssKey, ssValue;
     bytes btKey, btValue;
     ssKey << DB_TXINDEX_KEY_NAME_PREVROOT;
     ssKey.GetData(btKey);
@@ -291,7 +291,7 @@ bool CForkTxIndexDB::GetPrevRoot(const uint256& hashRoot, uint256& hashPrevRoot,
     }
     catch (std::exception& e)
     {
-        hnbase::StdError(__PRETTY_FUNCTION__, e.what());
+        hcode::StdError(__PRETTY_FUNCTION__, e.what());
         return false;
     }
     return true;

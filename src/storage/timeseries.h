@@ -7,7 +7,7 @@
 
 #include <boost/filesystem.hpp>
 #include <boost/thread/thread.hpp>
-#include <hnbase.h>
+#include <hcode.h>
 
 #include "crc24q.h"
 #include "uint256.h"
@@ -19,7 +19,7 @@ namespace storage
 
 class CDiskPos
 {
-    friend class hnbase::CStream;
+    friend class hcode::CStream;
 
 public:
     uint32 nFile;
@@ -47,7 +47,7 @@ public:
 
 protected:
     template <typename O>
-    void Serialize(hnbase::CStream& s, O& opt)
+    void Serialize(hcode::CStream& s, O& opt)
     {
         s.Serialize(nFile, opt);
         s.Serialize(nOffset, opt);
@@ -101,7 +101,7 @@ public:
     {
         boost::unique_lock<boost::mutex> lock(mtxCache);
 
-        hnbase::CBufStream ss;
+        hcode::CBufStream ss;
         ss << t;
 
         std::string pathFile;
@@ -111,7 +111,7 @@ public:
         }
         try
         {
-            hnbase::CFileStream fs(pathFile.c_str());
+            hcode::CFileStream fs(pathFile.c_str());
             fs.SeekToEnd();
             uint32 nSize = ss.GetSize();
             nCrc = metabasenet::crypto::crc24q((const unsigned char*)(ss.GetData()), (int)(ss.GetSize()));
@@ -121,7 +121,7 @@ public:
         }
         catch (std::exception& e)
         {
-            hnbase::StdError(__PRETTY_FUNCTION__, e.what());
+            hcode::StdError(__PRETTY_FUNCTION__, e.what());
             return false;
         }
         if (fWriteCache)
@@ -192,13 +192,13 @@ public:
         std::string pathFile;
         if (!GetFilePath(nFile, pathFile))
         {
-            hnbase::StdError("TimeSeriesCached", "Read direct: Get file path fail, nFile: %d, nOffset: %d", nFile, nOffset);
+            hcode::StdError("TimeSeriesCached", "Read direct: Get file path fail, nFile: %d, nOffset: %d", nFile, nOffset);
             return false;
         }
         uint8* pReadBuf = nullptr;
         try
         {
-            hnbase::CFileStream fs(pathFile.c_str());
+            hcode::CFileStream fs(pathFile.c_str());
             if (!fBlock)
             {
                 fs.Seek(nOffset);
@@ -211,41 +211,41 @@ public:
                 fs >> nReadMagicNum >> nBlockSize >> nReadCrc;
                 if (nReadMagicNum != nMagicNum || nBlockSize == 0 || nBlockSize >= MAX_FILE_SIZE)
                 {
-                    hnbase::StdError("TimeSeriesCached", "Read direct: nMagicNum or nBlockSize error, nReadMagicNum: 0x%x, nMagicNum: 0x%x, nBlockSize: %d, nFile: %d, nOffset: %d",
-                                     nReadMagicNum, nMagicNum, nBlockSize, nFile, nOffset);
+                    hcode::StdError("TimeSeriesCached", "Read direct: nMagicNum or nBlockSize error, nReadMagicNum: 0x%x, nMagicNum: 0x%x, nBlockSize: %d, nFile: %d, nOffset: %d",
+                                    nReadMagicNum, nMagicNum, nBlockSize, nFile, nOffset);
                     return false;
                 }
                 pReadBuf = (uint8*)malloc(nBlockSize);
                 if (pReadBuf == nullptr)
                 {
-                    hnbase::StdError("TimeSeriesCached", "Read direct: malloc fail, nFile: %d, nOffset: %d", nFile, nOffset);
+                    hcode::StdError("TimeSeriesCached", "Read direct: malloc fail, nFile: %d, nOffset: %d", nFile, nOffset);
                     return false;
                 }
                 fs.Read((char*)pReadBuf, nBlockSize);
                 if (nReadCrc != metabasenet::crypto::crc24q(pReadBuf, nBlockSize))
                 {
-                    hnbase::StdError("TimeSeriesCached", "Read direct: Crc error, read crc: 0x%8.8x, calc crc: 0x%8.8x, nFile: %d, nOffset: %d",
-                                     nReadCrc, metabasenet::crypto::crc24q(pReadBuf, nBlockSize), nFile, nOffset);
+                    hcode::StdError("TimeSeriesCached", "Read direct: Crc error, read crc: 0x%8.8x, calc crc: 0x%8.8x, nFile: %d, nOffset: %d",
+                                    nReadCrc, metabasenet::crypto::crc24q(pReadBuf, nBlockSize), nFile, nOffset);
                     free(pReadBuf);
                     pReadBuf = nullptr;
                     return false;
                 }
-                hnbase::CBufStream bs;
+                hcode::CBufStream bs;
                 bs.Write((const char*)pReadBuf, nBlockSize);
                 free(pReadBuf);
                 pReadBuf = nullptr;
                 bs >> t;
                 if (bs.size() > 0)
                 {
-                    hnbase::StdError("TimeSeriesCached", "Read direct: Remaining data is greater than 0, surplus: %ld, nBlockSize: %ld, nFile: %d, nOffset: %d",
-                                     bs.size(), nBlockSize, nFile, nOffset);
+                    hcode::StdError("TimeSeriesCached", "Read direct: Remaining data is greater than 0, surplus: %ld, nBlockSize: %ld, nFile: %d, nOffset: %d",
+                                    bs.size(), nBlockSize, nFile, nOffset);
                     return false;
                 }
             }
         }
         catch (std::exception& e)
         {
-            hnbase::StdError(__PRETTY_FUNCTION__, e.what());
+            hcode::StdError(__PRETTY_FUNCTION__, e.what());
             if (pReadBuf)
             {
                 free(pReadBuf);
@@ -274,13 +274,13 @@ public:
             bool fFileDataError = false;
             try
             {
-                hnbase::CFileStream fs(pathFile.c_str());
+                hcode::CFileStream fs(pathFile.c_str());
                 fs.Seek(0);
                 nOffset = 0;
                 std::size_t nFileSize = fs.GetSize();
                 if (nFileSize > MAX_FILE_SIZE)
                 {
-                    hnbase::StdError("TimeSeriesCached", "Walk Through: File size error, nFile: %d, size: %lu", nFile, nFileSize);
+                    hcode::StdError("TimeSeriesCached", "Walk Through: File size error, nFile: %d, size: %lu", nFile, nFileSize);
                     fFileDataError = true;
                 }
                 else
@@ -289,7 +289,7 @@ public:
                     {
                         if (nOffset + nHeadSize > (uint32)nFileSize)
                         {
-                            hnbase::StdError("TimeSeriesCached", "Walk Through: (nOffset + %d) error, nFile: %d, nFileSize: %lu, nOffset: %d", nHeadSize, nFile, nFileSize, nOffset);
+                            hcode::StdError("TimeSeriesCached", "Walk Through: (nOffset + %d) error, nFile: %d, nFileSize: %lu, nOffset: %d", nHeadSize, nFile, nFileSize, nOffset);
                             fFileDataError = true;
                             break;
                         }
@@ -300,21 +300,21 @@ public:
                         }
                         catch (std::exception& e)
                         {
-                            hnbase::StdError("TimeSeriesCached", "Walk Through: Read nMagic and nSize error, nFile: %d, msg: %s", nFile, e.what());
+                            hcode::StdError("TimeSeriesCached", "Walk Through: Read nMagic and nSize error, nFile: %d, msg: %s", nFile, e.what());
                             fFileDataError = true;
                             break;
                         }
                         if (nMagic != nMagicNum)
                         {
-                            hnbase::StdError("TimeSeriesCached", "Walk Through: nMagic error, nFile: %d, nOffset: %d, nMagic: %x, right magic: %x",
-                                             nFile, nOffset, nMagic, nMagicNum);
+                            hcode::StdError("TimeSeriesCached", "Walk Through: nMagic error, nFile: %d, nOffset: %d, nMagic: %x, right magic: %x",
+                                            nFile, nOffset, nMagic, nMagicNum);
                             fFileDataError = true;
                             break;
                         }
                         if (nOffset + nHeadSize + nSize > (uint32)nFileSize)
                         {
-                            hnbase::StdError("TimeSeriesCached", "Walk Through: (nOffset + %d + nSize) error, nFile: %d, nFileSize: %lu, nOffset: %d, nSize: %d",
-                                             nHeadSize, nFile, nFileSize, nOffset, nSize);
+                            hcode::StdError("TimeSeriesCached", "Walk Through: (nOffset + %d + nSize) error, nFile: %d, nFileSize: %lu, nOffset: %d, nSize: %d",
+                                            nHeadSize, nFile, nFileSize, nOffset, nSize);
                             fFileDataError = true;
                             break;
                         }
@@ -332,7 +332,7 @@ public:
                                 pReadBuf = (uint8*)malloc(nReadBufSize);
                                 if (pReadBuf == nullptr)
                                 {
-                                    hnbase::StdError("TimeSeriesCached", "Walk Through: malloc error, nFile: %d", nFile);
+                                    hcode::StdError("TimeSeriesCached", "Walk Through: malloc error, nFile: %d", nFile);
                                     fFileDataError = true;
                                     break;
                                 }
@@ -343,45 +343,45 @@ public:
                             }
                             catch (std::exception& e)
                             {
-                                hnbase::StdError("TimeSeriesCached", "Walk Through: Read data error, nFile: %d, msg: %s", nFile, e.what());
+                                hcode::StdError("TimeSeriesCached", "Walk Through: Read data error, nFile: %d, msg: %s", nFile, e.what());
                                 fFileDataError = true;
                                 break;
                             }
                             if (nCrc != metabasenet::crypto::crc24q(pReadBuf, nSize))
                             {
-                                hnbase::StdError("TimeSeriesCached", "Walk Through: crc error, nFile: %d", nFile);
+                                hcode::StdError("TimeSeriesCached", "Walk Through: crc error, nFile: %d", nFile);
                                 fFileDataError = true;
                                 break;
                             }
                             try
                             {
-                                hnbase::CBufStream bs;
+                                hcode::CBufStream bs;
                                 bs.Write((const char*)pReadBuf, nSize);
                                 bs >> t;
                                 if (bs.size() > 0)
                                 {
-                                    hnbase::StdError("TimeSeriesCached", "Walk Through: data size error, nFile: %d", nFile);
+                                    hcode::StdError("TimeSeriesCached", "Walk Through: data size error, nFile: %d", nFile);
                                     fFileDataError = true;
                                     break;
                                 }
                             }
                             catch (std::exception& e)
                             {
-                                hnbase::StdError("TimeSeriesCached", "Walk Through: Read t error, nFile: %d, msg: %s", nFile, e.what());
+                                hcode::StdError("TimeSeriesCached", "Walk Through: Read t error, nFile: %d, msg: %s", nFile, e.what());
                                 fFileDataError = true;
                                 break;
                             }
                         }
                         if ((fs.GetCurPos() - nOffset - nHeadSize) != nSize)
                         {
-                            hnbase::StdError("TimeSeriesCached", "Walk Through: Read size error, nFile: %d, GetCurPos: %lu, nOffset: %d, nSize: %d",
-                                             nFile, fs.GetCurPos(), nOffset, nSize);
+                            hcode::StdError("TimeSeriesCached", "Walk Through: Read size error, nFile: %d, GetCurPos: %lu, nOffset: %d, nSize: %d",
+                                            nFile, fs.GetCurPos(), nOffset, nSize);
                             fFileDataError = true;
                             break;
                         }
                         if (!walker.Walk(t, nFile, nOffset + nHeadSize))
                         {
-                            hnbase::StdLog("TimeSeriesCached", "Walk Through: Walk fail");
+                            hcode::StdLog("TimeSeriesCached", "Walk Through: Walk fail");
                             fRet = false;
                             break;
                         }
@@ -391,14 +391,14 @@ public:
                     {
                         if (nOffset != (uint32)nFileSize)
                         {
-                            hnbase::StdLog("TimeSeriesCached", "Walk Through: nOffset error, nOffset: %d, nFileSize: %lu", nOffset, nFileSize);
+                            hcode::StdLog("TimeSeriesCached", "Walk Through: nOffset error, nOffset: %d, nFileSize: %lu", nOffset, nFileSize);
                         }
                     }
                 }
             }
             catch (std::exception& e)
             {
-                hnbase::StdError("TimeSeriesCached", "Walk Through: catch error, nFile: %d, msg: %s", nFile, e.what());
+                hcode::StdError("TimeSeriesCached", "Walk Through: catch error, nFile: %d, msg: %s", nFile, e.what());
                 fRet = false;
                 break;
             }
@@ -408,10 +408,10 @@ public:
                 {
                     if (!RepairFile(nFile, nOffset))
                     {
-                        hnbase::StdError("TimeSeriesCached", "Walk Through: RepairFile fail");
+                        hcode::StdError("TimeSeriesCached", "Walk Through: RepairFile fail");
                         fRet = false;
                     }
-                    hnbase::StdLog("TimeSeriesCached", "Walk Through: RepairFile success");
+                    hcode::StdLog("TimeSeriesCached", "Walk Through: RepairFile success");
                 }
                 break;
             }
@@ -434,12 +434,12 @@ public:
         {
             try
             {
-                hnbase::CFileStream fs(pathFile.c_str());
+                hcode::CFileStream fs(pathFile.c_str());
                 nOffset += fs.GetSize();
             }
             catch (std::exception& e)
             {
-                hnbase::StdError("TimeSeriesCached", "GetSize: catch error, nFile: %d, msg: %s", nFile, e.what());
+                hcode::StdError("TimeSeriesCached", "GetSize: catch error, nFile: %d, msg: %s", nFile, e.what());
                 break;
             }
 
@@ -461,7 +461,7 @@ protected:
     template <typename T>
     bool WriteToCache(const T& t, const CDiskPos& diskpos)
     {
-        hnbase::CBufStream ss;
+        hcode::CBufStream ss;
         ss << t;
         return WriteToCache(ss.GetData(), ss.GetSize(), diskpos);
     }
@@ -486,7 +486,7 @@ protected:
         }
         catch (std::exception& e)
         {
-            hnbase::StdError(__PRETTY_FUNCTION__, e.what());
+            hcode::StdError(__PRETTY_FUNCTION__, e.what());
         }
         return false;
     }
@@ -505,7 +505,7 @@ protected:
                 }
                 catch (std::exception& e)
                 {
-                    hnbase::StdError(__PRETTY_FUNCTION__, e.what());
+                    hcode::StdError(__PRETTY_FUNCTION__, e.what());
                 }
             }
             ResetCache();
@@ -519,7 +519,7 @@ protected:
         FILE_CACHE_SIZE = 0x2000000
     };
     boost::mutex mtxCache;
-    hnbase::CCircularStream cacheStream;
+    hcode::CCircularStream cacheStream;
     std::map<CDiskPos, std::size_t> mapCachePos;
     static const uint32 nMagicNum;
 };
@@ -534,7 +534,7 @@ public:
     {
         boost::unique_lock<boost::mutex> lock(mtxWriter);
 
-        hnbase::CBufStream ss;
+        hcode::CBufStream ss;
         ss << t;
 
         std::string pathFile;
@@ -544,7 +544,7 @@ public:
         }
         try
         {
-            hnbase::CFileStream fs(pathFile.c_str());
+            hcode::CFileStream fs(pathFile.c_str());
             fs.SeekToEnd();
             uint32 nSize = ss.GetSize();
             uint32 nCrc = metabasenet::crypto::crc24q((const unsigned char*)(ss.GetData()), (int)(ss.GetSize()));
@@ -554,7 +554,7 @@ public:
         }
         catch (std::exception& e)
         {
-            hnbase::StdError(__PRETTY_FUNCTION__, e.what());
+            hcode::StdError(__PRETTY_FUNCTION__, e.what());
             return false;
         }
         return true;
@@ -569,7 +569,7 @@ public:
 
         while (n < vBatch.size())
         {
-            hnbase::CBufStream ss;
+            hcode::CBufStream ss;
             ss << vBatch[n];
 
             uint32 nFile, nOffset;
@@ -580,7 +580,7 @@ public:
             }
             try
             {
-                hnbase::CFileStream fs(pathFile.c_str());
+                hcode::CFileStream fs(pathFile.c_str());
                 fs.SeekToEnd();
                 do
                 {
@@ -600,7 +600,7 @@ public:
             }
             catch (std::exception& e)
             {
-                hnbase::StdError(__PRETTY_FUNCTION__, e.what());
+                hcode::StdError(__PRETTY_FUNCTION__, e.what());
                 return false;
             }
         }
@@ -618,13 +618,13 @@ public:
         try
         {
             // Open history file to read
-            hnbase::CFileStream fs(pathFile.c_str());
+            hcode::CFileStream fs(pathFile.c_str());
             fs.Seek(pos.nOffset);
             fs >> t;
         }
         catch (std::exception& e)
         {
-            hnbase::StdError(__PRETTY_FUNCTION__, e.what());
+            hcode::StdError(__PRETTY_FUNCTION__, e.what());
             return false;
         }
         return true;

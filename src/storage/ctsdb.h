@@ -10,7 +10,7 @@
 #include <iostream>
 #include <snappy.h>
 
-#include "hnbase.h"
+#include "hcode.h"
 #include "timeseries.h"
 
 #define FLUSH_THRESH (1000)
@@ -20,7 +20,7 @@ namespace metabasenet
 namespace storage
 {
 
-class CCTSIndex : public hnbase::CKVDB
+class CCTSIndex : public hcode::CKVDB
 {
 public:
     CCTSIndex();
@@ -36,7 +36,7 @@ template <typename K, typename V>
 class CCTSChunk : public std::vector<std::pair<K, V>>
 {
     typedef std::vector<std::pair<K, V>> basetype;
-    friend class hnbase::CStream;
+    friend class hcode::CStream;
 
 public:
     CCTSChunk() {}
@@ -69,23 +69,23 @@ public:
     }
 
 protected:
-    void Serialize(hnbase::CStream& s, hnbase::SaveType& opt)
+    void Serialize(hcode::CStream& s, hcode::SaveType& opt)
     {
-        hnbase::CVarInt var(basetype::size());
+        hcode::CVarInt var(basetype::size());
         s.Serialize(var, opt);
         s.Write((const char*)&((*this)[0]), basetype::size() * sizeof(std::pair<K, V>));
     }
-    void Serialize(hnbase::CStream& s, hnbase::LoadType& opt)
+    void Serialize(hcode::CStream& s, hcode::LoadType& opt)
     {
-        hnbase::CVarInt var;
+        hcode::CVarInt var;
         s.Serialize(var, opt);
         this->resize(var.nValue);
         s.Read((char*)&((*this)[0]), basetype::size() * sizeof(std::pair<K, V>));
     }
-    void Serialize(hnbase::CStream& s, std::size_t& serSize)
+    void Serialize(hcode::CStream& s, std::size_t& serSize)
     {
-        hnbase::CVarInt var(basetype::size());
-        serSize += hnbase::GetSerializeSize(var) + basetype::size() * sizeof(std::pair<K, V>);
+        hcode::CVarInt var(basetype::size());
+        serSize += hcode::GetSerializeSize(var) + basetype::size() * sizeof(std::pair<K, V>);
     }
 };
 
@@ -93,7 +93,7 @@ template <typename K, typename V>
 class CCTSChunkSnappy : public CCTSChunk<K, V>
 {
     typedef std::vector<std::pair<K, V>> basetype;
-    friend class hnbase::CStream;
+    friend class hcode::CStream;
 
 public:
     CCTSChunkSnappy() {}
@@ -104,13 +104,13 @@ public:
     }
 
 protected:
-    void Serialize(hnbase::CStream& s, hnbase::SaveType& opt)
+    void Serialize(hcode::CStream& s, hcode::SaveType& opt)
     {
         std::string strSnappy;
         snappy::Compress((const char*)&((*this)[0]), basetype::size() * sizeof(std::pair<K, V>), &strSnappy);
         s.Serialize(strSnappy, opt);
     }
-    void Serialize(hnbase::CStream& s, hnbase::LoadType& opt)
+    void Serialize(hcode::CStream& s, hcode::LoadType& opt)
     {
         std::string strSnappy, strUncompress;
         s.Serialize(strSnappy, opt);
@@ -119,13 +119,13 @@ protected:
         basetype::resize(size / sizeof(std::pair<K, V>));
         snappy::RawUncompress(&strSnappy[0], strSnappy.size(), (char*)&((*this)[0]));
     }
-    void Serialize(hnbase::CStream& s, std::size_t& serSize)
+    void Serialize(hcode::CStream& s, std::size_t& serSize)
     {
         std::string strSnappy;
         snappy::Compress((const char*)&((*this)[0]), basetype::size() * sizeof(std::pair<K, V>), &strSnappy);
 
-        hnbase::CVarInt var(strSnappy.size());
-        serSize += hnbase::GetSerializeSize(var) + strSnappy.size();
+        hcode::CVarInt var(strSnappy.size());
+        serSize += hcode::GetSerializeSize(var) + strSnappy.size();
     }
 };
 
@@ -207,19 +207,19 @@ public:
     }
     void Update(const int64 nTime, const K& key, const V& value)
     {
-        hnbase::CWriteLock wlock(rwMap);
+        hcode::CWriteLock wlock(rwMap);
 
         GetUpdateMap(nTime)[key] = value;
     }
     void Erase(const int64 nTime, const K& key)
     {
-        hnbase::CWriteLock wlock(rwMap);
+        hcode::CWriteLock wlock(rwMap);
 
         GetUpdateMap(nTime).erase(key);
     }
     bool Retrieve(const int64 nTime, const K& key, V& value, const bool fSaveLoad = false)
     {
-        hnbase::CReadLock rlock(rwMap);
+        hcode::CReadLock rlock(rwMap);
         MapType& mapUpper = dblMeta.GetUpperMap();
         typename MapType::iterator it = mapUpper.find(nTime);
         if (it != mapUpper.end())
@@ -259,7 +259,7 @@ public:
 
     bool Flush(bool fAll = true)
     {
-        hnbase::CUpgradeLock ulock(rwMap);
+        hcode::CUpgradeLock ulock(rwMap);
 
         std::vector<int64> vTime, vDel;
         std::vector<C> vChunk;
@@ -336,7 +336,7 @@ protected:
     }
 
 protected:
-    hnbase::CRWAccess rwMap;
+    hcode::CRWAccess rwMap;
     CCTSIndex dbIndex;
     CTimeSeriesChunk tsChunk;
     CDblMap dblMeta;

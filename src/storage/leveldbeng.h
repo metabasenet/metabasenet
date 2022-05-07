@@ -8,7 +8,7 @@
 #include <leveldb/db.h>
 #include <leveldb/write_batch.h>
 
-#include "hnbase.h"
+#include "hcode.h"
 
 namespace metabasenet
 {
@@ -28,7 +28,7 @@ public:
     int files;
 };
 
-class CLevelDBEngine : public hnbase::CKVDBEngine
+class CLevelDBEngine : public hcode::CKVDBEngine
 {
 public:
     CLevelDBEngine(CLevelDBArguments& arguments);
@@ -39,13 +39,13 @@ public:
     bool TxnBegin() override;
     bool TxnCommit() override;
     void TxnAbort() override;
-    bool Get(hnbase::CBufStream& ssKey, hnbase::CBufStream& ssValue) override;
-    bool Put(hnbase::CBufStream& ssKey, hnbase::CBufStream& ssValue, bool fOverwrite) override;
-    bool Remove(hnbase::CBufStream& ssKey) override;
+    bool Get(hcode::CBufStream& ssKey, hcode::CBufStream& ssValue) override;
+    bool Put(hcode::CBufStream& ssKey, hcode::CBufStream& ssValue, bool fOverwrite) override;
+    bool Remove(hcode::CBufStream& ssKey) override;
     bool RemoveAll() override;
     bool MoveFirst() override;
-    bool MoveTo(hnbase::CBufStream& ssKey) override;
-    bool MoveNext(hnbase::CBufStream& ssKey, hnbase::CBufStream& ssValue) override;
+    bool MoveTo(hcode::CBufStream& ssKey) override;
+    bool MoveNext(hcode::CBufStream& ssKey, hcode::CBufStream& ssValue) override;
 
 protected:
     std::string path;

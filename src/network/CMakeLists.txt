@@ -15,7 +15,7 @@ set(sources
 
 add_library(network ${sources})
 
-include_directories(../hnbase ../common ../crypto ../storage)
+include_directories(../hcode ../common ../crypto ../storage)
 
 target_link_libraries(network
     ${Boost_SYSTEM_LIBRARY}
@@ -28,7 +28,7 @@ target_link_libraries(network
     OpenSSL::SSL
     OpenSSL::Crypto
     ${sodium_LIBRARY_RELEASE}
-    hnbase
+    hcode
     crypto
     storage
 )

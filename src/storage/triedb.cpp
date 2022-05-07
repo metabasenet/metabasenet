@@ -11,7 +11,7 @@
 #include "block.h"
 
 using namespace std;
-using namespace hnbase;
+using namespace hcode;
 
 namespace metabasenet
 {
@@ -281,7 +281,7 @@ uint256 CTrieExtension::GetValueHash() const
 //////////////////////////////
 // CTrieValue
 
-bool CTrieValue::SetStream(hnbase::CBufStream& ssValue)
+bool CTrieValue::SetStream(hcode::CBufStream& ssValue)
 {
     try
     {
@@ -309,7 +309,7 @@ bool CTrieValue::SetStream(hnbase::CBufStream& ssValue)
     return false;
 }
 
-bool CTrieValue::GetStream(hnbase::CBufStream& ssValue)
+bool CTrieValue::GetStream(hcode::CBufStream& ssValue)
 {
     ssValue << type;
     switch (type)
@@ -364,7 +364,7 @@ const uint256 CTrieValue::CalcHash()
     }
     if (fHasValue)
     {
-        hnbase::CBufStream ssValue;
+        hcode::CBufStream ssValue;
         if (!GetStream(ssValue))
         {
             return uint256();
@@ -403,7 +403,7 @@ void CTrieDB::Clear()
 
 bool CTrieDB::AddNewTrie(const uint256& hashPrevRoot, const bytesmap& mapKvList, uint256& hashNewRoot)
 {
-    hnbase::CWriteLock wlock(rwAccess);
+    hcode::CWriteLock wlock(rwAccess);
 
     std::map<uint256, CTrieValue> mapCacheNode;
     if (!CreateTrieNodeList(hashPrevRoot, mapKvList, hashNewRoot, mapCacheNode))
@@ -414,13 +414,13 @@ bool CTrieDB::AddNewTrie(const uint256& hashPrevRoot, const bytesmap& mapKvList,
 
     for (auto& kv : mapCacheNode)
     {
-        hnbase::CBufStream ssValue;
+        hcode::CBufStream ssValue;
         if (!kv.second.GetStream(ssValue))
         {
             StdLog("CTrieDB", "AddNewTrie: Get stream fail, prev root: %s", hashPrevRoot.GetHex().c_str());
             return false;
         }
-        hnbase::CBufStream ssKey;
+        hcode::CBufStream ssKey;
         ssKey << kv.first;
         if (!Write(ssKey, ssValue))
         {
@@ -439,23 +439,23 @@ bool CTrieDB::AddNewTrie(const uint256& hashPrevRoot, const bytesmap& mapKvList,
 
 bool CTrieDB::CreateCacheTrie(const uint256& hashPrevRoot, const bytesmap& mapKvList, uint256& hashNewRoot, std::map<uint256, CTrieValue>& mapCacheNode)
 {
-    hnbase::CReadLock rlock(rwAccess);
+    hcode::CReadLock rlock(rwAccess);
     return CreateTrieNodeList(hashPrevRoot, mapKvList, hashNewRoot, mapCacheNode);
 }
 
 bool CTrieDB::SaveCacheTrie(std::map<uint256, CTrieValue>& mapCacheNode)
 {
-    hnbase::CWriteLock wlock(rwAccess);
+    hcode::CWriteLock wlock(rwAccess);
 
     for (auto& kv : mapCacheNode)
     {
-        hnbase::CBufStream ssValue;
+        hcode::CBufStream ssValue;
         if (!kv.second.GetStream(ssValue))
         {
             StdLog("CTrieDB", "SaveCacheTrie: Get stream fail");
             return false;
         }
-        hnbase::CBufStream ssKey;
+        hcode::CBufStream ssKey;
         ssKey << kv.first;
         if (!Write(ssKey, ssValue))
         {
@@ -468,10 +468,10 @@ bool CTrieDB::SaveCacheTrie(std::map<uint256, CTrieValue>& mapCacheNode)
 
 bool CTrieDB::SetValueNode(const uint256& hashValueNode, const bytes& btValue)
 {
-    hnbase::CWriteLock wlock(rwAccess);
+    hcode::CWriteLock wlock(rwAccess);
 
-    hnbase::CBufStream ssKey;
-    hnbase::CBufStream ssValue;
+    hcode::CBufStream ssKey;
+    hcode::CBufStream ssValue;
     ssKey << hashValueNode;
 
     CTrieValue value;
@@ -490,7 +490,7 @@ bool CTrieDB::SetValueNode(const uint256& hashValueNode, const bytes& btValue)
 
 bool CTrieDB::GetValueNode(const uint256& hashValueNode, bytes& btValue)
 {
-    hnbase::CReadLock rlock(rwAccess);
+    hcode::CReadLock rlock(rwAccess);
     CTrieValue value;
     if (!GetDbNodeValue(hashValueNode, value))
     {
@@ -506,7 +506,7 @@ bool CTrieDB::GetValueNode(const uint256& hashValueNode, bytes& btValue)
 
 bool CTrieDB::Retrieve(const uint256& hashRoot, const bytes& btKey, bytes& btValue)
 {
-    hnbase::CReadLock rlock(rwAccess);
+    hcode::CReadLock rlock(rwAccess);
     bytes nbKeyNibble;
     CKeyNibble::Byte2Nibble(btKey, 0, nbKeyNibble);
     return GetKeyValue(hashRoot, nbKeyNibble, btValue);
@@ -514,7 +514,7 @@ bool CTrieDB::Retrieve(const uint256& hashRoot, const bytes& btKey, bytes& btVal
 
 bool CTrieDB::WalkThroughTrie(const uint256& hashRoot, CTrieDBWalker& walker, const bytes& btKeyPrefix, const bytes& btBeginKeyTail, const bool fReverse)
 {
-    hnbase::CReadLock rlock(rwAccess);
+    hcode::CReadLock rlock(rwAccess);
 #ifdef TEST_FLAG
     printf("Walk Through Trie: hashRoot: %s\n", hashRoot.GetHex().c_str());
 #endif
@@ -543,7 +543,7 @@ bool CTrieDB::WalkThroughTrie(const uint256& hashRoot, CTrieDBWalker& walker, co
 
 bool CTrieDB::WalkThroughAll(CTrieDBWalker& walker)
 {
-    hnbase::CReadLock rlock(rwAccess);
+    hcode::CReadLock rlock(rwAccess);
     try
     {
         if (!WalkThrough(boost::bind(&CTrieDB::WalkerAll, this, _1, _2, boost::ref(walker))))
@@ -561,7 +561,7 @@ bool CTrieDB::WalkThroughAll(CTrieDBWalker& walker)
 
 bool CTrieDB::CheckTrie(const std::vector<uint256>& vCheckRoot)
 {
-    hnbase::CReadLock rlock(rwAccess);
+    hcode::CReadLock rlock(rwAccess);
 
     std::map<uint256, CTrieValue> mapCacheNode;
     for (const uint256& hashRoot : vCheckRoot)
@@ -579,7 +579,7 @@ bool CTrieDB::CheckTrie(const std::vector<uint256>& vCheckRoot)
 
 bool CTrieDB::CheckTrieNode(const uint256& hashRoot, std::map<uint256, CTrieValue>& mapCacheNode)
 {
-    hnbase::CReadLock rlock(rwAccess);
+    hcode::CReadLock rlock(rwAccess);
 
     if (hashRoot != 0)
     {
@@ -596,7 +596,7 @@ bool CTrieDB::CheckTrieNode(const uint256& hashRoot, std::map<uint256, CTrieValu
 
 bool CTrieDB::VerifyTrieRootNode(const uint256& hashRoot)
 {
-    hnbase::CReadLock rlock(rwAccess);
+    hcode::CReadLock rlock(rwAccess);
 
     if (hashRoot != 0)
     {
@@ -1174,7 +1174,7 @@ bool CTrieDB::GetKeyValue(const uint256& hashRoot, const bytes& nbKey, bytes& bt
     return true;
 }
 
-bool CTrieDB::WalkerAll(hnbase::CBufStream& ssKey, hnbase::CBufStream& ssValue, CTrieDBWalker& walker)
+bool CTrieDB::WalkerAll(hcode::CBufStream& ssKey, hcode::CBufStream& ssValue, CTrieDBWalker& walker)
 {
     bytes key(ssKey.GetData(), ssKey.GetData() + ssKey.GetSize());
     bytes value(ssValue.GetData(), ssValue.GetData() + ssValue.GetSize());

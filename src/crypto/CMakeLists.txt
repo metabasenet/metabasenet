@@ -30,7 +30,7 @@ endif ()
 
 add_library(crypto ${sources})
 
-include_directories(../hnbase ../common ../wvm/utils ./ ${sodium_INCLUDE_DIR})
+include_directories(../hcode ../common ../wvm/utils ./ ${sodium_INCLUDE_DIR})
 link_directories()
 
 if(MSVC)
@@ -49,7 +49,7 @@ target_link_libraries(crypto
     OpenSSL::SSL
     OpenSSL::Crypto
     ${sodium_LIBRARY_RELEASE}
-    hnbase
+    hcode
     common
     ssvmCommon
     ssvmEVMCUtilEVMCLoader

@@ -14,7 +14,7 @@
 
 class CForkContext
 {
-    friend class hnbase::CStream;
+    friend class hcode::CStream;
 
 public:
     std::string strName;
@@ -151,7 +151,7 @@ public:
 
 protected:
     template <typename O>
-    void Serialize(hnbase::CStream& s, O& opt)
+    void Serialize(hcode::CStream& s, O& opt)
     {
         s.Serialize(strName, opt);
         s.Serialize(strSymbol, opt);
@@ -172,7 +172,7 @@ protected:
 
 class CValidForkId
 {
-    friend class hnbase::CStream;
+    friend class hcode::CStream;
 
 public:
     CValidForkId() {}
@@ -204,7 +204,7 @@ public:
 
 protected:
     template <typename O>
-    void Serialize(hnbase::CStream& s, O& opt)
+    void Serialize(hcode::CStream& s, O& opt)
     {
         s.Serialize(hashRefFdBlock, opt);
         s.Serialize(mapForkId, opt);

@@ -37,7 +37,7 @@ public:
     CDestination destDelegated;
 };
 
-class CDelegatedChannelPeer : public hnbase::CDataPeer<CDelegatedDataIdent>
+class CDelegatedChannelPeer : public hcode::CDataPeer<CDelegatedDataIdent>
 {
 public:
     CDelegatedChannelPeer(uint64 nNonceIn)
@@ -202,7 +202,7 @@ protected:
     bool DispatchGetDelegated();
     void AddPeerKnownDistrubute(uint64 nNonce, const uint256& hashAnchor, uint64 bmDistrubute);
     void AddPeerKnownPublish(uint64 nNonce, const uint256& hashAnchor, uint64 bmPublish);
-    void DispatchMisbehaveEvent(uint64 nNonce, hnbase::CEndpointManager::CloseReason reason);
+    void DispatchMisbehaveEvent(uint64 nNonce, hcode::CEndpointManager::CloseReason reason);
     void PushBulletinTimerFunc(uint32 nTimerId);
     void PublishTimerFunc(uint32 nTimerId);
     void PushBulletin();
@@ -217,7 +217,7 @@ protected:
     IBlockChain* pBlockChain;
     IDispatcher* pDispatcher;
     mutable boost::shared_mutex rwPeer;
-    hnbase::CDataScheduler<CDelegatedDataIdent> schedPeer;
+    hcode::CDataScheduler<CDelegatedDataIdent> schedPeer;
     CDelegatedChannelChain dataChain;
 
     mutable boost::mutex mtxBulletin;

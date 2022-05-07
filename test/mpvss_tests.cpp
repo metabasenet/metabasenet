@@ -663,7 +663,7 @@ BOOST_AUTO_TEST_CASE(interpolation)
 const uint256 GetHash(const map<uint256, vector<uint256>>& mapShare)
 {
     vector<unsigned char> vch;
-    hnbase::CBufStream os;
+    hcode::CBufStream os;
     os << mapShare;
     os.GetData(vch);
     return CryptoHash(&vch[0], vch.size());

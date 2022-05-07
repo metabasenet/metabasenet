@@ -14,7 +14,7 @@
 #include "rpc/rpc_error.h"
 #include "util.h"
 
-using namespace hnbase;
+using namespace hcode;
 
 namespace po = boost::program_options;
 namespace fs = boost::filesystem;
@@ -47,7 +47,7 @@ bool CConfig::Load(int argc, char* argv[], const fs::path& pathDefault,
     }
 
     // call parse cmd
-    std::vector<std::string> vecCmd = hnbase::CConfig::ParseCmd(argc, argv);
+    std::vector<std::string> vecCmd = hcode::CConfig::ParseCmd(argc, argv);
 
     // determine mode type
     std::string exec = fs::path(argv[0]).filename().string();

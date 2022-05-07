@@ -9,7 +9,7 @@
 
 #include "block.h"
 #include "forkcontext.h"
-#include "hnbase.h"
+#include "hcode.h"
 #include "triedb.h"
 #include "uint256.h"
 
@@ -99,7 +99,7 @@ protected:
     uint256 hashGenesisBlock;
     CTrieDB dbTrie;
 
-    hnbase::CRWAccess rwAccess;
+    hcode::CRWAccess rwAccess;
     std::map<uint256, CCacheFork> mapCacheFork;
     std::map<uint256, uint256> mapCacheLast;
     std::map<uint256, uint256> mapCacheRoot;

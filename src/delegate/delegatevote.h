@@ -17,7 +17,7 @@ namespace delegate
 
 class CDelegateData
 {
-    friend class hnbase::CStream;
+    friend class hcode::CStream;
 
 public:
     CDelegateData()
@@ -51,7 +51,7 @@ public:
 
 protected:
     template <typename O>
-    void Serialize(hnbase::CStream& s, O& opt)
+    void Serialize(hcode::CStream& s, O& opt)
     {
         s.Serialize(nIdentFrom, opt);
         s.Serialize(mapShare, opt);
@@ -81,7 +81,7 @@ protected:
 
 class CDelegateVote
 {
-    friend class hnbase::CStream;
+    friend class hcode::CStream;
 
 public:
     CDelegateVote();
@@ -104,7 +104,7 @@ protected:
     bool VerifySignature(const CDelegateData& delegateData);
 
     template <typename O>
-    void Serialize(hnbase::CStream& s, O& opt)
+    void Serialize(hcode::CStream& s, O& opt)
     {
         s.Serialize(mapDelegate, opt);
         s.Serialize(witness, opt);

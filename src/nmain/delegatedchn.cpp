@@ -7,7 +7,7 @@
 #include "delegatecomm.h"
 
 using namespace std;
-using namespace hnbase;
+using namespace hcode;
 using boost::asio::ip::tcp;
 
 #define BULLETIN_TIMEOUT (500)
@@ -18,7 +18,7 @@ namespace metabasenet
 //////////////////////////////
 // CDelegatedDataFilter
 
-class CDelegatedDataFilter : public hnbase::CDataFilter<CDelegatedDataIdent>
+class CDelegatedDataFilter : public hcode::CDataFilter<CDelegatedDataIdent>
 {
 public:
     CDelegatedDataFilter(const std::set<uint256>& setAnchorIn)

@@ -10,7 +10,7 @@
 #include <vector>
 
 #include "base.h"
-#include "hnbase.h"
+#include "hcode.h"
 
 namespace metabasenet
 {
@@ -45,7 +45,7 @@ public:
     }
 };
 
-class CMiner : public hnbase::IIOModule, virtual public hnbase::CHttpEventListener
+class CMiner : public hcode::IIOModule, virtual public hcode::CHttpEventListener
 {
 public:
     CMiner(const std::vector<std::string>& vArgsIn);
@@ -61,7 +61,7 @@ protected:
     {
         return (nMinerStatus != MINER_RUN);
     }
-    bool HandleEvent(hnbase::CEventHttpGetRsp& event) override;
+    bool HandleEvent(hcode::CEventHttpGetRsp& event) override;
     bool SendRequest(uint64 nNonce, const string& content);
     bool GetWork();
     bool SubmitWork(const std::vector<unsigned char>& vchWorkData);
@@ -79,9 +79,9 @@ private:
     void LaunchMiner();
 
 protected:
-    hnbase::IIOProc* pHttpGet;
-    hnbase::CThread thrFetcher;
-    hnbase::CThread thrMiner;
+    hcode::IIOProc* pHttpGet;
+    hcode::CThread thrFetcher;
+    hcode::CThread thrMiner;
     boost::mutex mutex;
     boost::condition_variable condFetcher;
     boost::condition_variable condMiner;

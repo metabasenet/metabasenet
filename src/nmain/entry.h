@@ -6,14 +6,14 @@
 #define METABASENET_ENTRY_H
 
 #include <boost/filesystem.hpp>
-#include <hnbase.h>
+#include <hcode.h>
 
 #include "config.h"
 
 namespace metabasenet
 {
 
-class CBbEntry : public hnbase::CEntry
+class CBbEntry : public hcode::CEntry
 {
 public:
     static CBbEntry& GetInstance();
@@ -26,9 +26,9 @@ public:
 
 protected:
     bool InitializeModules(const EModeType& mode);
-    bool AttachModule(hnbase::IBase* pBase);
+    bool AttachModule(hcode::IBase* pBase);
 
-    hnbase::CHttpHostConfig GetRPCHostConfig();
+    hcode::CHttpHostConfig GetRPCHostConfig();
 
     void PurgeStorage();
 
@@ -40,8 +40,8 @@ protected:
 
 protected:
     CConfig config;
-    hnbase::CLog log;
-    hnbase::CDocker docker;
+    hcode::CLog log;
+    hcode::CDocker docker;
 
 private:
     CBbEntry();

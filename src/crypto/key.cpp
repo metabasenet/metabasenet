@@ -6,7 +6,7 @@
 
 #include "util.h"
 
-using namespace hnbase;
+using namespace hcode;
 
 namespace metabasenet
 {
@@ -152,7 +152,7 @@ bool CKey::Load(const std::vector<unsigned char>& vchKey)
     CCryptoCipher cipherNew;
     uint32 check;
 
-    hnbase::CBufStream is(vchKey);
+    hcode::CBufStream is(vchKey);
     try
     {
         bytes btEncrypted;
@@ -193,7 +193,7 @@ void CKey::Save(std::vector<unsigned char>& vchKey) const
     btEncrypted.assign(GetCipher().encrypted, GetCipher().encrypted + 48);
     uint256 hash = CryptoHash(&vchKey[0], vchKey.size());
 
-    hnbase::CBufStream os;
+    hcode::CBufStream os;
     os << GetPubKey() << GetVersion() << btEncrypted << GetCipher().nonce << hash.Get32();
     os.GetData(vchKey);
 }

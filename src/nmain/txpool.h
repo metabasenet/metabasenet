@@ -10,7 +10,7 @@
 #include "txpooldata.h"
 #include "util.h"
 
-using namespace hnbase;
+using namespace hcode;
 
 namespace metabasenet
 {
@@ -25,7 +25,7 @@ public:
     CPooledTx(const CTransaction& txIn, const uint64 nSeqIn)
       : CTransaction(txIn), nSequenceNumber(nSeqIn)
     {
-        nSerializeSize = hnbase::GetSerializeSize(txIn);
+        nSerializeSize = hcode::GetSerializeSize(txIn);
     }
 
 public:

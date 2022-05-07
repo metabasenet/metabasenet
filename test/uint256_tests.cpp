@@ -199,7 +199,7 @@ BOOST_AUTO_TEST_CASE(methods) // GetHex SetHex begin() end() size() GetLow64 Get
     BOOST_CHECK(MaxL.begin() + 32 == MaxL.end());
     BOOST_CHECK(TmpL.begin() + 32 == TmpL.end());
 
-    hnbase::CBufStream ss;
+    hcode::CBufStream ss;
     ss << R1L;
     BOOST_CHECK(ss.GetData() == std::string(R1Array, R1Array + 32));
     ss >> TmpL;
@@ -292,15 +292,15 @@ BOOST_AUTO_TEST_CASE(uint256id)
         printf("%s\n", kv.first.GetHex().c_str());
     }
 
-    hnbase::CBufStream ss;
+    hcode::CBufStream ss;
     ss << nid;
     bytes btNid;
     ss.GetData(btNid);
-    std::cout << hnbase::ToHexString(btNid) << std::endl;
+    std::cout << hcode::ToHexString(btNid) << std::endl;
 
     try
     {
-        hnbase::CBufStream mm(btNid);
+        hcode::CBufStream mm(btNid);
         uint256 cnid;
         mm >> cnid;
         std::cout << cnid.GetHex() << std::endl;

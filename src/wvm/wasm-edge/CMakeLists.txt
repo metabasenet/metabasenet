@@ -1,5 +1,5 @@
 include_directories(include)
-include_directories(../../hnbase)
+include_directories(../../hcode)
 include_directories(thirdparty)
 
 set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_LIST_DIR}/cmake)

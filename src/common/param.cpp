@@ -6,7 +6,7 @@
 
 #include "util.h"
 
-using namespace hnbase;
+using namespace hcode;
 
 //////////////////////////////
 bool TESTNET_FLAG = false;

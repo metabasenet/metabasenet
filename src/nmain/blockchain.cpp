@@ -13,7 +13,7 @@
 #include "template/vote.h"
 
 using namespace std;
-using namespace hnbase;
+using namespace hcode;
 
 #define ENROLLED_CACHE_COUNT (120)
 #define AGREEMENT_CACHE_COUNT (16)
@@ -1547,7 +1547,7 @@ bool CBlockChain::VerifyBlockAddress(const uint256& hashFork, const CBlock& bloc
                         CTxContractData txcd;
                         try
                         {
-                            hnbase::CBufStream ss(btTempData);
+                            hcode::CBufStream ss(btTempData);
                             ss >> txcd;
                         }
                         catch (std::exception& e)
@@ -2337,7 +2337,7 @@ uint32 CBlockChain::GetBlockInvestRewardTxMaxCount()
 
     CProofOfHashWork proof;
     proof.Save(block.vchProof);
-    size_t nMaxTxSize = MAX_BLOCK_SIZE - hnbase::GetSerializeSize(block);
+    size_t nMaxTxSize = MAX_BLOCK_SIZE - hcode::GetSerializeSize(block);
 
     CTransaction txReward;
     txReward.nType = CTransaction::TX_DEFI_REWARD;
@@ -2347,13 +2347,13 @@ uint32 CBlockChain::GetBlockInvestRewardTxMaxCount()
     txReward.to = CDestination();
     txReward.nAmount = ~uint256();
 
-    hnbase::CBufStream ss;
+    hcode::CBufStream ss;
     ss << ~uint256();
     bytes btTempData;
     ss.GetData(btTempData);
     txReward.AddTxData(CTransaction::DF_VOTEREWARD, btTempData);
 
-    uint32 nDistributeVoteTxCount = (uint32)(nMaxTxSize / hnbase::GetSerializeSize(txReward));
+    uint32 nDistributeVoteTxCount = (uint32)(nMaxTxSize / hcode::GetSerializeSize(txReward));
     if (nDistributeVoteTxCount > 100)
     {
         nDistributeVoteTxCount -= 100;
@@ -2381,7 +2381,7 @@ uint32 CBlockChain::GetBlockInvestRewardTxMaxCount()
 
     CTransaction txReward;
 
-    hnbase::CBufStream ss;
+    hcode::CBufStream ss;
     ss << ~uint256();
     bytes btTempData;
     btTempData.assign(ss.GetData(), ss.GetData() + ss.GetSize());
@@ -2462,7 +2462,7 @@ bool CBlockChain::CalcEndVoteReward(const uint256& hashPrev, const uint16 nBlock
             txReward.to = kv.first;
             txReward.nAmount = kv.second.nTotalReward;
 
-            hnbase::CBufStream ss;
+            hcode::CBufStream ss;
             ss << kv.second.nVoteReward;
             bytes btTempData;
             ss.GetData(btTempData);

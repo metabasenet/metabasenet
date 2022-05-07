@@ -6,7 +6,7 @@
 #define STORAGE_BLOCKINDEXDB_H
 
 #include "block.h"
-#include "hnbase.h"
+#include "hcode.h"
 
 namespace metabasenet
 {
@@ -19,7 +19,7 @@ public:
     virtual bool Walk(CBlockOutline& outline) = 0;
 };
 
-class CBlockIndexDB : public hnbase::CKVDB
+class CBlockIndexDB : public hcode::CKVDB
 {
 public:
     CBlockIndexDB() {}
@@ -33,7 +33,7 @@ public:
     bool WalkThroughBlockIndex(CBlockDBWalker& walker);
 
 protected:
-    bool LoadBlockWalker(hnbase::CBufStream& ssKey, hnbase::CBufStream& ssValue, CBlockDBWalker& walker);
+    bool LoadBlockWalker(hcode::CBufStream& ssKey, hcode::CBufStream& ssValue, CBlockDBWalker& walker);
 };
 
 } // namespace storage

@@ -60,7 +60,7 @@ IncludeCategories:
     Priority:        1
   - Regex:           '^"(llvm|llvm-c|clang|clang-c)/'
     Priority:        2
-  - Regex:           '^(<|"(hnbase/|json_spirit|leveldb|snappy))'
+  - Regex:           '^(<|"(hcode/|json_spirit|leveldb|snappy))'
     Priority:        3
   - Regex:           '((\.pb\.h)"|>)$'
     Priority:        4

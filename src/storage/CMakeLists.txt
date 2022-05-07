@@ -37,7 +37,7 @@ set(sources
 
 add_library(storage ${sources})
 
-include_directories(../hnbase ../crypto ../common ../leveldb/include ../snappy ../delegate ../mpvss ../wvm/utils/evmc/include)
+include_directories(../hcode ../crypto ../common ../leveldb/include ../snappy ../delegate ../mpvss ../wvm/utils/evmc/include)
 
 target_link_libraries(storage
     ${Boost_SYSTEM_LIBRARY}
@@ -51,7 +51,7 @@ target_link_libraries(storage
     ${Boost_REGEX_LIBRARY}
     OpenSSL::SSL
     OpenSSL::Crypto
-    hnbase
+    hcode
     crypto
     common
     leveldb    

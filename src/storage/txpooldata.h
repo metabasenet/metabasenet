@@ -7,7 +7,7 @@
 
 #include <boost/filesystem.hpp>
 
-#include "hnbase.h"
+#include "hcode.h"
 #include "transaction.h"
 
 namespace metabasenet

@@ -11,7 +11,7 @@
 #include "profile.h"
 #include "test_big.h"
 
-using namespace hnbase;
+using namespace hcode;
 
 BOOST_FIXTURE_TEST_SUITE(util_tests, BasicUtfSetup)
 

@@ -4,10 +4,10 @@
 
 #include "transaction.h"
 
-#include "hnbase.h"
+#include "hcode.h"
 
 using namespace std;
-using namespace hnbase;
+using namespace hcode;
 using namespace metabasenet::crypto;
 
 //////////////////////////////

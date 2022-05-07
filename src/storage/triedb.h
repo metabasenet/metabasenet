@@ -8,7 +8,7 @@
 #include <map>
 
 #include "destination.h"
-#include "hnbase.h"
+#include "hcode.h"
 #include "timeseries.h"
 #include "transaction.h"
 #include "uint256.h"
@@ -29,7 +29,7 @@ public:
 
 class CTrieBranch
 {
-    friend class hnbase::CStream;
+    friend class hcode::CStream;
 
 protected:
     std::vector<uint8> keyIndexNext;
@@ -52,7 +52,7 @@ public:
 
 protected:
     template <typename O>
-    void Serialize(hnbase::CStream& s, O& opt)
+    void Serialize(hcode::CStream& s, O& opt)
     {
         s.Serialize(keyIndexNext, opt);
         s.Serialize(keyIndexValue, opt);
@@ -63,7 +63,7 @@ protected:
 
 class CTrieExtension
 {
-    friend class hnbase::CStream;
+    friend class hcode::CStream;
 
 protected:
     uint8 flag; // low 4bit: 0-even key, 1-odd key; high 4bit: 0-next link, 1-value link
@@ -83,7 +83,7 @@ public:
 
 protected:
     template <typename O>
-    void Serialize(hnbase::CStream& s, O& opt)
+    void Serialize(hcode::CStream& s, O& opt)
     {
         s.Serialize(flag, opt);
         s.Serialize(key, opt);
@@ -104,8 +104,8 @@ public:
     CTrieValue()
       : type(0) {}
 
-    bool SetStream(hnbase::CBufStream& ssValue);
-    bool GetStream(hnbase::CBufStream& ssValue);
+    bool SetStream(hcode::CBufStream& ssValue);
+    bool GetStream(hcode::CBufStream& ssValue);
     const uint256 CalcHash();
 
 public:
@@ -166,7 +166,7 @@ public:
 //////////////////////////////////////////////////////////////
 // CTrieDB
 
-class CTrieDB : public hnbase::CKVDB
+class CTrieDB : public hcode::CKVDB
 {
 public:
     CTrieDB() {}
@@ -194,12 +194,12 @@ protected:
     bool GetBranchPath(bytes& syKey, uint256& hash, CTrieValue& value, TRIE_NODE_PATH& path);
     bool GetExtensionPath(bytes& syKey, uint256& hash, CTrieValue& value, TRIE_NODE_PATH& path);
     bool GetKeyValue(const uint256& hashRoot, const bytes& nbKey, bytes& btValue);
-    bool WalkerAll(hnbase::CBufStream& ssKey, hnbase::CBufStream& ssValue, CTrieDBWalker& walker);
+    bool WalkerAll(hcode::CBufStream& ssKey, hcode::CBufStream& ssValue, CTrieDBWalker& walker);
     bool WalkThroughNode(const uint256& hashNode, const bytes& nbKeyPrefix, bytes& nbBeginKey, const bool fReverse, const bytes& nbPrevKey,
                          CTrieDBWalker& walker, std::map<uint256, CTrieValue>& mapCacheNode, const uint32 nDepth, bool& fWalkOver);
 
 protected:
-    hnbase::CRWAccess rwAccess;
+    hcode::CRWAccess rwAccess;
 };
 
 } // namespace storage

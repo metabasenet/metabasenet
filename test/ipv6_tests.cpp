@@ -7,12 +7,12 @@
 #include <boost/test/unit_test.hpp>
 #include <exception>
 
-#include "hnbase.h"
+#include "hcode.h"
 #include "netio/iocontainer.h"
 #include "netio/nethost.h"
 #include "test_big.h"
 
-using namespace hnbase;
+using namespace hcode;
 
 BOOST_FIXTURE_TEST_SUITE(ipv6_tests, BasicUtfSetup)
 

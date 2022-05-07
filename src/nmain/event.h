@@ -10,7 +10,7 @@
 #include <vector>
 
 #include "block.h"
-#include "hnbase.h"
+#include "hcode.h"
 #include "peerevent.h"
 #include "struct.h"
 #include "transaction.h"
@@ -30,12 +30,12 @@ enum
 
 class CBlockMakerEventListener;
 #define TYPE_BLOCKMAKEREVENT(type, body) \
-    hnbase::CEventCategory<type, CBlockMakerEventListener, body, CNil>
+    hcode::CEventCategory<type, CBlockMakerEventListener, body, CNil>
 
 typedef TYPE_BLOCKMAKEREVENT(EVENT_BLOCKMAKER_UPDATE, CBlockMakerUpdate) CEventBlockMakerUpdate;
 typedef TYPE_BLOCKMAKEREVENT(EVENT_BLOCKMAKER_AGREE, CDelegateAgreement) CEventBlockMakerAgree;
 
-class CBlockMakerEventListener : virtual public hnbase::CEventListener
+class CBlockMakerEventListener : virtual public hcode::CEventListener
 {
 public:
     virtual ~CBlockMakerEventListener() {}

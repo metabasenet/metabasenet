@@ -10,7 +10,7 @@
 #include "timeseries.h"
 
 using namespace std;
-using namespace hnbase;
+using namespace hcode;
 using namespace metabasenet;
 using namespace metabasenet::storage;
 using namespace boost::filesystem;
@@ -30,7 +30,7 @@ BOOST_AUTO_TEST_CASE(filetest)
 
     try
     {
-        hnbase::CFileStream fs(fullpath.c_str());
+        hcode::CFileStream fs(fullpath.c_str());
         fs.Seek(0);
 
         uint32 nOffset = 0;

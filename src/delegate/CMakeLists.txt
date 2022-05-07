@@ -15,7 +15,7 @@ set(sources
 
 add_library(delegate ${sources})
 
-include_directories(../hnbase ../common ../crypto ../mpvss)
+include_directories(../hcode ../common ../crypto ../mpvss)
 
 target_link_libraries(delegate
     ${Boost_SYSTEM_LIBRARY}
@@ -28,7 +28,7 @@ target_link_libraries(delegate
     OpenSSL::SSL
     OpenSSL::Crypto
     ${sodium_LIBRARY_RELEASE}
-    hnbase
+    hcode
     crypto
     mpvss
 )

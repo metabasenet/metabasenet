@@ -76,7 +76,7 @@ public:
                                         }
                                         catch (std::exception& e)
                                         {
-                                            hnbase::StdError(__PRETTY_FUNCTION__, e.what());
+                                            hcode::StdError(__PRETTY_FUNCTION__, e.what());
                                             return false;
                                         }
                                     });
@@ -130,7 +130,7 @@ public:
                                         }
                                         catch (std::exception& e)
                                         {
-                                            hnbase::StdError(__PRETTY_FUNCTION__, e.what());
+                                            hcode::StdError(__PRETTY_FUNCTION__, e.what());
                                             return false;
                                         }
                                     });
@@ -176,7 +176,7 @@ public:
                                         }
                                         catch (std::exception& e)
                                         {
-                                            hnbase::StdError(__PRETTY_FUNCTION__, e.what());
+                                            hcode::StdError(__PRETTY_FUNCTION__, e.what());
                                             return false;
                                         }
                                     });
@@ -225,7 +225,7 @@ public:
                                         }
                                         catch (std::exception& e)
                                         {
-                                            hnbase::StdError(__PRETTY_FUNCTION__, e.what());
+                                            hcode::StdError(__PRETTY_FUNCTION__, e.what());
                                             return false;
                                         }
                                     });
@@ -276,7 +276,7 @@ public:
                                         }
                                         catch (std::exception& e)
                                         {
-                                            hnbase::StdError(__PRETTY_FUNCTION__, e.what());
+                                            hcode::StdError(__PRETTY_FUNCTION__, e.what());
                                             return false;
                                         }
                                     });
@@ -330,7 +330,7 @@ public:
                                         }
                                         catch (std::exception& e)
                                         {
-                                            hnbase::StdError(__PRETTY_FUNCTION__, e.what());
+                                            hcode::StdError(__PRETTY_FUNCTION__, e.what());
                                             return false;
                                         }
                                     });

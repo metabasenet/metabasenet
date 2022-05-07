@@ -7,7 +7,7 @@
 
 #include <boost/bind.hpp>
 
-#include "hnbase.h"
+#include "hcode.h"
 #include "proto.h"
 
 namespace metabasenet
@@ -16,18 +16,18 @@ namespace metabasenet
 namespace network
 {
 
-class CBbPeer : public hnbase::CPeer
+class CBbPeer : public hcode::CPeer
 {
 public:
-    CBbPeer(hnbase::CPeerNet* pPeerNetIn, hnbase::CIOClient* pClientIn, uint64 nNonceIn,
+    CBbPeer(hcode::CPeerNet* pPeerNetIn, hcode::CIOClient* pClientIn, uint64 nNonceIn,
             bool fInBoundIn, uint32 nMsgMagicIn, uint32 nHsTimerIdIn);
     ~CBbPeer();
     void Activate() override;
     bool IsHandshaked();
-    bool SendMessage(int nChannel, int nCommand, hnbase::CBufStream& ssPayload);
+    bool SendMessage(int nChannel, int nCommand, hcode::CBufStream& ssPayload);
     bool SendMessage(int nChannel, int nCommand)
     {
-        hnbase::CBufStream ssPayload;
+        hcode::CBufStream ssPayload;
         return SendMessage(nChannel, nCommand, ssPayload);
     }
     uint32 Request(const CInv& inv, uint32 nTimerId);
@@ -71,7 +71,7 @@ protected:
     std::queue<std::pair<uint256, CInv>> queAskFor;
 };
 
-class CBbPeerInfo : public hnbase::CPeerInfo
+class CBbPeerInfo : public hcode::CPeerInfo
 {
 public:
     int nVersion;

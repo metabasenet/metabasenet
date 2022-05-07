@@ -9,7 +9,7 @@
 #include "schedule.h"
 
 using namespace std;
-using namespace hnbase;
+using namespace hcode;
 using boost::asio::ip::tcp;
 
 #define PUSHTX_TIMEOUT (1000)

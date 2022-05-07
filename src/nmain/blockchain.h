@@ -144,8 +144,8 @@ protected:
     IForkManager* pForkManager;
 
     storage::CBlockBase cntrBlock;
-    hnbase::CCache<uint256, CDelegateEnrolled> cacheEnrolled;
-    hnbase::CCache<uint256, CDelegateAgreement> cacheAgreement;
+    hcode::CCache<uint256, CDelegateEnrolled> cacheEnrolled;
+    hcode::CCache<uint256, CDelegateAgreement> cacheAgreement;
 
     std::map<uint256, MapCheckPointsType> mapForkCheckPoints;
     uint32 nMaxBlockRewardTxCount;

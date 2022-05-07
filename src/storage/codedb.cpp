@@ -9,7 +9,7 @@
 #include "leveldbeng.h"
 
 using namespace std;
-using namespace hnbase;
+using namespace hcode;
 
 namespace metabasenet
 {
@@ -34,14 +34,14 @@ bool CListCreateCodeTrieDBWalker::Walk(const bytes& btKey, const bytes& btValue,
 
     try
     {
-        hnbase::CBufStream ssKey(btKey);
+        hcode::CBufStream ssKey(btKey);
         string strName;
         ssKey >> strName;
         if (strName == DB_CODE_KEY_NAME_WASM_CREATE_CODE)
         {
             uint256 hashCreateCode;
             CWasmCreateCodeContext ctxtCreateCode;
-            hnbase::CBufStream ssValue(btValue);
+            hcode::CBufStream ssValue(btValue);
             ssKey >> hashCreateCode;
             ssValue >> ctxtCreateCode;
             mapWasmCreateCode.insert(std::make_pair(hashCreateCode, ctxtCreateCode));
@@ -49,7 +49,7 @@ bool CListCreateCodeTrieDBWalker::Walk(const bytes& btKey, const bytes& btValue,
     }
     catch (std::exception& e)
     {
-        hnbase::StdError(__PRETTY_FUNCTION__, e.what());
+        hcode::StdError(__PRETTY_FUNCTION__, e.what());
         return false;
     }
     return true;
@@ -110,7 +110,7 @@ bool CForkCodeDB::AddCodeContext(const uint256& hashPrevBlock, const uint256& ha
     bytesmap mapKv;
     for (const auto& kv : mapSourceCode)
     {
-        hnbase::CBufStream ssKey, ssValue;
+        hcode::CBufStream ssKey, ssValue;
         bytes btKey, btValue;
 
         ssKey << DB_CODE_KEY_NAME_SOURCE_CODE << kv.first;
@@ -123,7 +123,7 @@ bool CForkCodeDB::AddCodeContext(const uint256& hashPrevBlock, const uint256& ha
     }
     for (const auto& kv : mapWasmCreateCode)
     {
-        hnbase::CBufStream ssKey, ssValue;
+        hcode::CBufStream ssKey, ssValue;
         bytes btKey, btValue;
 
         ssKey << DB_CODE_KEY_NAME_WASM_CREATE_CODE << kv.first;
@@ -136,7 +136,7 @@ bool CForkCodeDB::AddCodeContext(const uint256& hashPrevBlock, const uint256& ha
     }
     for (const auto& kv : mapWasmRunCode)
     {
-        hnbase::CBufStream ssKey, ssValue;
+        hcode::CBufStream ssKey, ssValue;
         bytes btKey, btValue;
 
         ssKey << DB_CODE_KEY_NAME_WASM_RUN_CODE << kv.first;
@@ -172,7 +172,7 @@ bool CForkCodeDB::RetrieveSourceCodeContext(const uint256& hashBlock, const uint
     {
         return false;
     }
-    hnbase::CBufStream ssKey, ssValue;
+    hcode::CBufStream ssKey, ssValue;
     bytes btKey, btValue;
     ssKey << DB_CODE_KEY_NAME_SOURCE_CODE << hashSourceCode;
     ssKey.GetData(btKey);
@@ -187,7 +187,7 @@ bool CForkCodeDB::RetrieveSourceCodeContext(const uint256& hashBlock, const uint
     }
     catch (std::exception& e)
     {
-        hnbase::StdError(__PRETTY_FUNCTION__, e.what());
+        hcode::StdError(__PRETTY_FUNCTION__, e.what());
         return false;
     }
     return true;
@@ -200,7 +200,7 @@ bool CForkCodeDB::RetrieveWasmCreateCodeContext(const uint256& hashBlock, const 
     {
         return false;
     }
-    hnbase::CBufStream ssKey, ssValue;
+    hcode::CBufStream ssKey, ssValue;
     bytes btKey, btValue;
     ssKey << DB_CODE_KEY_NAME_WASM_CREATE_CODE << hashWasmCreateCode;
     ssKey.GetData(btKey);
@@ -215,7 +215,7 @@ bool CForkCodeDB::RetrieveWasmCreateCodeContext(const uint256& hashBlock, const 
     }
     catch (std::exception& e)
     {
-        hnbase::StdError(__PRETTY_FUNCTION__, e.what());
+        hcode::StdError(__PRETTY_FUNCTION__, e.what());
         return false;
     }
     return true;
@@ -228,7 +228,7 @@ bool CForkCodeDB::RetrieveWasmRunCodeContext(const uint256& hashBlock, const uin
     {
         return false;
     }
-    hnbase::CBufStream ssKey, ssValue;
+    hcode::CBufStream ssKey, ssValue;
     bytes btKey, btValue;
     ssKey << DB_CODE_KEY_NAME_WASM_RUN_CODE << hashWasmRunCode;
     ssKey.GetData(btKey);
@@ -243,7 +243,7 @@ bool CForkCodeDB::RetrieveWasmRunCodeContext(const uint256& hashBlock, const uin
     }
     catch (std::exception& e)
     {
-        hnbase::StdError(__PRETTY_FUNCTION__, e.what());
+        hcode::StdError(__PRETTY_FUNCTION__, e.what());
         return false;
     }
     return true;
@@ -259,7 +259,7 @@ bool CForkCodeDB::ListWasmCreateCodeContext(const uint256& hashBlock, std::map<u
     }
 
     bytes btKeyPrefix;
-    hnbase::CBufStream ssKeyPrefix;
+    hcode::CBufStream ssKeyPrefix;
     ssKeyPrefix << DB_CODE_KEY_NAME_WASM_CREATE_CODE;
     ssKeyPrefix.GetData(btKeyPrefix);
 
@@ -313,7 +313,7 @@ bool CForkCodeDB::VerifyCodeContext(const uint256& hashPrevBlock, const uint256&
 ///////////////////////////////////
 bool CForkCodeDB::WriteTrieRoot(const uint256& hashBlock, const uint256& hashTrieRoot)
 {
-    hnbase::CBufStream ss;
+    hcode::CBufStream ss;
     ss << string("trieroot") << hashBlock;
     uint256 hashKey = metabasenet::crypto::CryptoHash(ss.GetData(), ss.GetSize());
 
@@ -333,7 +333,7 @@ bool CForkCodeDB::ReadTrieRoot(const uint256& hashBlock, uint256& hashTrieRoot)
         return true;
     }
 
-    hnbase::CBufStream ss;
+    hcode::CBufStream ss;
     ss << string("trieroot") << hashBlock;
     uint256 hashKey = metabasenet::crypto::CryptoHash(ss.GetData(), ss.GetSize());
 
@@ -348,7 +348,7 @@ bool CForkCodeDB::ReadTrieRoot(const uint256& hashBlock, uint256& hashTrieRoot)
 
 void CForkCodeDB::AddPrevRoot(const uint256& hashPrevRoot, const uint256& hashBlock, bytesmap& mapKv)
 {
-    hnbase::CBufStream ssKey, ssValue;
+    hcode::CBufStream ssKey, ssValue;
     bytes btKey, btValue;
 
     ssKey << DB_CODE_KEY_NAME_PREV_ROOT;
@@ -362,7 +362,7 @@ void CForkCodeDB::AddPrevRoot(const uint256& hashPrevRoot, const uint256& hashBl
 
 bool CForkCodeDB::GetPrevRoot(const uint256& hashRoot, uint256& hashPrevRoot, uint256& hashBlock)
 {
-    hnbase::CBufStream ssKey, ssValue;
+    hcode::CBufStream ssKey, ssValue;
     bytes btKey, btValue;
     ssKey << DB_CODE_KEY_NAME_PREV_ROOT;
     ssKey.GetData(btKey);
@@ -377,7 +377,7 @@ bool CForkCodeDB::GetPrevRoot(const uint256& hashRoot, uint256& hashPrevRoot, ui
     }
     catch (std::exception& e)
     {
-        hnbase::StdError(__PRETTY_FUNCTION__, e.what());
+        hcode::StdError(__PRETTY_FUNCTION__, e.what());
         return false;
     }
     return true;

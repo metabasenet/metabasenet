@@ -7,7 +7,7 @@
 #include "leveldbeng.h"
 
 using namespace std;
-using namespace hnbase;
+using namespace hcode;
 #if BOOST_VERSION >= 106000
 using namespace boost::placeholders;
 #endif

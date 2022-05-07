@@ -202,11 +202,11 @@ public:
 /* Protocol & Event */
 class CNil
 {
-    friend class hnbase::CStream;
+    friend class hcode::CStream;
 
 protected:
     template <typename O>
-    void Serialize(hnbase::CStream& s, O& opt)
+    void Serialize(hcode::CStream& s, O& opt)
     {
     }
 };
@@ -233,7 +233,7 @@ class CPeerKnownTx
 public:
     CPeerKnownTx() {}
     CPeerKnownTx(const uint256& txidIn)
-      : txid(txidIn), nTime(hnbase::GetTime()) {}
+      : txid(txidIn), nTime(hcode::GetTime()) {}
 
 public:
     uint256 txid;

@@ -16,7 +16,7 @@
 
 class CBlock
 {
-    friend class hnbase::CStream;
+    friend class hcode::CStream;
 
 public:
     uint16 nVersion;
@@ -101,7 +101,7 @@ public:
     }
     uint256 GetHash() const
     {
-        hnbase::CBufStream ss;
+        hcode::CBufStream ss;
         ss << nVersion << nType << nTimeStamp << nNumber << hashPrev << hashMerkleRoot << hashStateRoot << hashReceiptsRoot << nBloom << nGasLimit << nGasUsed << vchProof << txMint;
         uint256 hash = metabasenet::crypto::CryptoHash(ss.GetData(), ss.GetSize());
         return uint256(GetBlockHeight(), uint224(hash));
@@ -119,11 +119,11 @@ public:
                 + sizeof(nBloom)
                 + sizeof(nGasLimit)
                 + sizeof(nGasUsed)
-                + hnbase::GetSerializeSize(vchProof));
+                + hcode::GetSerializeSize(vchProof));
     }
     void GetSerializedProofOfWorkData(std::vector<unsigned char>& vchProofOfWork) const
     {
-        hnbase::CBufStream ss;
+        hcode::CBufStream ss;
         ss << nVersion << nType << nTimeStamp << nNumber << hashPrev << vchProof;
         vchProofOfWork.assign(ss.GetData(), ss.GetData() + ss.GetSize());
     }
@@ -170,7 +170,7 @@ public:
         {
             try
             {
-                hnbase::CBufStream ss(btTempData);
+                hcode::CBufStream ss(btTempData);
                 ss >> nMintCoin;
             }
             catch (std::exception& e)
@@ -189,7 +189,7 @@ public:
             try
             {
                 uint256 nTotalReward;
-                hnbase::CBufStream ss(btTempData);
+                hcode::CBufStream ss(btTempData);
                 ss >> nTotalReward;
                 return nTotalReward;
             }
@@ -233,7 +233,7 @@ public:
 
 protected:
     template <typename O>
-    void Serialize(hnbase::CStream& s, O& opt)
+    void Serialize(hcode::CStream& s, O& opt)
     {
         s.Serialize(nVersion, opt);
         s.Serialize(nType, opt);
@@ -255,7 +255,7 @@ protected:
 
 class CBlockEx : public CBlock
 {
-    friend class hnbase::CStream;
+    friend class hcode::CStream;
 
 public:
     uint256 hashBlock;
@@ -271,7 +271,7 @@ public:
 
 protected:
     template <typename O>
-    void Serialize(hnbase::CStream& s, O& opt)
+    void Serialize(hcode::CStream& s, O& opt)
     {
         CBlock::Serialize(s, opt);
         s.Serialize(hashBlock, opt);
@@ -549,7 +549,7 @@ public:
 
 class CBlockOutline : public CBlockIndex
 {
-    friend class hnbase::CStream;
+    friend class hcode::CStream;
 
 public:
     uint256 hashBlock;
@@ -576,7 +576,7 @@ public:
     }
     uint32 GetCrc() const
     {
-        hnbase::CBufStream ss;
+        hcode::CBufStream ss;
         ss << *this;
         return metabasenet::crypto::crc24q((const unsigned char*)(ss.GetData()), (int)(ss.GetSize()));
     }
@@ -592,7 +592,7 @@ public:
 
 protected:
     template <typename O>
-    void Serialize(hnbase::CStream& s, O& opt)
+    void Serialize(hcode::CStream& s, O& opt)
     {
         s.Serialize(hashBlock, opt);
         s.Serialize(hashPrev, opt);
@@ -626,7 +626,7 @@ protected:
 
 class CBlockVerify
 {
-    friend class hnbase::CStream;
+    friend class hcode::CStream;
 
 public:
     uint32 nPrevVerifyCrc;
@@ -660,14 +660,14 @@ public:
 
     uint32 GetCrc() const
     {
-        hnbase::CBufStream ss;
+        hcode::CBufStream ss;
         ss << *this;
         return metabasenet::crypto::crc24q((const unsigned char*)(ss.GetData()), (int)(ss.GetSize()));
     }
 
 protected:
     template <typename O>
-    void Serialize(hnbase::CStream& s, O& opt)
+    void Serialize(hcode::CStream& s, O& opt)
     {
         s.Serialize(nPrevVerifyCrc, opt);
         s.Serialize(hashBlock, opt);
@@ -681,14 +681,14 @@ protected:
 
 class CBlockRoot
 {
-    friend class hnbase::CStream;
+    friend class hcode::CStream;
 
 public:
     CBlockRoot() {}
 
     uint32 GetRootCrc() const
     {
-        hnbase::CBufStream ss;
+        hcode::CBufStream ss;
         ss << *this;
         return metabasenet::crypto::crc24q((const unsigned char*)(ss.GetData()), (int)(ss.GetSize()));
     }
@@ -706,7 +706,7 @@ public:
 
 protected:
     template <typename O>
-    void Serialize(hnbase::CStream& s, O& opt)
+    void Serialize(hcode::CStream& s, O& opt)
     {
         s.Serialize(hashStateRoot, opt);
         s.Serialize(hashForkContextRoot, opt);
@@ -722,7 +722,7 @@ protected:
 
 class CBlockLocator
 {
-    friend class hnbase::CStream;
+    friend class hcode::CStream;
 
 public:
     CBlockLocator() {}
@@ -730,7 +730,7 @@ public:
 
 protected:
     template <typename O>
-    void Serialize(hnbase::CStream& s, O& opt)
+    void Serialize(hcode::CStream& s, O& opt)
     {
         s.Serialize(vBlockHash, opt);
     }
@@ -741,7 +741,7 @@ public:
 
 class CDestState
 {
-    friend class hnbase::CStream;
+    friend class hcode::CStream;
 
 public:
     uint64 nTxNonce;
@@ -785,7 +785,7 @@ public:
 
 protected:
     template <typename O>
-    void Serialize(hnbase::CStream& s, O& opt)
+    void Serialize(hcode::CStream& s, O& opt)
     {
         s.Serialize(nTxNonce, opt);
         s.Serialize(nBalance, opt);
@@ -796,7 +796,7 @@ protected:
 
 class CVoteContext
 {
-    friend class hnbase::CStream;
+    friend class hcode::CStream;
 
 public:
     CVoteContext()
@@ -817,7 +817,7 @@ public:
 
 protected:
     template <typename O>
-    void Serialize(hnbase::CStream& s, O& opt)
+    void Serialize(hcode::CStream& s, O& opt)
     {
         s.Serialize(destDelegate, opt);
         s.Serialize(destOwner, opt);

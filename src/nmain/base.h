@@ -6,7 +6,7 @@
 #define METABASENET_BASE_H
 
 #include <boost/optional.hpp>
-#include <hnbase.h>
+#include <hcode.h>
 #include <map>
 #include <set>
 
@@ -29,7 +29,7 @@
 namespace metabasenet
 {
 
-class ICoreProtocol : public hnbase::IBase
+class ICoreProtocol : public hcode::IBase
 {
 public:
     ICoreProtocol()
@@ -60,7 +60,7 @@ public:
     virtual uint32 GetNextBlockTimeStamp(uint16 nPrevMintType, uint32 nPrevTimeStamp, uint16 nTargetMintType) = 0;
 };
 
-class IBlockChain : public hnbase::IBase
+class IBlockChain : public hcode::IBase
 {
 public:
     class CCheckPoint
@@ -184,15 +184,15 @@ public:
 
     const CBasicConfig* Config()
     {
-        return dynamic_cast<const CBasicConfig*>(hnbase::IBase::Config());
+        return dynamic_cast<const CBasicConfig*>(hcode::IBase::Config());
     }
     const CStorageConfig* StorageConfig()
     {
-        return dynamic_cast<const CStorageConfig*>(hnbase::IBase::Config());
+        return dynamic_cast<const CStorageConfig*>(hcode::IBase::Config());
     }
 };
 
-class ITxPool : public hnbase::IBase
+class ITxPool : public hcode::IBase
 {
 public:
     ITxPool()
@@ -217,11 +217,11 @@ public:
     virtual uint64 GetCertTxNextNonce(const CDestination& dest) = 0;
     const CStorageConfig* StorageConfig()
     {
-        return dynamic_cast<const CStorageConfig*>(hnbase::IBase::Config());
+        return dynamic_cast<const CStorageConfig*>(hcode::IBase::Config());
     }
 };
 
-class IForkManager : public hnbase::IBase
+class IForkManager : public hcode::IBase
 {
 public:
     IForkManager()
@@ -231,18 +231,18 @@ public:
     virtual void ForkUpdate(const CBlockChainUpdate& update, std::vector<uint256>& vActive, std::vector<uint256>& vDeactive) = 0;
     const CForkConfig* ForkConfig()
     {
-        return dynamic_cast<const CForkConfig*>(hnbase::IBase::Config());
+        return dynamic_cast<const CForkConfig*>(hcode::IBase::Config());
     }
 };
 
-class IConsensus : public hnbase::IBase
+class IConsensus : public hcode::IBase
 {
 public:
     IConsensus()
       : IBase("consensus") {}
     const CMintConfig* MintConfig()
     {
-        return dynamic_cast<const CMintConfig*>(hnbase::IBase::Config());
+        return dynamic_cast<const CMintConfig*>(hcode::IBase::Config());
     }
     virtual void PrimaryUpdate(const CBlockChainUpdate& update, CDelegateRoutine& routine) = 0;
     virtual bool AddNewDistribute(const uint256& hashDistributeAnchor, const CDestination& destFrom, const std::vector<unsigned char>& vchDistribute) = 0;
@@ -253,18 +253,18 @@ public:
     virtual bool LoadConsensusData(int& nStartHeight, CDelegateRoutine& routine) = 0;
 };
 
-class IBlockMaker : public hnbase::CEventProc
+class IBlockMaker : public hcode::CEventProc
 {
 public:
     IBlockMaker()
       : CEventProc("blockmaker") {}
     const CMintConfig* MintConfig()
     {
-        return dynamic_cast<const CMintConfig*>(hnbase::IBase::Config());
+        return dynamic_cast<const CMintConfig*>(hcode::IBase::Config());
     }
 };
 
-class IWallet : public hnbase::IBase
+class IWallet : public hcode::IBase
 {
 public:
     IWallet()
@@ -299,15 +299,15 @@ public:
 
     const CBasicConfig* Config()
     {
-        return dynamic_cast<const CBasicConfig*>(hnbase::IBase::Config());
+        return dynamic_cast<const CBasicConfig*>(hcode::IBase::Config());
     }
     const CStorageConfig* StorageConfig()
     {
-        return dynamic_cast<const CStorageConfig*>(hnbase::IBase::Config());
+        return dynamic_cast<const CStorageConfig*>(hcode::IBase::Config());
     }
 };
 
-class IDispatcher : public hnbase::IBase
+class IDispatcher : public hcode::IBase
 {
 public:
     IDispatcher()
@@ -324,7 +324,7 @@ public:
     virtual void CheckAllSubForkLastBlock() = 0;
 };
 
-class IService : public hnbase::IBase
+class IService : public hcode::IBase
 {
 public:
     IService()
@@ -334,8 +334,8 @@ public:
     /* Network */
     virtual int GetPeerCount() = 0;
     virtual void GetPeers(std::vector<network::CBbPeerInfo>& vPeerInfo) = 0;
-    virtual bool AddNode(const hnbase::CNetHost& node) = 0;
-    virtual bool RemoveNode(const hnbase::CNetHost& node) = 0;
+    virtual bool AddNode(const hcode::CNetHost& node) = 0;
+    virtual bool RemoveNode(const hcode::CNetHost& node) = 0;
     /* Blockchain & Tx Pool*/
     virtual int GetForkCount() = 0;
     virtual bool HaveFork(const uint256& hashFork) = 0;
@@ -416,7 +416,7 @@ public:
         = 0;
 };
 
-class IDataStat : public hnbase::IIOModule
+class IDataStat : public hcode::IIOModule
 {
 public:
     IDataStat()
@@ -429,14 +429,14 @@ public:
     virtual bool GetP2pSynStatData(const uint256& hashFork, uint32 nBeginTime, uint32 nGetCount, std::vector<CStatItemP2pSyn>& vStatData) = 0;
 };
 
-class IRecovery : public hnbase::IBase
+class IRecovery : public hcode::IBase
 {
 public:
     IRecovery()
       : IBase("recovery") {}
     const CStorageConfig* StorageConfig()
     {
-        return dynamic_cast<const CStorageConfig*>(hnbase::IBase::Config());
+        return dynamic_cast<const CStorageConfig*>(hcode::IBase::Config());
     }
 };
 

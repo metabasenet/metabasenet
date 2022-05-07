@@ -17,7 +17,7 @@
 #include "wallet.h"
 
 using namespace std;
-using namespace hnbase;
+using namespace hcode;
 
 #define DEBUG(err, ...) Debug((err), __FUNCTION__, __VA_ARGS__)
 
@@ -96,7 +96,7 @@ void CCoreProtocol::GetGenesisBlock(CBlock& block)
     tx.nAmount = BBCP_TOKEN_INIT; // initial number of token
 
     {
-        hnbase::CBufStream ss;
+        hcode::CBufStream ss;
         ss << tx.nAmount;
         bytes btTempData;
         ss.GetData(btTempData);
@@ -146,7 +146,7 @@ Errno CCoreProtocol::ValidateTransaction(const CTransaction& tx, int nHeight)
             txTemp.AddTxData(CTransaction::DF_TEMPLATEDATA, ptr->GetTemplateData());
 
             {
-                hnbase::CBufStream ss;
+                hcode::CBufStream ss;
                 ss << ~uint256();
                 bytes btTempData;
                 ss.GetData(btTempData);
@@ -166,7 +166,7 @@ Errno CCoreProtocol::ValidateTransaction(const CTransaction& tx, int nHeight)
             CTransaction txTemp;
 
             {
-                hnbase::CBufStream ss;
+                hcode::CBufStream ss;
                 ss << ~uint256();
                 bytes btTempData;
                 ss.GetData(btTempData);
@@ -174,7 +174,7 @@ Errno CCoreProtocol::ValidateTransaction(const CTransaction& tx, int nHeight)
             }
 
             {
-                hnbase::CBufStream ss;
+                hcode::CBufStream ss;
                 ss << ~uint256();
                 bytes btTempData;
                 ss.GetData(btTempData);
@@ -196,7 +196,7 @@ Errno CCoreProtocol::ValidateTransaction(const CTransaction& tx, int nHeight)
     {
         CTransaction txTemp;
 
-        hnbase::CBufStream ss;
+        hcode::CBufStream ss;
         ss << ~uint256();
         bytes btTempData;
         ss.GetData(btTempData);
@@ -1151,7 +1151,7 @@ Errno CCoreProtocol::VerifyActivateCodeTx(const uint256& hashFork, const uint256
     uint256 hashCode;
     try
     {
-        hnbase::CBufStream ss(btActData);
+        hcode::CBufStream ss(btActData);
         ss >> hashCode;
     }
     catch (std::exception& e)
@@ -1270,7 +1270,7 @@ void CTestNetCoreProtocol::GetGenesisBlock(CBlock& block)
     tx.nAmount = BBCP_TOKEN_INIT; // initial number of token
 
     {
-        hnbase::CBufStream ss;
+        hcode::CBufStream ss;
         ss << tx.nAmount;
         bytes btTempData;
         ss.GetData(btTempData);

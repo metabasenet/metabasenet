@@ -11,7 +11,7 @@
 
 class CMPCandidate
 {
-    friend class hnbase::CStream;
+    friend class hcode::CStream;
 
 public:
     CMPCandidate() {}
@@ -28,7 +28,7 @@ public:
 
 protected:
     template <typename O>
-    void Serialize(hnbase::CStream& s, O& opt)
+    void Serialize(hcode::CStream& s, O& opt)
     {
         s.Serialize(nIdent, opt);
         s.Serialize(nWeight, opt);
@@ -43,7 +43,7 @@ public:
 
 class CMPParticipant
 {
-    friend class hnbase::CStream;
+    friend class hcode::CStream;
 
 public:
     CMPParticipant();
@@ -58,7 +58,7 @@ public:
 
 protected:
     template <typename O>
-    void Serialize(hnbase::CStream& s, O& opt)
+    void Serialize(hcode::CStream& s, O& opt)
     {
         s.Serialize(candidate, opt);
         s.Serialize(nIndex, opt);
@@ -75,7 +75,7 @@ public:
 
 class CMPSecretShare
 {
-    friend class hnbase::CStream;
+    friend class hcode::CStream;
 
 public:
     CMPSecretShare();
@@ -106,7 +106,7 @@ protected:
     bool GetParticipantRange(const uint256& nIdentIn, std::size_t& nIndexRet, std::size_t& nWeightRet);
 
     template <typename O>
-    void Serialize(hnbase::CStream& s, O& opt)
+    void Serialize(hcode::CStream& s, O& opt)
     {
         s.Serialize(nIdent, opt);
         s.Serialize(myBox, opt);

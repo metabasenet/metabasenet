@@ -8,11 +8,11 @@ WasmLog::~WasmLog()
 {
     if (wl == ERROR)
     {
-        hnbase::StdError("wasm", os.str().c_str());
+        hcode::StdError("wasm", os.str().c_str());
     }
     else
     {
-        hnbase::StdDebug("wasm", os.str().c_str());
+        hcode::StdDebug("wasm", os.str().c_str());
     }
 }
 

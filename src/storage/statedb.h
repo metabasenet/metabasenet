@@ -9,7 +9,7 @@
 
 #include "block.h"
 #include "destination.h"
-#include "hnbase.h"
+#include "hcode.h"
 #include "timeseries.h"
 #include "transaction.h"
 #include "triedb.h"
@@ -52,7 +52,7 @@ protected:
         MAX_CACHE_COUNT = 16
     };
     bool fCache;
-    hnbase::CRWAccess rwAccess;
+    hcode::CRWAccess rwAccess;
     std::map<uint256, std::map<CDestination, CDestState>> mapCacheState;
     std::map<uint256, std::map<uint256, CTrieValue>> mapCacheTrie;
     std::map<uint64, uint256> mapCacheIndex;
@@ -84,7 +84,7 @@ public:
 protected:
     bool fCache;
     boost::filesystem::path pathState;
-    hnbase::CRWAccess rwAccess;
+    hcode::CRWAccess rwAccess;
     std::map<uint256, std::shared_ptr<CForkStateDB>> mapStateDB;
 };
 

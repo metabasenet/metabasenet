@@ -6,7 +6,7 @@
 
 using namespace std;
 using namespace boost::filesystem;
-using namespace hnbase;
+using namespace hcode;
 
 namespace metabasenet
 {
@@ -113,7 +113,7 @@ bool CTimeSeriesBase::RemoveFollowUpFile(uint32 nBeginFile)
     {
         if (!boost::filesystem::remove(path(pathFile)))
         {
-            hnbase::StdError("TimeSeriesBase", "RemoveFollowUpFile: remove fail fail, file: %s", pathFile.c_str());
+            hcode::StdError("TimeSeriesBase", "RemoveFollowUpFile: remove fail fail, file: %s", pathFile.c_str());
             return false;
         }
         ++nBeginFile;
@@ -131,13 +131,13 @@ bool CTimeSeriesBase::TruncateFile(const string& pathFile, uint32 nOffset)
     pReadFd = fopen(strTempFilePath.c_str(), "rb");
     if (pReadFd == nullptr)
     {
-        hnbase::StdError("TimeSeriesBase", "TruncateFile: fopen fail1, file: %s", strTempFilePath.c_str());
+        hcode::StdError("TimeSeriesBase", "TruncateFile: fopen fail1, file: %s", strTempFilePath.c_str());
         return false;
     }
     pWriteFd = fopen(pathFile.c_str(), "wb");
     if (pWriteFd == nullptr)
     {
-        hnbase::StdError("TimeSeriesBase", "TruncateFile: fopen fail2, file: %s", pathFile.c_str());
+        hcode::StdError("TimeSeriesBase", "TruncateFile: fopen fail2, file: %s", pathFile.c_str());
         fclose(pReadFd);
         return false;
     }
@@ -175,12 +175,12 @@ bool CTimeSeriesBase::RepairFile(uint32 nFile, uint32 nOffset)
         std::string pathFile;
         if (!GetFilePath(nFile, pathFile))
         {
-            hnbase::StdError("TimeSeriesBase", "RepairFile: GetFilePath fail");
+            hcode::StdError("TimeSeriesBase", "RepairFile: GetFilePath fail");
             return false;
         }
         if (!TruncateFile(pathFile, nOffset))
         {
-            hnbase::StdError("TimeSeriesBase", "RepairFile: TruncateFile fail");
+            hcode::StdError("TimeSeriesBase", "RepairFile: TruncateFile fail");
             return false;
         }
         return RemoveFollowUpFile(nFile + 1);

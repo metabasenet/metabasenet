@@ -8,7 +8,7 @@
 #include <map>
 
 #include "destination.h"
-#include "hnbase.h"
+#include "hcode.h"
 #include "transaction.h"
 #include "triedb.h"
 #include "uint256.h"
@@ -85,7 +85,7 @@ public:
 protected:
     bool fCache;
     boost::filesystem::path pathStorage;
-    hnbase::CRWAccess rwAccess;
+    hcode::CRWAccess rwAccess;
     std::map<uint256, std::shared_ptr<CForkInviteDB>> mapInviteDB;
 };
 

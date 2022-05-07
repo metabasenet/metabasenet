@@ -9,7 +9,7 @@
 
 #include "block.h"
 #include "destination.h"
-#include "hnbase.h"
+#include "hcode.h"
 #include "timeseries.h"
 #include "transaction.h"
 #include "triedb.h"
@@ -37,7 +37,7 @@ protected:
         MAX_CACHE_COUNT = 16
     };
     bool fCache;
-    hnbase::CRWAccess rwAccess;
+    hcode::CRWAccess rwAccess;
     CTrieDB dbTrie;
 };
 
@@ -61,7 +61,7 @@ public:
 protected:
     bool fCache;
     boost::filesystem::path pathWasm;
-    hnbase::CRWAccess rwAccess;
+    hcode::CRWAccess rwAccess;
     std::map<uint256, std::shared_ptr<CForkWasmDB>> mapWasmDB;
 };
 

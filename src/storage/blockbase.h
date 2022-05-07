@@ -15,7 +15,7 @@
 #include "block.h"
 #include "blockdb.h"
 #include "forkcontext.h"
-#include "hnbase.h"
+#include "hcode.h"
 #include "param.h"
 #include "profile.h"
 #include "timeseries.h"
@@ -339,7 +339,7 @@ protected:
         MAX_CACHE_BLOCK_STATE = 64
     };
 
-    mutable hnbase::CRWAccess rwAccess;
+    mutable hcode::CRWAccess rwAccess;
     bool fCfgFullDb;
     uint256 hashGenesisBlock;
     CBlockDB dbBlock;

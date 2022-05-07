@@ -7,7 +7,7 @@
 
 #include <boost/thread/thread.hpp>
 
-#include "hnbase.h"
+#include "hcode.h"
 #include "transaction.h"
 #include "triedb.h"
 
@@ -54,7 +54,7 @@ protected:
     };
     bool fCache;
     uint256 hashFork;
-    hnbase::CRWAccess rwAccess;
+    hcode::CRWAccess rwAccess;
     std::map<uint256, std::map<uint256, CTxIndex>> mapCacheTxIndex;
     CTrieDB dbTrie;
 };
@@ -81,7 +81,7 @@ public:
 protected:
     bool fCache;
     boost::filesystem::path pathTxIndex;
-    hnbase::CRWAccess rwAccess;
+    hcode::CRWAccess rwAccess;
     std::map<uint256, std::shared_ptr<CForkTxIndexDB>> mapTxIndexDB;
 };
 

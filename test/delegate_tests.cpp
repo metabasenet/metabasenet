@@ -10,7 +10,7 @@
 #include "test_big.h"
 
 using namespace std;
-using namespace hnbase;
+using namespace hcode;
 using namespace metabasenet;
 using namespace metabasenet::delegate;
 

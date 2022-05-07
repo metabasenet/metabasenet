@@ -9,7 +9,7 @@
 #include <deque>
 
 using namespace std;
-using namespace hnbase;
+using namespace hcode;
 
 namespace metabasenet
 {

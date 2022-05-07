@@ -9,7 +9,7 @@
 #include "test_big.h"
 
 using namespace std;
-using namespace hnbase;
+using namespace hcode;
 
 BOOST_FIXTURE_TEST_SUITE(bloomfilter_tests, BasicUtfSetup)
 

@@ -11,7 +11,7 @@
 #include "test_big.h"
 
 using namespace std;
-using namespace hnbase;
+using namespace hcode;
 using namespace metabasenet;
 using namespace metabasenet::storage;
 using namespace boost::filesystem;
@@ -446,7 +446,7 @@ BOOST_AUTO_TEST_CASE(stresstest2)
 
             uint256 txid = uint256(0x1234, nTimestamp, hash);
 
-            hnbase::CBufStream ssKey, ssValue;
+            hcode::CBufStream ssKey, ssValue;
             bytes btKey, btValue;
 
             //ssKey << std::string("txid") << BSwap32(nTimestamp) << hash;
@@ -495,7 +495,7 @@ BOOST_AUTO_TEST_CASE(stresstest3)
         bytesmap mapKv;
         for (int64 i = n * nSingleCount; i < (n + 1) * nSingleCount; i++)
         {
-            hnbase::CBufStream ssKey, ssValue;
+            hcode::CBufStream ssKey, ssValue;
             bytes btKey, btValue;
 
             ssKey << std::string("txid") << BSwap32(nTimestamp);

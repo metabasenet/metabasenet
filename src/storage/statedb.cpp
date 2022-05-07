@@ -11,7 +11,7 @@
 #include "block.h"
 
 using namespace std;
-using namespace hnbase;
+using namespace hcode;
 
 namespace metabasenet
 {
@@ -25,12 +25,12 @@ bool CListStateTrieDBWalker::Walk(const bytes& btKey, const bytes& btValue, cons
 {
     if (btKey.size() == 0 || btValue.size() == 0)
     {
-        hnbase::StdError("CListStateTrieDBWalker", "btKey.size() = %ld, btValue.size() = %ld", btKey.size(), btValue.size());
+        hcode::StdError("CListStateTrieDBWalker", "btKey.size() = %ld, btValue.size() = %ld", btKey.size(), btValue.size());
         return false;
     }
     try
     {
-        hnbase::CBufStream ssKey, ssValue;
+        hcode::CBufStream ssKey, ssValue;
         ssKey.Write((char*)(btKey.data()), btKey.size());
         ssValue.Write((char*)(btValue.data()), btValue.size());
         CDestination dest;
@@ -41,7 +41,7 @@ bool CListStateTrieDBWalker::Walk(const bytes& btKey, const bytes& btValue, cons
     }
     catch (std::exception& e)
     {
-        hnbase::StdError(__PRETTY_FUNCTION__, e.what());
+        hcode::StdError(__PRETTY_FUNCTION__, e.what());
         return false;
     }
     return true;
@@ -102,13 +102,13 @@ bool CForkStateDB::AddBlockState(const uint256& hashPrevRoot, uint256& hashBlock
     bytesmap mapKv;
     for (const auto& kv : mapBlockState)
     {
-        hnbase::CBufStream ssKey;
+        hcode::CBufStream ssKey;
         bytes btKey, btValue;
 
         ssKey << kv.first;
         ssKey.GetData(btKey);
 
-        hnbase::CBufStream ssValue;
+        hcode::CBufStream ssValue;
         ssValue << kv.second;
         btValue.assign(ssValue.GetData(), ssValue.GetData() + ssValue.GetSize());
 
@@ -127,13 +127,13 @@ bool CForkStateDB::CreateCacheStateTrie(const uint256& hashPrevRoot, uint256& ha
     bytesmap mapKv;
     for (const auto& kv : mapBlockState)
     {
-        hnbase::CBufStream ssKey;
+        hcode::CBufStream ssKey;
         bytes btKey, btValue;
 
         ssKey << kv.first;
         ssKey.GetData(btKey);
 
-        hnbase::CBufStream ssValue;
+        hcode::CBufStream ssValue;
         ssValue << kv.second;
         btValue.assign(ssValue.GetData(), ssValue.GetData() + ssValue.GetSize());
 
@@ -160,7 +160,7 @@ bool CForkStateDB::CreateCacheStateTrie(const uint256& hashPrevRoot, uint256& ha
 
 bool CForkStateDB::RetrieveDestState(const uint256& hashBlockRoot, const CDestination& dest, CDestState& state)
 {
-    hnbase::CBufStream ssKey, ssValue;
+    hcode::CBufStream ssKey, ssValue;
     bytes btKey, btValue;
     ssKey << dest;
     ssKey.GetData(btKey);
@@ -175,7 +175,7 @@ bool CForkStateDB::RetrieveDestState(const uint256& hashBlockRoot, const CDestin
     }
     catch (std::exception& e)
     {
-        hnbase::StdError(__PRETTY_FUNCTION__, e.what());
+        hcode::StdError(__PRETTY_FUNCTION__, e.what());
         return false;
     }
     return true;
@@ -366,7 +366,7 @@ bool CStateDB::CreateStaticStateRoot(const std::map<CDestination, CDestState>& m
     bytesmap mapKv;
     for (const auto& kv : mapBlockState)
     {
-        hnbase::CBufStream ssKey, ssValue;
+        hcode::CBufStream ssKey, ssValue;
         bytes btKey, btValue;
 
         ssKey << kv.first;

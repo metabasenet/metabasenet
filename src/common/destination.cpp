@@ -13,7 +13,7 @@
 #include "util.h"
 
 using namespace std;
-using namespace hnbase;
+using namespace hcode;
 using namespace metabasenet::crypto;
 
 //////////////////////////////
@@ -178,7 +178,7 @@ CDestination& CDestination::SetContractId(const uint256& from, const uint64 nTxN
 {
     prefix = PREFIX_CONTRACT;
 
-    hnbase::CBufStream ss;
+    hcode::CBufStream ss;
     ss << from << nTxNonce;
     data = metabasenet::crypto::CryptoHash(ss.GetData(), ss.GetSize());
     return *this;

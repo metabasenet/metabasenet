@@ -83,7 +83,7 @@ set(sources
 add_library(libmetabasenet ${sources})
 add_executable(metabasenet main.cpp)
 
-include_directories(../hnbase ../crypto ../common ../storage ../network ../delegate ../mpvss ../jsonrpc ./)
+include_directories(../hcode ../crypto ../common ../storage ../network ../delegate ../mpvss ../jsonrpc ./)
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
 include_directories(${CMAKE_BINARY_DIR}/src/jsonrpc)
 include_directories(${Protobuf_INCLUDE_DIRS})
@@ -100,7 +100,7 @@ target_link_libraries(metabasenet
     OpenSSL::Crypto
     ${Protobuf_LIBRARIES}
     ${Readline_LIBRARY}
-    hnbase
+    hcode
     crypto    
     storage    
     network
@@ -122,7 +122,7 @@ target_link_libraries(libmetabasenet
     OpenSSL::Crypto
     ${Protobuf_LIBRARIES}
     ${Readline_LIBRARY}
-    hnbase
+    hcode
     crypto    
     storage    
     network

@@ -19,7 +19,7 @@
 #define NODE_DEFAULT_GATEWAY "0.0.0.0"
 
 using namespace std;
-using namespace hnbase;
+using namespace hcode;
 using boost::asio::ip::tcp;
 
 namespace metabasenet
@@ -262,7 +262,7 @@ bool CBbPeerNet::SendDataMessage(uint64 nNonce, int nCommand, CBufStream& ssPayl
     return pBbPeer->SendMessage(PROTO_CHN_DATA, nCommand, ssPayload);
 }
 
-bool CBbPeerNet::SendDelegatedMessage(uint64 nNonce, int nCommand, hnbase::CBufStream& ssPayload)
+bool CBbPeerNet::SendDelegatedMessage(uint64 nNonce, int nCommand, hcode::CBufStream& ssPayload)
 {
     CBbPeer* pBbPeer = static_cast<CBbPeer*>(GetPeer(nNonce));
     if (pBbPeer == nullptr)
@@ -322,7 +322,7 @@ void CBbPeerNet::BuildHello(CPeer* pPeer, CBufStream& ssPayload)
     ssPayload << nVersion << nService << nTime << nNonce << subVersion << nHeight << hashGenesis;
 }
 
-uint32 CBbPeerNet::BuildPing(hnbase::CPeer* pPeer, hnbase::CBufStream& ssPayload)
+uint32 CBbPeerNet::BuildPing(hcode::CPeer* pPeer, hcode::CBufStream& ssPayload)
 {
     uint32 nSeq = CreateSeq(pPeer->GetNonce());
     int64 nTime = GetNetTime();

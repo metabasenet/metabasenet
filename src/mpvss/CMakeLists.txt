@@ -19,8 +19,8 @@ set(sources
 
 add_library(mpvss ${sources})
 
-include_directories(../hnbase ../crypto ./)
+include_directories(../hcode ../crypto ./)
 
 target_link_libraries(mpvss
-    hnbase
+    hcode
 )

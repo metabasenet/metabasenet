@@ -10,7 +10,7 @@
 #include "util.h"
 
 using namespace std;
-using namespace hnbase;
+using namespace hcode;
 
 namespace metabasenet
 {
@@ -398,9 +398,9 @@ evmc::result CWasmHost::CallContract(const evmc_message& msg)
     if (result.status_code == EVMC_SUCCESS)
     {
         StdLog("CWasmHost", "Call wasm: execute success, sender: 0x%s, destination: 0x%s, value: 0x%s, output_size: %ld, output_data: %s",
-               hnbase::ToHexString(msg.sender.bytes, sizeof(msg.sender.bytes)).c_str(),
-               hnbase::ToHexString(msg.destination.bytes, sizeof(msg.destination.bytes)).c_str(),
-               hnbase::ToHexString(msg.value.bytes, sizeof(msg.value.bytes)).c_str(),
+               hcode::ToHexString(msg.sender.bytes, sizeof(msg.sender.bytes)).c_str(),
+               hcode::ToHexString(msg.destination.bytes, sizeof(msg.destination.bytes)).c_str(),
+               hcode::ToHexString(msg.value.bytes, sizeof(msg.value.bytes)).c_str(),
                result.output_size, ToHexString(result.output_data, result.output_size).c_str());
 
         CTransactionLogs logs;

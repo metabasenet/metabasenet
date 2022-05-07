@@ -9,7 +9,7 @@
 #include "leveldbeng.h"
 
 using namespace std;
-using namespace hnbase;
+using namespace hcode;
 
 namespace metabasenet
 {
@@ -37,13 +37,13 @@ bool CListAddressTxInfoTrieDBWalker::Walk(const bytes& btKey, const bytes& btVal
         string strName;
         CDestination dest;
         uint64 nTxIndex;
-        hnbase::CBufStream ssKey(btKey);
+        hcode::CBufStream ssKey(btKey);
         ssKey >> strName >> dest >> nTxIndex;
 
         nTxIndex = BSwap64(nTxIndex);
 
         CDestTxInfo ctxtAddressTxInfo;
-        hnbase::CBufStream ssValue(btValue);
+        hcode::CBufStream ssValue(btValue);
         ssValue >> ctxtAddressTxInfo;
         ctxtAddressTxInfo.nTxIndex = nTxIndex;
 
@@ -55,7 +55,7 @@ bool CListAddressTxInfoTrieDBWalker::Walk(const bytes& btKey, const bytes& btVal
     }
     catch (std::exception& e)
     {
-        hnbase::StdError(__PRETTY_FUNCTION__, e.what());
+        hcode::StdError(__PRETTY_FUNCTION__, e.what());
         return false;
     }
     return true;
@@ -122,7 +122,7 @@ bool CForkAddressTxInfoDB::AddAddressTxInfo(const uint256& hashPrevBlock, const 
 
         for (const CDestTxInfo& dti : kv.second)
         {
-            hnbase::CBufStream ssKey, ssValue;
+            hcode::CBufStream ssKey, ssValue;
             bytes btKey, btValue;
 
             ssKey << DB_ADDRESS_TXINFO_KEY_NAME_DEST << dest << BSwap64(nTxCount);
@@ -179,7 +179,7 @@ bool CForkAddressTxInfoDB::RetrieveAddressTxInfo(const uint256& hashBlock, const
         StdLog("CForkAddressTxInfoDB", "Retrieve address tx info: Read trie root fail, block: %s", hashBlock.GetHex().c_str());
         return false;
     }
-    hnbase::CBufStream ssKey, ssValue;
+    hcode::CBufStream ssKey, ssValue;
     bytes btKey, btValue;
     ssKey << DB_ADDRESS_TXINFO_KEY_NAME_DEST << dest << BSwap64(nTxIndex);
     ssKey.GetData(btKey);
@@ -196,7 +196,7 @@ bool CForkAddressTxInfoDB::RetrieveAddressTxInfo(const uint256& hashBlock, const
     }
     catch (std::exception& e)
     {
-        hnbase::StdError(__PRETTY_FUNCTION__, e.what());
+        hcode::StdError(__PRETTY_FUNCTION__, e.what());
         return false;
     }
     return true;
@@ -211,7 +211,7 @@ bool CForkAddressTxInfoDB::ListAddressTxInfo(const uint256& hashBlock, const CDe
         return false;
     }
 
-    hnbase::CBufStream ssKeyPrefix;
+    hcode::CBufStream ssKeyPrefix;
     ssKeyPrefix << DB_ADDRESS_TXINFO_KEY_NAME_DEST << dest;
     bytes btKeyPrefix;
     ssKeyPrefix.GetData(btKeyPrefix);
@@ -219,7 +219,7 @@ bool CForkAddressTxInfoDB::ListAddressTxInfo(const uint256& hashBlock, const CDe
     bytes btBeginKeyTail;
     if (nBeginTxIndex > 0)
     {
-        hnbase::CBufStream ss;
+        hcode::CBufStream ss;
         ss << BSwap64(nBeginTxIndex);
         ss.GetData(btBeginKeyTail);
     }
@@ -282,7 +282,7 @@ bool CForkAddressTxInfoDB::VerifyAddressTxInfo(const uint256& hashPrevBlock, con
 ///////////////////////////////////
 bool CForkAddressTxInfoDB::WriteTrieRoot(const uint256& hashBlock, const uint256& hashTrieRoot)
 {
-    hnbase::CBufStream ss;
+    hcode::CBufStream ss;
     ss << DB_ADDRESS_TXINFO_KEY_NAME_TRIEROOT << hashBlock;
     uint256 hashKey = metabasenet::crypto::CryptoHash(ss.GetData(), ss.GetSize());
 
@@ -302,7 +302,7 @@ bool CForkAddressTxInfoDB::ReadTrieRoot(const uint256& hashBlock, uint256& hashT
         return true;
     }
 
-    hnbase::CBufStream ss;
+    hcode::CBufStream ss;
     ss << DB_ADDRESS_TXINFO_KEY_NAME_TRIEROOT << hashBlock;
     uint256 hashKey = metabasenet::crypto::CryptoHash(ss.GetData(), ss.GetSize());
 
@@ -317,7 +317,7 @@ bool CForkAddressTxInfoDB::ReadTrieRoot(const uint256& hashBlock, uint256& hashT
 
 void CForkAddressTxInfoDB::AddPrevRoot(const uint256& hashPrevRoot, const uint256& hashBlock, bytesmap& mapKv)
 {
-    hnbase::CBufStream ssKey, ssValue;
+    hcode::CBufStream ssKey, ssValue;
     bytes btKey, btValue;
 
     ssKey << DB_ADDRESS_TXINFO_KEY_NAME_PREVROOT;
@@ -331,7 +331,7 @@ void CForkAddressTxInfoDB::AddPrevRoot(const uint256& hashPrevRoot, const uint25
 
 bool CForkAddressTxInfoDB::GetPrevRoot(const uint256& hashRoot, uint256& hashPrevRoot, uint256& hashBlock)
 {
-    hnbase::CBufStream ssKey, ssValue;
+    hcode::CBufStream ssKey, ssValue;
     bytes btKey, btValue;
     ssKey << DB_ADDRESS_TXINFO_KEY_NAME_PREVROOT;
     ssKey.GetData(btKey);
@@ -346,7 +346,7 @@ bool CForkAddressTxInfoDB::GetPrevRoot(const uint256& hashRoot, uint256& hashPre
     }
     catch (std::exception& e)
     {
-        hnbase::StdError(__PRETTY_FUNCTION__, e.what());
+        hcode::StdError(__PRETTY_FUNCTION__, e.what());
         return false;
     }
     return true;
@@ -354,7 +354,7 @@ bool CForkAddressTxInfoDB::GetPrevRoot(const uint256& hashRoot, uint256& hashPre
 
 void CForkAddressTxInfoDB::WriteAddressLast(const CDestination& dest, const uint64 nTxCount, bytesmap& mapKv)
 {
-    hnbase::CBufStream ssKey, ssValue;
+    hcode::CBufStream ssKey, ssValue;
     bytes btKey, btValue;
 
     ssKey << DB_ADDRESS_TXINFO_KEY_NAME_LASTDEST << dest;
@@ -368,7 +368,7 @@ void CForkAddressTxInfoDB::WriteAddressLast(const CDestination& dest, const uint
 
 bool CForkAddressTxInfoDB::ReadAddressLast(const uint256& hashRoot, const CDestination& dest, uint64& nTxCount)
 {
-    hnbase::CBufStream ssKey, ssValue;
+    hcode::CBufStream ssKey, ssValue;
     bytes btKey, btValue;
     ssKey << DB_ADDRESS_TXINFO_KEY_NAME_LASTDEST << dest;
     ssKey.GetData(btKey);
@@ -383,7 +383,7 @@ bool CForkAddressTxInfoDB::ReadAddressLast(const uint256& hashRoot, const CDesti
     }
     catch (std::exception& e)
     {
-        hnbase::StdError(__PRETTY_FUNCTION__, e.what());
+        hcode::StdError(__PRETTY_FUNCTION__, e.what());
         return false;
     }
     return true;

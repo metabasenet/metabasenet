@@ -8,7 +8,7 @@
 #include <map>
 
 #include "destination.h"
-#include "hnbase.h"
+#include "hcode.h"
 #include "timeseries.h"
 #include "triedb.h"
 #include "uint256.h"
@@ -20,7 +20,7 @@ namespace storage
 
 class CDelegateContext
 {
-    friend class hnbase::CStream;
+    friend class hcode::CStream;
 
 public:
     CDelegateContext() {}
@@ -30,7 +30,7 @@ public:
 
 protected:
     template <typename O>
-    void Serialize(hnbase::CStream& s, O& opt)
+    void Serialize(hcode::CStream& s, O& opt)
     {
         s.Serialize(hashVoteTrieRoot, opt);
         s.Serialize(mapEnrollTx, opt);
@@ -49,7 +49,7 @@ public:
     std::map<CDestination, uint256>& mapVote;
 };
 
-class CDelegateDB : public hnbase::CKVDB
+class CDelegateDB : public hcode::CKVDB
 {
 public:
     CDelegateDB()
@@ -79,7 +79,7 @@ protected:
     {
         MAX_CACHE_COUNT = 64,
     };
-    hnbase::CCache<uint256, CDelegateContext> cacheDelegate;
+    hcode::CCache<uint256, CDelegateContext> cacheDelegate;
     CTrieDB dbVoteTrie;
 };
 

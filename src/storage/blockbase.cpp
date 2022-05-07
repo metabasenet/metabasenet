@@ -18,7 +18,7 @@
 
 using namespace std;
 using namespace boost::filesystem;
-using namespace hnbase;
+using namespace hcode;
 
 #define BLOCKFILE_PREFIX "block"
 #define LOGFILE_NAME "storage.log"
@@ -549,7 +549,7 @@ bool CBlockState::GetDestWasmCode(const CTransaction& tx, CDestination& destWasm
         CTxContractData txcdCode;
         try
         {
-            hnbase::CBufStream ss(btTempData);
+            hcode::CBufStream ss(btTempData);
             ss >> txcdCode;
         }
         catch (std::exception& e)
@@ -788,7 +788,7 @@ bool CBlockState::DoRunResult(const uint256& txid, const CTransaction& tx, const
         nBlockBloom |= receipt.nLogsBloom;
     }
 
-    hnbase::CBufStream ss;
+    hcode::CBufStream ss;
     ss << receipt;
 
     bytes btReceipt(ss.GetData(), ss.GetData() + ss.GetSize());
@@ -1582,7 +1582,7 @@ bool CBlockBase::RetrieveAvailDelegate(const uint256& hash, int height, const ve
                 bytes btCertData;
                 try
                 {
-                    hnbase::CBufStream ss(btTempData);
+                    hcode::CBufStream ss(btTempData);
                     ss >> nBlockHeight >> btCertData;
                 }
                 catch (std::exception& e)
@@ -2908,7 +2908,7 @@ bool CBlockBase::UpdateBlockAddress(const uint256& hashFork, const uint256& hash
                     CTxContractData txcd;
                     try
                     {
-                        hnbase::CBufStream ss(btTempData);
+                        hcode::CBufStream ss(btTempData);
                         ss >> txcd;
                     }
                     catch (std::exception& e)
@@ -2996,7 +2996,7 @@ bool CBlockBase::UpdateBlockCode(const uint256& hashFork, const uint256& hashBlo
             CTxContractData txcd;
             try
             {
-                hnbase::CBufStream ss(btTempData);
+                hcode::CBufStream ss(btTempData);
                 ss >> txcd;
             }
             catch (std::exception& e)
@@ -3048,7 +3048,7 @@ bool CBlockBase::UpdateBlockCode(const uint256& hashFork, const uint256& hashBlo
             uint256 hashCode;
             try
             {
-                hnbase::CBufStream ss(btActData);
+                hcode::CBufStream ss(btActData);
                 ss >> hashCode;
             }
             catch (std::exception& e)
@@ -3100,13 +3100,13 @@ bool CBlockBase::UpdateBlockVoteReward(const uint256& hashFork, const uint256& h
                 bytes btData;
                 if (tx.GetTxData(CTransaction::DF_VOTEREWARD, btData))
                 {
-                    hnbase::CBufStream ss(btData);
+                    hcode::CBufStream ss(btData);
                     ss >> nVoteReward;
                 }
             }
             catch (std::exception& e)
             {
-                hnbase::StdError(__PRETTY_FUNCTION__, e.what());
+                hcode::StdError(__PRETTY_FUNCTION__, e.what());
             }
             if (nVoteReward > 0)
             {
@@ -3536,7 +3536,7 @@ bool CBlockBase::UpdateDelegate(const uint256& hashBlock, const CBlockEx& block,
             bytes btCertData;
             try
             {
-                hnbase::CBufStream ss(btTempData);
+                hcode::CBufStream ss(btTempData);
                 ss >> nCertAnchorHeight >> btCertData;
             }
             catch (...)
@@ -3903,7 +3903,7 @@ bool CBlockBase::GetTxContractData(const uint32 nTxFile, const uint32 nTxOffset,
     }
     try
     {
-        hnbase::CBufStream ss(btTempData);
+        hcode::CBufStream ss(btTempData);
         ss >> txcdCode;
     }
     catch (std::exception& e)
@@ -4103,7 +4103,7 @@ bool CBlockBase::VerifyCreateContractTx(const uint256& hashFork, const uint256& 
     CTxContractData txcdCode;
     try
     {
-        hnbase::CBufStream ss(btTempData);
+        hcode::CBufStream ss(btTempData);
         ss >> txcdCode;
     }
     catch (std::exception& e)

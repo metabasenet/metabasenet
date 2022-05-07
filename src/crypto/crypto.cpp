@@ -206,7 +206,7 @@ bool CryptoMultiSign(const set<uint256>& setPubKey, const CCryptoKey& privkey, c
 {
     if (setPubKey.empty())
     {
-        hnbase::StdTrace("multisign", "key set is empty");
+        hcode::StdTrace("multisign", "key set is empty");
         return false;
     }
 
@@ -214,7 +214,7 @@ bool CryptoMultiSign(const set<uint256>& setPubKey, const CCryptoKey& privkey, c
     set<uint256>::const_iterator itPub = setPubKey.find(privkey.pubkey);
     if (itPub == setPubKey.end())
     {
-        hnbase::StdTrace("multisign", "no key %s in set", privkey.pubkey.ToString().c_str());
+        hcode::StdTrace("multisign", "no key %s in set", privkey.pubkey.ToString().c_str());
         return false;
     }
     size_t nIndex = distance(setPubKey.begin(), itPub);
@@ -227,7 +227,7 @@ bool CryptoMultiSign(const set<uint256>& setPubKey, const CCryptoKey& privkey, c
     }
     else if (vchSig.size() < nIndexLen + 64)
     {
-        hnbase::StdTrace("multisign", "vchSig size %lu is too short, need %lu minimum", vchSig.size(), nIndexLen + 64);
+        hcode::StdTrace("multisign", "vchSig size %lu is too short, need %lu minimum", vchSig.size(), nIndexLen + 64);
         return false;
     }
     uint8* pIndex = &vchSig[0];
@@ -235,7 +235,7 @@ bool CryptoMultiSign(const set<uint256>& setPubKey, const CCryptoKey& privkey, c
     // already signed
     if (IsSigned(pIndex, nIndexLen, nIndex))
     {
-        hnbase::StdTrace("multisign", "key %s is already signed", privkey.pubkey.ToString().c_str());
+        hcode::StdTrace("multisign", "key %s is already signed", privkey.pubkey.ToString().c_str());
         return true;
     }
 
@@ -250,7 +250,7 @@ bool CryptoMultiSign(const set<uint256>& setPubKey, const CCryptoKey& privkey, c
     }
     if (nPosRS > vchSig.size())
     {
-        hnbase::StdTrace("multisign", "index %lu key is signed, but not exist R", nIndex);
+        hcode::StdTrace("multisign", "index %lu key is signed, but not exist R", nIndex);
         return false;
     }
 
@@ -261,7 +261,7 @@ bool CryptoMultiSign(const set<uint256>& setPubKey, const CCryptoKey& privkey, c
     // record
     if (!SetSigned(pIndex, nIndexLen, nIndex))
     {
-        hnbase::StdTrace("multisign", "set %lu index signed error", nIndex);
+        hcode::StdTrace("multisign", "set %lu index signed error", nIndex);
         return false;
     }
     vchSig.insert(vchSig.begin() + nPosRS, vchRS.begin(), vchRS.end());
@@ -273,7 +273,7 @@ bool CryptoMultiVerify(const set<uint256>& setPubKey, const uint8* pM, const siz
 {
     if (setPubKey.empty())
     {
-        hnbase::StdTrace("multiverify", "key set is empty");
+        hcode::StdTrace("multiverify", "key set is empty");
         return false;
     }
 
@@ -281,7 +281,7 @@ bool CryptoMultiVerify(const set<uint256>& setPubKey, const uint8* pM, const siz
     int nIndexLen = (setPubKey.size() - 1) / 8 + 1;
     if (vchSig.size() < (nIndexLen + 64))
     {
-        hnbase::StdTrace("multiverify", "vchSig size %lu is too short, need %lu minimum", vchSig.size(), nIndexLen + 64);
+        hcode::StdTrace("multiverify", "vchSig size %lu is too short, need %lu minimum", vchSig.size(), nIndexLen + 64);
         return false;
     }
     const uint8* pIndex = &vchSig[0];
@@ -295,14 +295,14 @@ bool CryptoMultiVerify(const set<uint256>& setPubKey, const uint8* pM, const siz
             const uint256& pk = *itPub;
             if (nPosRS + 64 > vchSig.size())
             {
-                hnbase::StdTrace("multiverify", "index %lu key is signed, but not exist R", i);
+                hcode::StdTrace("multiverify", "index %lu key is signed, but not exist R", i);
                 return false;
             }
 
             vector<uint8> vchRS(vchSig.begin() + nPosRS, vchSig.begin() + nPosRS + 64);
             if (!CryptoVerify(pk, pM, lenM, vchRS))
             {
-                hnbase::StdTrace("multiverify", "verify index %lu key sign failed", i);
+                hcode::StdTrace("multiverify", "verify index %lu key sign failed", i);
                 return false;
             }
 
@@ -313,7 +313,7 @@ bool CryptoMultiVerify(const set<uint256>& setPubKey, const uint8* pM, const siz
 
     if (nPosRS != vchSig.size())
     {
-        hnbase::StdTrace("multiverify", "vchSig size %lu is too long, need %lu", vchSig.size(), nPosRS);
+        hcode::StdTrace("multiverify", "vchSig size %lu is too long, need %lu", vchSig.size(), nPosRS);
         return false;
     }
 

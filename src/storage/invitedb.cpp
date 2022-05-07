@@ -9,7 +9,7 @@
 #include "leveldbeng.h"
 
 using namespace std;
-using namespace hnbase;
+using namespace hcode;
 
 namespace metabasenet
 {
@@ -33,14 +33,14 @@ bool CListInviteTrieDBWalker::Walk(const bytes& btKey, const bytes& btValue, con
 
     try
     {
-        hnbase::CBufStream ssKey(btKey);
+        hcode::CBufStream ssKey(btKey);
         string strName;
         ssKey >> strName;
         if (strName == DB_INVITE_KEY_NAME_DEST)
         {
             CDestination destKey;
             CDestination destValue;
-            hnbase::CBufStream ssValue(btValue);
+            hcode::CBufStream ssValue(btValue);
             ssKey >> destKey;
             ssValue >> destValue;
             mapInvite.insert(std::make_pair(destKey, destValue));
@@ -48,7 +48,7 @@ bool CListInviteTrieDBWalker::Walk(const bytes& btKey, const bytes& btValue, con
     }
     catch (std::exception& e)
     {
-        hnbase::StdError(__PRETTY_FUNCTION__, e.what());
+        hcode::StdError(__PRETTY_FUNCTION__, e.what());
         return false;
     }
     return true;
@@ -105,7 +105,7 @@ bool CForkInviteDB::AddInviteRelation(const uint256& hashPrevBlock, const uint25
     bytesmap mapKv;
     for (const auto& kv : mapInviteContext)
     {
-        hnbase::CBufStream ssKey, ssValue;
+        hcode::CBufStream ssKey, ssValue;
         bytes btKey, btValue;
 
         ssKey << DB_INVITE_KEY_NAME_DEST << kv.first;
@@ -142,7 +142,7 @@ bool CForkInviteDB::RetrieveInviteParent(const uint256& hashBlock, const CDestin
         StdLog("CForkInviteDB", "Retrieve invite parent: Read trie root fail, block: %s", hashBlock.GetHex().c_str());
         return false;
     }
-    hnbase::CBufStream ssKey, ssValue;
+    hcode::CBufStream ssKey, ssValue;
     bytes btKey, btValue;
     ssKey << DB_INVITE_KEY_NAME_DEST << destSub;
     ssKey.GetData(btKey);
@@ -159,7 +159,7 @@ bool CForkInviteDB::RetrieveInviteParent(const uint256& hashBlock, const CDestin
     }
     catch (std::exception& e)
     {
-        hnbase::StdError(__PRETTY_FUNCTION__, e.what());
+        hcode::StdError(__PRETTY_FUNCTION__, e.what());
         return false;
     }
     return true;
@@ -295,7 +295,7 @@ bool CForkInviteDB::VerifyInviteContext(const uint256& hashPrevBlock, const uint
 ///////////////////////////////////
 bool CForkInviteDB::WriteTrieRoot(const uint256& hashBlock, const uint256& hashTrieRoot)
 {
-    hnbase::CBufStream ss;
+    hcode::CBufStream ss;
     ss << DB_INVITE_KEY_NAME_TRIEROOT << hashBlock;
     uint256 hashKey = metabasenet::crypto::CryptoHash(ss.GetData(), ss.GetSize());
 
@@ -315,7 +315,7 @@ bool CForkInviteDB::ReadTrieRoot(const uint256& hashBlock, uint256& hashTrieRoot
         return true;
     }
 
-    hnbase::CBufStream ss;
+    hcode::CBufStream ss;
     ss << DB_INVITE_KEY_NAME_TRIEROOT << hashBlock;
     uint256 hashKey = metabasenet::crypto::CryptoHash(ss.GetData(), ss.GetSize());
 
@@ -330,7 +330,7 @@ bool CForkInviteDB::ReadTrieRoot(const uint256& hashBlock, uint256& hashTrieRoot
 
 void CForkInviteDB::AddPrevRoot(const uint256& hashPrevRoot, const uint256& hashBlock, bytesmap& mapKv)
 {
-    hnbase::CBufStream ssKey, ssValue;
+    hcode::CBufStream ssKey, ssValue;
     bytes btKey, btValue;
 
     ssKey << DB_INVITE_KEY_NAME_PREVROOT;
@@ -344,7 +344,7 @@ void CForkInviteDB::AddPrevRoot(const uint256& hashPrevRoot, const uint256& hash
 
 bool CForkInviteDB::GetPrevRoot(const uint256& hashRoot, uint256& hashPrevRoot, uint256& hashBlock)
 {
-    hnbase::CBufStream ssKey, ssValue;
+    hcode::CBufStream ssKey, ssValue;
     bytes btKey, btValue;
     ssKey << DB_INVITE_KEY_NAME_PREVROOT;
     ssKey.GetData(btKey);
@@ -359,7 +359,7 @@ bool CForkInviteDB::GetPrevRoot(const uint256& hashRoot, uint256& hashPrevRoot, 
     }
     catch (std::exception& e)
     {
-        hnbase::StdError(__PRETTY_FUNCTION__, e.what());
+        hcode::StdError(__PRETTY_FUNCTION__, e.what());
         return false;
     }
     return true;

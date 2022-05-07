@@ -27,11 +27,11 @@ int main(int argc, char** argv)
     }
     catch (std::exception& e)
     {
-        hnbase::StdError(__PRETTY_FUNCTION__, e.what());
+        hcode::StdError(__PRETTY_FUNCTION__, e.what());
     }
     catch (...)
     {
-        hnbase::StdError(__PRETTY_FUNCTION__, "unknown");
+        hcode::StdError(__PRETTY_FUNCTION__, "unknown");
     }
 
     entry.Exit();

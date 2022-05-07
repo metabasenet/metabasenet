@@ -11,7 +11,7 @@
 #include "test_big.h"
 
 using namespace std;
-using namespace hnbase;
+using namespace hcode;
 using namespace metabasenet;
 
 BOOST_FIXTURE_TEST_SUITE(structure_tests, BasicUtfSetup)

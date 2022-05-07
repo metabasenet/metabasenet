@@ -30,7 +30,7 @@ set(sources
 
 add_library(common ${sources})
 
-include_directories(../hnbase ../crypto ../jsonrpc ./)
+include_directories(../hcode ../crypto ../jsonrpc ./)
 include_directories(${CMAKE_BINARY_DIR}/src/jsonrpc)
 
 target_link_libraries(common
@@ -43,7 +43,7 @@ target_link_libraries(common
     ${Boost_REGEX_LIBRARY}
     OpenSSL::SSL
     OpenSSL::Crypto
-    hnbase
+    hcode
     crypto
     jsonrpc
 )

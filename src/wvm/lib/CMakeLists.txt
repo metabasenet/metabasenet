@@ -19,5 +19,5 @@ target_include_directories(ssvmEVMCHostModuleEEI
   ../utils/keccak
   ../utils/evmc/include
   ../../crypto
-  ../../hnbase
+  ../../hcode
 )

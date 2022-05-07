@@ -19,20 +19,20 @@ public:
 public:
     void Save(std::vector<unsigned char>& vchProof)
     {
-        hnbase::CBufStream os;
+        hcode::CBufStream os;
         ToStream(os);
         os.GetData(vchProof);
     }
     bool Load(const std::vector<unsigned char>& vchProof)
     {
-        hnbase::CBufStream is(vchProof);
+        hcode::CBufStream is(vchProof);
         try
         {
             FromStream(is);
         }
         catch (const std::exception& e)
         {
-            hnbase::StdError(__PRETTY_FUNCTION__, e.what());
+            hcode::StdError(__PRETTY_FUNCTION__, e.what());
             return false;
         }
         return true;
@@ -45,11 +45,11 @@ public:
     }
 
 protected:
-    virtual void ToStream(hnbase::CBufStream& os)
+    virtual void ToStream(hcode::CBufStream& os)
     {
         os << nWeight << nAgreement;
     }
-    virtual void FromStream(hnbase::CBufStream& is)
+    virtual void FromStream(hcode::CBufStream& is)
     {
         is >> nWeight >> nAgreement;
     }
@@ -61,12 +61,12 @@ public:
     uint256 hashRefBlock;
 
 protected:
-    virtual void ToStream(hnbase::CBufStream& os) override
+    virtual void ToStream(hcode::CBufStream& os) override
     {
         CProofOfSecretShare::ToStream(os);
         os << hashRefBlock;
     }
-    virtual void FromStream(hnbase::CBufStream& is) override
+    virtual void FromStream(hcode::CBufStream& is) override
     {
         CProofOfSecretShare::FromStream(is);
         is >> hashRefBlock;
@@ -82,12 +82,12 @@ public:
     uint64_t nNonce;
 
 protected:
-    virtual void ToStream(hnbase::CBufStream& os) override
+    virtual void ToStream(hcode::CBufStream& os) override
     {
         CProofOfSecretShare::ToStream(os);
         os << nAlgo << nBits << destMint << nNonce;
     }
-    virtual void FromStream(hnbase::CBufStream& is) override
+    virtual void FromStream(hcode::CBufStream& is) override
     {
         CProofOfSecretShare::FromStream(is);
         is >> nAlgo >> nBits >> destMint >> nNonce;

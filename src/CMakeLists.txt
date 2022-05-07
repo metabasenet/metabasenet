@@ -8,7 +8,7 @@
 
 # sub directories
 add_subdirectory(nmain)
-add_subdirectory(hnbase)
+add_subdirectory(hcode)
 add_subdirectory(crypto)
 add_subdirectory(common)
 add_subdirectory(mpvss)

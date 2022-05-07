@@ -5,7 +5,7 @@
 #ifndef STORAGE_WASMBASE_H
 #define STORAGE_WASMBASE_H
 
-#include "hnbase.h"
+#include "hcode.h"
 #include "uint256.h"
 
 namespace metabasenet

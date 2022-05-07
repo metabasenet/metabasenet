@@ -34,9 +34,9 @@ set(sources
 
 add_library(jsonrpc ${sources})
 
-include_directories(../hnbase ./ ${CMAKE_CURRENT_BINARY_DIR}/src)
+include_directories(../hcode ./ ${CMAKE_CURRENT_BINARY_DIR}/src)
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
 
 target_link_libraries(jsonrpc
-    hnbase
+    hcode
 )

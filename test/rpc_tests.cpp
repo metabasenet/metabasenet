@@ -21,7 +21,7 @@ struct RPCSetup
     }
     void CallRPCAPI(const std::string& params)
     {
-        /*        hnbase::CEventHttpReq eventHttpReq((uint64)0);
+        /*        hcode::CEventHttpReq eventHttpReq((uint64)0);
         try
         {
             bool ret = rpcmdl.HandleEvent(eventHttpReq);

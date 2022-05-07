@@ -11,7 +11,7 @@
 #include "rpc/rpc.h"
 
 using namespace std;
-using namespace hnbase;
+using namespace hcode;
 using namespace json_spirit;
 using boost::asio::ip::tcp;
 using namespace metabasenet::rpc;

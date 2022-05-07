@@ -28,19 +28,19 @@ public:
             Errno err = pDispatcher->AddNewBlock(t);
             if (err == OK)
             {
-                hnbase::StdTrace("Recovery", "Recovery block [%s]", t.GetHash().ToString().c_str());
+                hcode::StdTrace("Recovery", "Recovery block [%s]", t.GetHash().ToString().c_str());
             }
             else if (err != ERR_ALREADY_HAVE)
             {
                 printf("...... block: %s, file: %u, offset: %u\n", t.GetHash().ToString().c_str(), nFile, nOffset);
-                hnbase::StdError("Recovery", "Recovery block [%s] error: %s", t.GetHash().ToString().c_str(), ErrorString(err));
+                hcode::StdError("Recovery", "Recovery block [%s] error: %s", t.GetHash().ToString().c_str(), ErrorString(err));
                 return false;
             }
         }
 
         if (nWalkedFileSize + nOffset > nNextSize)
         {
-            hnbase::StdLog("CRecovery", "....................... Recovered %d%% ..................", nNextSize / (nSize / 100));
+            hcode::StdLog("CRecovery", "....................... Recovered %d%% ..................", nNextSize / (nSize / 100));
             nNextSize += (nSize / 100);
         }
 
@@ -98,19 +98,19 @@ bool CRecovery::HandleInvoke()
 {
     if (!StorageConfig()->strRecoveryDir.empty())
     {
-        hnbase::StdLog("CRecovery", "Recovery [%s] begin", StorageConfig()->strRecoveryDir.c_str());
+        hcode::StdLog("CRecovery", "Recovery [%s] begin", StorageConfig()->strRecoveryDir.c_str());
 
         path blockDir(StorageConfig()->strRecoveryDir);
         if (!exists(blockDir))
         {
-            hnbase::StdError("CRecovery", "Recovery dir [%s] not exist", StorageConfig()->strRecoveryDir.c_str());
+            hcode::StdError("CRecovery", "Recovery dir [%s] not exist", StorageConfig()->strRecoveryDir.c_str());
             return false;
         }
 
         storage::CTimeSeriesCached tsBlock;
         if (!tsBlock.Initialize(blockDir, "block"))
         {
-            hnbase::StdError("CRecovery", "Recovery initialze fail");
+            hcode::StdError("CRecovery", "Recovery initialze fail");
             return false;
         }
 
@@ -120,12 +120,12 @@ bool CRecovery::HandleInvoke()
         uint32 nLastPos;
         if (!tsBlock.WalkThrough(walker, nLastFile, nLastPos, false))
         {
-            hnbase::StdError("CRecovery", "Recovery walkthrough fail");
+            hcode::StdError("CRecovery", "Recovery walkthrough fail");
             return false;
         }
-        hnbase::StdLog("CRecovery", "CRecovery", "....................... Recovered success .......................");
+        hcode::StdLog("CRecovery", "CRecovery", "....................... Recovered success .......................");
 
-        hnbase::StdLog("CRecovery", "Recovery [%s] end", StorageConfig()->strRecoveryDir.c_str());
+        hcode::StdLog("CRecovery", "Recovery [%s] end", StorageConfig()->strRecoveryDir.c_str());
     }
     return true;
 }

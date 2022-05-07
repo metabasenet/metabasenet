@@ -9,7 +9,7 @@
 #include <vector>
 
 #include "base.h"
-#include "hnbase.h"
+#include "hcode.h"
 
 #define STAT_MAX_ITEM_COUNT GET_PARAM(DAY_HEIGHT_MAINNET, DAY_HEIGHT_TESTNET)
 
@@ -98,7 +98,7 @@ protected:
 protected:
     ICoreProtocol* pCoreProtocol;
 
-    hnbase::CThread thrStatTimer;
+    hcode::CThread thrStatTimer;
     bool fRunFlag;
     bool fStatWork;
 

@@ -20,7 +20,7 @@
 template <unsigned int BITS>
 class base_uint
 {
-    friend class hnbase::CStream;
+    friend class hcode::CStream;
 
 protected:
     enum
@@ -452,7 +452,7 @@ public:
     }
 
 protected:
-    void Serialize(hnbase::CStream& s, hnbase::SaveType&) const
+    void Serialize(hcode::CStream& s, hcode::SaveType&) const
     {
         //s.Write((char*)pn, sizeof(pn));
         unsigned char us[sizeof(pn)];
@@ -460,7 +460,7 @@ protected:
             us[i] = ((unsigned char*)pn)[sizeof(pn) - i - 1];
         s.Write((char*)us, sizeof(pn));
     }
-    void Serialize(hnbase::CStream& s, hnbase::LoadType&)
+    void Serialize(hcode::CStream& s, hcode::LoadType&)
     {
         //s.Read((char*)pn, sizeof(pn));
         unsigned char us[sizeof(pn)];
@@ -468,7 +468,7 @@ protected:
         for (unsigned int i = 0; i < sizeof(pn); i++)
             ((unsigned char*)pn)[sizeof(pn) - i - 1] = us[i];
     }
-    void Serialize(hnbase::CStream& s, std::size_t& serSize) const
+    void Serialize(hcode::CStream& s, std::size_t& serSize) const
     {
         (void)s;
         serSize += sizeof(pn);

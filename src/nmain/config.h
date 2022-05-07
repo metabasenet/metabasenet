@@ -9,7 +9,7 @@
 #include <type_traits>
 #include <vector>
 
-#include "hnbase.h"
+#include "hcode.h"
 #include "mode/mode.h"
 
 namespace metabasenet

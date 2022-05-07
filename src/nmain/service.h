@@ -6,7 +6,7 @@
 #define METABASENET_SERVICE_H
 
 #include "base.h"
-#include "hnbase.h"
+#include "hcode.h"
 #include "network.h"
 
 namespace metabasenet
@@ -22,8 +22,8 @@ public:
     /* Network */
     int GetPeerCount() override;
     void GetPeers(std::vector<network::CBbPeerInfo>& vPeerInfo) override;
-    bool AddNode(const hnbase::CNetHost& node) override;
-    bool RemoveNode(const hnbase::CNetHost& node) override;
+    bool AddNode(const hcode::CNetHost& node) override;
+    bool RemoveNode(const hcode::CNetHost& node) override;
     /* Blockchain & Tx Pool*/
     int GetForkCount() override;
     bool HaveFork(const uint256& hashFork) override;

@@ -6,7 +6,7 @@
 #define STORAGE_VERIFYDB_H
 
 #include "block.h"
-#include "hnbase.h"
+#include "hcode.h"
 #include "timeseries.h"
 
 namespace metabasenet

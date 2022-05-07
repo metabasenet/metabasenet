@@ -9,7 +9,7 @@
 #include "leveldbeng.h"
 
 using namespace std;
-using namespace hnbase;
+using namespace hcode;
 
 namespace metabasenet
 {
@@ -33,14 +33,14 @@ bool CListContractAddressTrieDBWalker::Walk(const bytes& btKey, const bytes& btV
 
     try
     {
-        hnbase::CBufStream ssKey(btKey);
+        hcode::CBufStream ssKey(btKey);
         string strName;
         ssKey >> strName;
         if (strName == DB_ADDRESS_KEY_NAME_DEST)
         {
             uint256 dest;
             CAddressContext ctxtAddress;
-            hnbase::CBufStream ssValue(btValue);
+            hcode::CBufStream ssValue(btValue);
             ssKey >> dest;
             ssValue >> ctxtAddress;
             if (ctxtAddress.IsContract())
@@ -57,7 +57,7 @@ bool CListContractAddressTrieDBWalker::Walk(const bytes& btKey, const bytes& btV
     }
     catch (std::exception& e)
     {
-        hnbase::StdError(__PRETTY_FUNCTION__, e.what());
+        hcode::StdError(__PRETTY_FUNCTION__, e.what());
         return false;
     }
     return true;
@@ -114,7 +114,7 @@ bool CForkAddressDB::AddAddressContext(const uint256& hashPrevBlock, const uint2
     bytesmap mapKv;
     for (const auto& kv : mapAddress)
     {
-        hnbase::CBufStream ssKey, ssValue;
+        hcode::CBufStream ssKey, ssValue;
         bytes btKey, btValue;
 
         ssKey << DB_ADDRESS_KEY_NAME_DEST << kv.first;
@@ -151,7 +151,7 @@ bool CForkAddressDB::RetrieveAddressContext(const uint256& hashBlock, const uint
         StdLog("CForkAddressDB", "Retrieve address context: Read trie root fail, block: %s", hashBlock.GetHex().c_str());
         return false;
     }
-    hnbase::CBufStream ssKey, ssValue;
+    hcode::CBufStream ssKey, ssValue;
     bytes btKey, btValue;
     ssKey << DB_ADDRESS_KEY_NAME_DEST << dest;
     ssKey.GetData(btKey);
@@ -168,7 +168,7 @@ bool CForkAddressDB::RetrieveAddressContext(const uint256& hashBlock, const uint
     }
     catch (std::exception& e)
     {
-        hnbase::StdError(__PRETTY_FUNCTION__, e.what());
+        hcode::StdError(__PRETTY_FUNCTION__, e.what());
         return false;
     }
     return true;
@@ -304,7 +304,7 @@ bool CForkAddressDB::VerifyAddressContext(const uint256& hashPrevBlock, const ui
 ///////////////////////////////////
 bool CForkAddressDB::WriteTrieRoot(const uint256& hashBlock, const uint256& hashTrieRoot)
 {
-    hnbase::CBufStream ss;
+    hcode::CBufStream ss;
     ss << DB_ADDRESS_KEY_NAME_TRIEROOT << hashBlock;
     uint256 hashKey = metabasenet::crypto::CryptoHash(ss.GetData(), ss.GetSize());
 
@@ -324,7 +324,7 @@ bool CForkAddressDB::ReadTrieRoot(const uint256& hashBlock, uint256& hashTrieRoo
         return true;
     }
 
-    hnbase::CBufStream ss;
+    hcode::CBufStream ss;
     ss << DB_ADDRESS_KEY_NAME_TRIEROOT << hashBlock;
     uint256 hashKey = metabasenet::crypto::CryptoHash(ss.GetData(), ss.GetSize());
 
@@ -339,7 +339,7 @@ bool CForkAddressDB::ReadTrieRoot(const uint256& hashBlock, uint256& hashTrieRoo
 
 void CForkAddressDB::AddPrevRoot(const uint256& hashPrevRoot, const uint256& hashBlock, bytesmap& mapKv)
 {
-    hnbase::CBufStream ssKey, ssValue;
+    hcode::CBufStream ssKey, ssValue;
     bytes btKey, btValue;
 
     ssKey << DB_ADDRESS_KEY_NAME_PREVROOT;
@@ -353,7 +353,7 @@ void CForkAddressDB::AddPrevRoot(const uint256& hashPrevRoot, const uint256& has
 
 bool CForkAddressDB::GetPrevRoot(const uint256& hashRoot, uint256& hashPrevRoot, uint256& hashBlock)
 {
-    hnbase::CBufStream ssKey, ssValue;
+    hcode::CBufStream ssKey, ssValue;
     bytes btKey, btValue;
     ssKey << DB_ADDRESS_KEY_NAME_PREVROOT;
     ssKey.GetData(btKey);
@@ -368,7 +368,7 @@ bool CForkAddressDB::GetPrevRoot(const uint256& hashRoot, uint256& hashPrevRoot,
     }
     catch (std::exception& e)
     {
-        hnbase::StdError(__PRETTY_FUNCTION__, e.what());
+        hcode::StdError(__PRETTY_FUNCTION__, e.what());
         return false;
     }
     return true;

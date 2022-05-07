@@ -7,7 +7,7 @@
 #include <boost/asio.hpp>
 
 using namespace std;
-using namespace hnbase;
+using namespace hcode;
 using boost::asio::ip::tcp;
 
 namespace metabasenet

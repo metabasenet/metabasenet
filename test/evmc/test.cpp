@@ -158,7 +158,7 @@ std::string getSignatureHash(std::string fun)
     Keccak h(256);
     h.addData((uint8_t*)fun.c_str(), 0, fun.size());
     std::vector<uint8_t> ret = h.digest();
-    return hnbase::ToHexString(std::vector<uint8_t>(ret.begin() + 28, ret.end()));
+    return hcode::ToHexString(std::vector<uint8_t>(ret.begin() + 28, ret.end()));
 }
 
 BOOST_AUTO_TEST_CASE(Run_test5)
@@ -174,7 +174,7 @@ BOOST_AUTO_TEST_CASE(Run_test5)
     evmc_result result = evmc_vm_execute(vm, SenderStr, CallDataStr);
     BOOST_CHECK(result.status_code == EVMC_SUCCESS);
     std::cout << result.output_size << std::endl;
-    std::cout << hnbase::ToHexString(result.output_data, result.output_size) << std::endl;
+    std::cout << hcode::ToHexString(result.output_data, result.output_size) << std::endl;
     /*
     */
 }
