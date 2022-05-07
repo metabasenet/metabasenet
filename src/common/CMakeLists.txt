@@ -13,8 +13,7 @@ set(template
     template/mint.h         template/mint.cpp 
     template/proof.h        template/proof.cpp 
     template/delegate.h     template/delegate.cpp 
-    template/vote.h         template/vote.cpp 
-    template/activatecode.h  template/activatecode.cpp 
+    template/vote.h         template/vote.cpp
 )
 
 set(sources

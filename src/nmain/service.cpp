@@ -5,7 +5,6 @@
 #include "service.h"
 
 #include "event.h"
-#include "template/activatecode.h"
 #include "template/delegate.h"
 #include "template/fork.h"
 #include "template/vote.h"
@@ -1136,16 +1135,9 @@ bool CService::SetContractTransaction(const bytes& btFormatData, const bytes& bt
             }
             if (!txcdDux.IsUpcode())
             {
-                if (!fExistWasmCode || ctxtCode.nStatus == CWasmCreateCodeContext::ST_INITIALIZE)
+                if (!fExistWasmCode)
                 {
-                    if (!fExistWasmCode)
-                    {
-                        strErr = "Contract not exist";
-                    }
-                    else
-                    {
-                        strErr = "Contract not activated";
-                    }
+                    strErr = "Contract not exist";
                     StdLog("CService", "Set contract transaction: %s, contract hash: %s, fork: %s",
                            strErr.c_str(), hashWasmCreateCode.GetHex().c_str(), txNew.hashFork.GetHex().c_str());
                     return false;
@@ -1378,43 +1370,6 @@ bool CService::SetTemplateTransaction(const bytes& btFormatData, const bytes& vc
         {
             txNew.AddTxData(CTransaction::DF_FORKDATA, vchData);
         }
-    }
-    else if (txNew.to.GetTemplateId().GetType() == TEMPLATE_ACTIVATECODE)
-    {
-        if (vchData.size() == 0)
-        {
-            strErr = "no activate code template data";
-            StdLog("CService", "Set template transaction: no activatecode template data, txid: %s", txNew.GetHash().ToString().c_str());
-            return false;
-        }
-        uint256 hashCode;
-        try
-        {
-            CBufStream ss(vchData);
-            ss >> hashCode;
-        }
-        catch (std::exception& e)
-        {
-            strErr = "activate code data error";
-            StdLog("CService", "Set template transaction: activatecode data error, txid: %s", txNew.GetHash().ToString().c_str());
-            return false;
-        }
-        CWasmCreateCodeContext ctxtCode;
-        if (!pBlockChain->RetrieveWasmCreateCodeContext(txNew.hashFork, hashLastBlock, hashCode, ctxtCode))
-        {
-            strErr = "code not exist";
-            StdLog("CService", "Set template transaction: code not exist, code: %s, txid: %s",
-                   hashCode.ToString().c_str(), txNew.GetHash().ToString().c_str());
-            return false;
-        }
-        if (ctxtCode.nStatus != 0)
-        {
-            strErr = "code is activated";
-            StdLog("CService", "Set template transaction: code is activated, code: %s, txid: %s",
-                   hashCode.ToString().c_str(), txNew.GetHash().ToString().c_str());
-            return false;
-        }
-        txNew.AddTxData(CTransaction::DF_ACTIVATECODE, vchData);
     }
     else
     {

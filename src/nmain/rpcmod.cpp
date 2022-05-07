@@ -2982,7 +2982,6 @@ CRPCResultPtr CRPCMod::RPCListContractCode(CRPCParamPtr param)
         codeData.strName = kv.second.strName;
         codeData.strDescribe = kv.second.strDescribe;
         codeData.strTxid = kv.second.hashCreateTxid.GetHex();
-        codeData.nStatus = kv.second.nStatus;
 
         spResult->vecCodedata.push_back(codeData);
     }

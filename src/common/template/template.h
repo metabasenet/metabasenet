@@ -32,7 +32,6 @@ enum TemplateType
     TEMPLATE_PROOF = 4,
     TEMPLATE_DELEGATE = 5,
     TEMPLATE_VOTE = 7,
-    TEMPLATE_ACTIVATECODE = 8,
     TEMPLATE_MAX
 };
 

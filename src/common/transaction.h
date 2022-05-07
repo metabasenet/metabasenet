@@ -59,7 +59,6 @@ public:
         DF_CERTTXDATA = 0x0108,
         DF_FORKNAME = 0x0109,
         DF_FORKNONCE = 0x010A,
-        DF_ACTIVATECODE = 0x010B,
     };
     CTransaction()
     {
@@ -763,8 +762,8 @@ class CWasmCreateCodeContext
 
 public:
     CWasmCreateCodeContext() {}
-    CWasmCreateCodeContext(const std::string& strNameIn, const CDestination& destCodeOwnerIn, const uint32 nFileIn, const uint32 nOffsetIn, const int nStatusIn)
-      : strName(strNameIn), destCodeOwner(destCodeOwnerIn), nFile(nFileIn), nOffset(nOffsetIn), nStatus(nStatusIn) {}
+    CWasmCreateCodeContext(const std::string& strNameIn, const CDestination& destCodeOwnerIn, const uint32 nFileIn, const uint32 nOffsetIn)
+      : strName(strNameIn), destCodeOwner(destCodeOwnerIn), nFile(nFileIn), nOffset(nOffsetIn) {}
 
     std::string GetName() const
     {
@@ -772,17 +771,10 @@ public:
     }
 
 public:
-    enum
-    {
-        ST_INITIALIZE = 0,
-        ST_ACTIVATED = 1
-    };
-
     std::string strName;
     CDestination destCodeOwner;
     uint32 nFile;
     uint32 nOffset;
-    int nStatus;
 
 protected:
     template <typename O>
@@ -792,7 +784,6 @@ protected:
         s.Serialize(destCodeOwner, opt);
         s.Serialize(nFile, opt);
         s.Serialize(nOffset, opt);
-        s.Serialize(nStatus, opt);
     }
 };
 
@@ -840,7 +831,6 @@ public:
     CDestination destOwner;
     std::string strDescribe;
     uint256 hashCreateTxid;
-    int nStatus;
 };
 
 class CTemplateAddressContext

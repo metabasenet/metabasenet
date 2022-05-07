@@ -9,7 +9,6 @@
 #include <boost/multi_index/ordered_index.hpp>
 #include <boost/multi_index_container.hpp>
 
-#include "activatecode.h"
 #include "delegate.h"
 #include "fork.h"
 #include "proof.h"
@@ -45,7 +44,6 @@ static const CTypeInfoSet setTypeInfo = {
     { TEMPLATE_PROOF, new CTemplateProof, "mint" },
     { TEMPLATE_DELEGATE, new CTemplateDelegate, "delegate" },
     { TEMPLATE_VOTE, new CTemplateVote, "vote" },
-    { TEMPLATE_ACTIVATECODE, new CTemplateActivateCode, "activatecode" },
 };
 
 static const CTypeInfo* GetTypeInfoByType(uint16 nTypeIn)

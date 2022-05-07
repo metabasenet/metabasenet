@@ -4075,10 +4075,6 @@
                         "txid": {
                             "type": "string",
                             "desc": "txid of contract code created"
-                        },
-                        "status": {
-                            "type": "int",
-                            "desc": "contract code status: 0: not activate, 1: activated"
                         }
                     }
                 }

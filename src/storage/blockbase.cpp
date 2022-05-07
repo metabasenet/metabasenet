@@ -577,14 +577,6 @@ bool CBlockState::GetDestWasmCode(const CTransaction& tx, CDestination& destWasm
                     btRunParam.clear();
                     return true;
                 }
-                if (ctxtWasmCreateCode.nStatus == 0)
-                {
-                    StdLog("CBlockState", "Get dest wasm code: Code not activate, code: %s, block: %s",
-                           hashWasmCreateCode.GetHex().c_str(), hashBlock.GetHex().c_str());
-                    btWasmCode.clear();
-                    btRunParam.clear();
-                    return true;
-                }
                 txcdCode.destCodeOwner = ctxtWasmCreateCode.destCodeOwner;
             }
             txcd = txcdCode;
@@ -3030,38 +3022,9 @@ bool CBlockBase::UpdateBlockCode(const uint256& hashFork, const uint256& hashBlo
                     CWasmCreateCodeContext ctxtCode;
                     if (!dbBlock.RetrieveWasmCreateCodeContext(hashFork, block.hashPrev, hashWasmCreateCode, ctxtCode))
                     {
-                        mapWasmCreateCode[hashWasmCreateCode] = CWasmCreateCodeContext(txcd.GetName(), txcd.GetCodeOwner(), nFile, nOffset, CWasmCreateCodeContext::ST_INITIALIZE);
+                        mapWasmCreateCode[hashWasmCreateCode] = CWasmCreateCodeContext(txcd.GetName(), txcd.GetCodeOwner(), nFile, nOffset);
                     }
                 }
-            }
-        }
-
-        if (tx.to.IsTemplate() && tx.to.GetTemplateId().GetType() == TEMPLATE_ACTIVATECODE && tx.GetTxDataCount() > 0)
-        {
-            bytes btActData;
-            if (!tx.GetTxData(CTransaction::DF_ACTIVATECODE, btActData))
-            {
-                StdLog("BlockBase", "Update Block Code: Tx data error3, block: %s", hashBlock.GetHex().c_str());
-                return false;
-            }
-
-            uint256 hashCode;
-            try
-            {
-                hcode::CBufStream ss(btActData);
-                ss >> hashCode;
-            }
-            catch (std::exception& e)
-            {
-                StdLog("BlockBase", "Update Block Code: Tx data error4, block: %s", hashBlock.GetHex().c_str());
-                return false;
-            }
-
-            CWasmCreateCodeContext ctxtCode;
-            if (dbBlock.RetrieveWasmCreateCodeContext(hashFork, block.hashPrev, hashCode, ctxtCode) && ctxtCode.nStatus == 0)
-            {
-                ctxtCode.nStatus = CWasmCreateCodeContext::ST_ACTIVATED;
-                mapWasmCreateCode[hashCode] = ctxtCode;
             }
         }
 
@@ -3991,7 +3954,6 @@ bool CBlockBase::GetWasmCreateCodeContext(const uint256& hashFork, const uint256
     ctxtContractCode.destOwner = txcdCode.GetCodeOwner();
     ctxtContractCode.strDescribe = txcdCode.GetDescribe();
     ctxtContractCode.hashCreateTxid = txidCreate;
-    ctxtContractCode.nStatus = ctxtCode.nStatus;
     return true;
 }
 
@@ -4024,7 +3986,6 @@ bool CBlockBase::ListWasmCreateCodeContext(const uint256& hashFork, const uint25
         ctxt.destOwner = txcdCode.GetCodeOwner();
         ctxt.strDescribe = txcdCode.GetDescribe();
         ctxt.hashCreateTxid = txidCreate;
-        ctxt.nStatus = kv.second.nStatus;
 
         mapCreateCode.insert(make_pair(kv.first, ctxt));
     }
@@ -4123,12 +4084,6 @@ bool CBlockBase::VerifyCreateContractTx(const uint256& hashFork, const uint256& 
             if (!RetrieveWasmCreateCodeContext(hashFork, hashBlock, hashWasmCreateCode, ctxtWasmCreateCode))
             {
                 StdLog("CBlockState", "Verify create contract tx: Code not exist, code: %s, tx: %s, block: %s",
-                       hashWasmCreateCode.GetHex().c_str(), tx.GetHash().GetHex().c_str(), hashBlock.GetHex().c_str());
-                return false;
-            }
-            if (ctxtWasmCreateCode.nStatus == 0)
-            {
-                StdLog("CBlockState", "Verify create contract tx: Code not activate, code: %s, tx: %s, block: %s",
                        hashWasmCreateCode.GetHex().c_str(), tx.GetHash().GetHex().c_str(), hashBlock.GetHex().c_str());
                 return false;
             }

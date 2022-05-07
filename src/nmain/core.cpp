@@ -8,7 +8,6 @@
 #include "crypto.h"
 #include "destination.h"
 #include "param.h"
-#include "template/activatecode.h"
 #include "template/delegate.h"
 #include "template/fork.h"
 #include "template/mint.h"
@@ -691,15 +690,6 @@ Errno CCoreProtocol::VerifyTransaction(const CTransaction& tx, const uint256& ha
         }
     }
 
-    if (nToTemplateType == TEMPLATE_ACTIVATECODE)
-    {
-        err = VerifyActivateCodeTx(tx.hashFork, hashPrevBlock, tx);
-        if (err != OK)
-        {
-            return DEBUG(err, "Verify activate code tx fail");
-        }
-    }
-
     if (tx.to.IsContract())
     {
         if (tx.to.IsNullContract())
@@ -1099,76 +1089,6 @@ Errno CCoreProtocol::VerifyVoteRewardLockTx(const CTransaction& tx, const uint25
                CoinToTokenBigFloat(state.GetBalance()).c_str(), CoinToTokenBigFloat(nLockedAmount).c_str(),
                tx.GetHash().GetHex().c_str(), tx.from.ToString().c_str());
         return ERR_TRANSACTION_IS_LOCKED;
-    }
-    return OK;
-}
-
-Errno CCoreProtocol::VerifyActivateCodeTx(const uint256& hashFork, const uint256& hashPrev, const CTransaction& tx)
-{
-    if (mapCodeGrantAddress.find(tx.from.ToString()) == mapCodeGrantAddress.end())
-    {
-        StdLog("CoreProtocol", "Verify Activate Code Tx: Code grant address error, from: %s, txid: %s",
-               tx.from.ToString().c_str(), tx.GetHash().GetHex().c_str());
-        return ERR_TRANSACTION_INVALID;
-    }
-
-    bytes btTemplateData;
-    CAddressContext ctxtAddress;
-    if (pBlockChain->RetrieveAddressContext(hashFork, hashPrev, tx.to.data, ctxtAddress))
-    {
-        CTemplateAddressContext ctxtTemplate;
-        if (ctxtAddress.GetTemplateAddressContext(ctxtTemplate))
-        {
-            btTemplateData = ctxtTemplate.btData;
-        }
-    }
-    if (btTemplateData.empty())
-    {
-        if (!tx.GetTxData(CTransaction::DF_TEMPLATEDATA, btTemplateData))
-        {
-            StdLog("CoreProtocol", "Verify Activate Code Tx: Template data error1, txid: %s", tx.GetHash().GetHex().c_str());
-            return ERR_TRANSACTION_INVALID;
-        }
-    }
-    CTemplatePtr ptr = CTemplate::CreateTemplatePtr(tx.to.GetTemplateId().GetType(), btTemplateData);
-    if (!ptr)
-    {
-        StdLog("CoreProtocol", "Verify Activate Code Tx: Template data error2, txid: %s", tx.GetHash().GetHex().c_str());
-        return ERR_TRANSACTION_INVALID;
-    }
-    if (tx.from != boost::dynamic_pointer_cast<CTemplateActivateCode>(ptr)->destGrant)
-    {
-        StdLog("CoreProtocol", "Verify Activate Code Tx: from not is grant, txid: %s", tx.GetHash().GetHex().c_str());
-        return ERR_TRANSACTION_INVALID;
-    }
-
-    bytes btActData;
-    if (!tx.GetTxData(CTransaction::DF_ACTIVATECODE, btActData))
-    {
-        StdLog("CoreProtocol", "Verify Activate Code Tx: data not activate code, txid: %s", tx.GetHash().GetHex().c_str());
-        return ERR_TRANSACTION_INVALID;
-    }
-    uint256 hashCode;
-    try
-    {
-        hcode::CBufStream ss(btActData);
-        ss >> hashCode;
-    }
-    catch (std::exception& e)
-    {
-        StdLog("CoreProtocol", "Verify Activate Code Tx: code hash error, txid: %s", tx.GetHash().GetHex().c_str());
-        return ERR_TRANSACTION_INVALID;
-    }
-    CWasmCreateCodeContext ctxtCode;
-    if (!pBlockChain->RetrieveWasmCreateCodeContext(hashFork, hashPrev, hashCode, ctxtCode))
-    {
-        StdLog("CoreProtocol", "Verify Activate Code Tx: code not exist, txid: %s", tx.GetHash().GetHex().c_str());
-        return ERR_TRANSACTION_INVALID;
-    }
-    if (ctxtCode.nStatus != 0)
-    {
-        StdLog("CoreProtocol", "Verify Activate Code Tx: code is activated, txid: %s", tx.GetHash().GetHex().c_str());
-        return ERR_TRANSACTION_INVALID;
     }
     return OK;
 }

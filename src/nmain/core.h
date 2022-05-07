@@ -48,7 +48,6 @@ protected:
     Errno VerifyVoteTx(const CTransaction& tx, const uint256& hashPrev);
     Errno VerifyVoteRedeemTx(const CTransaction& tx, const uint256& hashPrev);
     Errno VerifyVoteRewardLockTx(const CTransaction& tx, const uint256& hashPrev, const CDestState& state);
-    Errno VerifyActivateCodeTx(const uint256& hashFork, const uint256& hashPrev, const CTransaction& tx);
     Errno VerifyDefiRelationTx(const uint256& hashPrev, const CTransaction& tx);
 
 protected:
