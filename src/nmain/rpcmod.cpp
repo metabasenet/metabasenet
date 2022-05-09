@@ -67,6 +67,7 @@ CTransactionData TxToJSON(const uint256& txid, const CTransaction& tx, const uin
 {
     CTransactionData ret;
     ret.strTxid = txid.GetHex();
+    ret.strSign_Hash = tx.GetSignatureHash().GetHex();
     ret.nVersion = tx.nVersion;
     ret.strType = tx.GetTypeString();
     ret.nTime = tx.nTimeStamp;

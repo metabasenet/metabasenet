@@ -189,6 +189,10 @@
                 "type": "string",
                 "desc": "transaction hash"
             },
+	        "sign_hash": {
+                "type": "string",
+                "desc": "sign hash"
+            },
             "version": {
                 "type": "uint",
                 "desc": "version"
