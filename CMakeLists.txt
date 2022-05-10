@@ -37,8 +37,8 @@ else()
 endif()
 
 configure_file(
-        "${PROJECT_SOURCE_DIR}/src/nmain/git_version.h.in"
-        "${PROJECT_BINARY_DIR}/src/nmain/git_version.h")
+        "${PROJECT_SOURCE_DIR}/src/blockchain/git_version.h.in"
+        "${PROJECT_BINARY_DIR}/src/blockchain/git_version.h")
 
 if(CYGWIN)
     set(CMAKE_CXX_STANDARD_REQUIRED OFF)

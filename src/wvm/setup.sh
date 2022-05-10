@@ -10,20 +10,20 @@ make ssvm-evmc ssvmEVMCTest -j8
 
 #SSVM_CORE_PATH set(SSVM_CORE_PATH "_deps/ssvm-src")
 
-# 生成汇编语言，生成s后缀的文件
+# Generate assembly language and generate files with s suffix
 #./soll --action=EmitAssembly ../0-0-3.wasm
-# 生成ast的语法结构
+# Syntax structure of generating AST
 #./soll --action=ASTDump ../0-0-3.wasm
 cmake -DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_COMPILER=clang++  -DCMAKE_C_COMPILER=clang  .. 
 
 
-#### 工具
-打开以太坊开发工具
+#### Tool
+Open Ethereum development tool
 https://remix.ethereum.org/
 
-下载ganache-2.4.0-linux-x86_64.AppImage
-地址:https://www.trufflesuite.com/ganache
-该工具是以太坊的开发模拟节点
+download: ganache-2.4.0-linux-x86_64.AppImage
+address: https://www.trufflesuite.com/ganache
+This tool is the development simulation node of Ethereum
 
 # Call,CallCode,DelegateCall,StaticCall,你分得清吗？
 # https://blog.csdn.net/TurkeyCock/article/details/83826531

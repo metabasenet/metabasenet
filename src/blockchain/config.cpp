@@ -58,10 +58,6 @@ bool CConfig::Load(int argc, char* argv[], const fs::path& pathDefault,
     {
         emMode = EModeType::MODE_SERVER;
     }
-    else if (exec == "metabasenet-miner")
-    {
-        emMode = EModeType::MODE_MINER;
-    }
     else if (exec == "metabasenet-cli")
     {
         emMode = EModeType::MODE_CONSOLE;

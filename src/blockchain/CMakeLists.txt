@@ -80,7 +80,7 @@ set(sources
     ${auto_files}
 )
 
-add_library(libmetabasenet ${sources})
+add_library(libblockchain ${sources})
 add_executable(metabasenet main.cpp)
 
 include_directories(../hcode ../crypto ../common ../storage ../network ../delegate ../mpvss ../jsonrpc ./)
@@ -107,10 +107,10 @@ target_link_libraries(metabasenet
     delegate    
     jsonrpc
     common
-    libmetabasenet
+    libblockchain
 )
 
-target_link_libraries(libmetabasenet
+target_link_libraries(libblockchain
     ${Boost_SYSTEM_LIBRARY}
     ${Boost_FILESYSTEM_LIBRARY}
     ${Boost_PROGRAM_OPTIONS_LIBRARY}
@@ -133,7 +133,7 @@ target_link_libraries(libmetabasenet
 
 if(UNIX)
     # create symbol link
-    set(exec_link metabasenet-cli metabasenet-server metabasenet-miner)
+    set(exec_link metabasenet-cli metabasenet-server)
     foreach(link ${exec_link})
         add_custom_command(TARGET metabasenet POST_BUILD
             COMMAND ${CMAKE_COMMAND} -E create_symlink metabasenet ${link}

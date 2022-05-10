@@ -1,37 +1,29 @@
-### 编译/运行单元测试
+### Compile / run unit test
 
-单元测试已经通过`./CMakeLists.txt`和`./test/CMakeLists.txt`集成在MetabaseNetCoreWallet
-项目中，target设置为构建所有或者仅仅构建指定的test_big即可构建该单元测试。
+The unit test has passed`./CMakeLists.txt`和`./test/CMakeLists.txt` integrated in hashahead
+in the project，target set to build all or only the specified test_big can build the unit test.
 
-通过加载`./test/test_big`来手工运行metabasenet测试。如果单元测试文件或被测试的代
-码文件发生变化，重新构建单元测试即可。
+By loading `./test/test_big`to run hashahead test manually. If the unit test file or the generation being tested
+If the code file changes, just rebuild the unit test.
 
-有2种方式来添加更多的metabasenet单元测试，第一种是向位于`test/`目录下存在的.cpp文件
-加入`BOOST_AUTO_TEST_CASE`函数；另一种是添加新的.cpp文件，它实现了新的
-`BOOST_AUTO_TEST_SUITE`节。
+There are two ways to add more hashahead unit tests. The first is to add more hashahead unit tests to the existing ones in the `test/` directory Cpp file join `BOOST_AUTO_TEST_CASE` function; The other is to add new ones Cpp file, which implements the new `BOOST_AUTO_TEST_SUITE` section.
 
-### 运行单独的单元测试
+### Run separate unit tests
 
-test_big有一些内建的命令行参数，例如，仅仅运行uint256_tests并且输出详细的信息：
+test_big has some built-in command-line parameters. For example, just run uint256_tests and output detailed information:
 
     test_big --log_level=all --run_test=uint256_tests
 
-... 或者只想运行uint256_tests中的methods测试子项:
+... Or just want to run uint256_tests methods subitem in tests:
 
     test_big --log_level=all --run_test=uint256_tests/methods
 
-运行 `test_big --help` 可以获取详细的帮助列表信息.
+Run `test_big --help` You can get detailed help list information.
 
-### 添加单元测试的说明
+### Add description of unit test
 
-这个目录下的源代码文件均为单元测试案例。Boost包含一个单元测试框架，
-因为metabasenet已经使用boost，简单地使用这个框架而不需要另外去配置
-一些其它的框架是有意义的，这样可以更加方便快捷地创建单元测试。
+The source code files in this directory are unit test cases. The test unit contains a boost framework,
+Because hashahead already uses boost, simply use this framework without additional configuration
+Some other frameworks make sense, making it easier and faster to create unit tests.
 
-构建系统被设置成编译一个可执行程序名字为`test_big`，它运行所有的单元
-测试。主要的源文件名字为`test_big.cpp`。欲添加一个新的单元测试文件到
-我们的测试套件中，你需要要将这些文件名列表加入到`./test/CMakeLists.txt`
-中。我们以一个单元测试文件来囊括一个类或一个源代码文件的测试为一般性的原则。
-文件的命名规则为：`<source_filename>_tests.cpp`，这些文件封装它们的测试在
-一个名为：`<source_filename>_tests`的测试套件中。`uint256_tests.cpp`可以
-作为一个具体的测试单元例子参考。
+The build system is set to compile an executable program named `test_big`, which runs all unit tests. The main source file name is `test_big.cpp`.  To add a new unit test file to our test suite, you need to add these file names to the list `./test/CMakeLists.txt`. We take a unit test file to include the test of a class or a source code file as a general principle. The naming rule of the file is `<source_filename>_tests.cpp`, these files encapsulate their tests in a file called `<source_filename>_tests` in the test suite `uint256_tests.cpp` can be used as a specific test unit example for reference.

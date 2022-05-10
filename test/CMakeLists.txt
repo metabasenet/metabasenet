@@ -6,7 +6,7 @@
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 #------------------------------------------------------------------------------
 
-include_directories(${CMAKE_CURRENT_BINARY_DIR}/../src/nmain)
+include_directories(${CMAKE_CURRENT_BINARY_DIR}/../src/blockchain)
 include_directories(${CMAKE_CURRENT_BINARY_DIR}/../src/jsonrpc ../src/jsonrpc)
 include_directories(../src/wvm/wasm-edge/include)
 
@@ -32,7 +32,7 @@ set(sources
 
 add_executable(test_big ${sources})
 
-include_directories(../src/nmain ../src/hcode ../src/crypto ../src/common ../src/storage ../src/network ../src/mpvss ../src/delegate ../src/wvm/utils)
+include_directories(../src/blockchain ../src/hcode ../src/crypto ../src/common ../src/storage ../src/network ../src/mpvss ../src/delegate ../src/wvm/utils)
 
 target_link_libraries(test_big
     ${Boost_UNIT_TEST_FRAMEWORK_LIBRARY}
@@ -45,7 +45,7 @@ target_link_libraries(test_big
     delegate
     crypto
     common
-    libmetabasenet
+    libblockchain
     hcode
     storage
     ssvmCommon
@@ -68,7 +68,7 @@ target_link_libraries(wasm_test
     delegate
     crypto
     common
-    libmetabasenet
+    libblockchain
     hcode
     storage
     ssvmCommon
@@ -90,7 +90,7 @@ target_link_libraries(wasm_erc20
     delegate
     crypto
     common
-    libmetabasenet
+    libblockchain
     hcode
     storage
     ssvmCommon
@@ -113,5 +113,5 @@ target_link_libraries(test_ctsdb
     common
     crypto
     storage
-    libmetabasenet
+    libblockchain
 )

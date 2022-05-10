@@ -708,6 +708,30 @@ Errno CCoreProtocol::VerifyTransaction(const CTransaction& tx, const uint256& ha
         }
     }
 
+    if (tx.to.IsTemplate())
+    {
+        auto it = mapBlockAddress.find(tx.to.data);
+        if (it == mapBlockAddress.end())
+        {
+            return DEBUG(ERR_TRANSACTION_INVALID, "invalid to address, no address data");
+        }
+        CTemplateAddressContext ctxtTemplate;
+        if (!it->second.GetTemplateAddressContext(ctxtTemplate))
+        {
+            return DEBUG(ERR_TRANSACTION_INVALID, "invalid to address, get address data fail");
+        }
+        const bytes& btToTemplateData = ctxtTemplate.btData;
+        CTemplatePtr ptr = CTemplate::CreateTemplatePtr(tx.to.GetTemplateId().GetType(), btToTemplateData);
+        if (!ptr)
+        {
+            return DEBUG(ERR_TRANSACTION_INVALID, "invalid to address, address data error");
+        }
+        if (ptr->GetTemplateId() != tx.to.GetTemplateId())
+        {
+            return DEBUG(ERR_TRANSACTION_INVALID, "invalid to address, template id error");
+        }
+    }
+
     bytes btFromTemplateData;
     if (tx.from.IsTemplate())
     {
