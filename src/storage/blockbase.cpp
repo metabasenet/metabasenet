@@ -569,15 +569,10 @@ bool CBlockState::GetDestWasmCode(const CTransaction& tx, CDestination& destWasm
             if (txcdCode.IsCreate())
             {
                 CWasmCreateCodeContext ctxtWasmCreateCode;
-                if (!dbBlockBase.RetrieveWasmCreateCodeContext(hashFork, hashPrevBlock, hashWasmCreateCode, ctxtWasmCreateCode))
+                if (dbBlockBase.RetrieveWasmCreateCodeContext(hashFork, hashPrevBlock, hashWasmCreateCode, ctxtWasmCreateCode))
                 {
-                    StdLog("CBlockState", "Get dest wasm code: Code not exist, code: %s, block: %s",
-                           hashWasmCreateCode.GetHex().c_str(), hashBlock.GetHex().c_str());
-                    btWasmCode.clear();
-                    btRunParam.clear();
-                    return true;
+                    txcdCode.destCodeOwner = ctxtWasmCreateCode.destCodeOwner;
                 }
-                txcdCode.destCodeOwner = ctxtWasmCreateCode.destCodeOwner;
             }
             txcd = txcdCode;
         }
@@ -4077,17 +4072,6 @@ bool CBlockBase::VerifyCreateContractTx(const uint256& hashFork, const uint256& 
     {
         txcdCode.UncompressCode();
         hashWasmCreateCode = txcdCode.GetWasmCreateCodeHash();
-
-        if (txcdCode.IsCreate())
-        {
-            CWasmCreateCodeContext ctxtWasmCreateCode;
-            if (!RetrieveWasmCreateCodeContext(hashFork, hashBlock, hashWasmCreateCode, ctxtWasmCreateCode))
-            {
-                StdLog("CBlockState", "Verify create contract tx: Code not exist, code: %s, tx: %s, block: %s",
-                       hashWasmCreateCode.GetHex().c_str(), tx.GetHash().GetHex().c_str(), hashBlock.GetHex().c_str());
-                return false;
-            }
-        }
     }
     else if (txcdCode.IsSetup())
     {

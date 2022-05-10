@@ -2957,7 +2957,7 @@ CRPCResultPtr CRPCMod::RPCListContractCode(CRPCParamPtr param)
     {
         if (!pService->ListContractCodeContext(hashFork, txid, mapContractCode))
         {
-            throw CRPCException(RPC_INVALID_PARAMETER, "Unknown fork");
+            throw CRPCException(RPC_INVALID_PARAMETER, "Unknown txid");
         }
     }
     else
@@ -2965,7 +2965,7 @@ CRPCResultPtr CRPCMod::RPCListContractCode(CRPCParamPtr param)
         CContractCodeContext ctxt;
         if (!pService->GetContractCodeContext(hashFork, hashCode, ctxt))
         {
-            throw CRPCException(RPC_INVALID_PARAMETER, "Unknown fork");
+            throw CRPCException(RPC_INVALID_PARAMETER, "Unknown code");
         }
         mapContractCode.insert(make_pair(hashCode, ctxt));
     }
