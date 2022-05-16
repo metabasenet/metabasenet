@@ -465,7 +465,7 @@ bool CBlockState::SaveWasmRunCode(const CDestination& destWasm, const bytes& btW
     //                        const uint256& hashSourceCodeIn, const uint256& hashWasmCreateCodeIn, const uint256& hashWasmRunCodeIn)
 
     mapCacheWasmRunCodeContext[hashWasmRunCode] = CWasmRunCodeContext(hashWasmCreateCode, btWasmRunCode);
-    mapCacheAddressContext[destWasm.data] = CAddressContext(CContractAddressContext(txcd.GetType(), txcd.GetCodeOwner(), txcd.GetName(), txcd.GetDescribe(), uint256(), txcd.GetSourceCodeHash(), txcd.GetWasmCreateCodeHash(), hashWasmRunCode), nBlockHeight);
+    mapCacheAddressContext[destWasm.data] = CAddressContext(CContractAddressContext(txcd.GetType(), txcd.GetName(), txcd.GetDescribe(), uint256(), txcd.GetSourceCodeHash(), txcd.GetWasmCreateCodeHash(), hashWasmRunCode), nBlockHeight);
     return true;
 }
 
@@ -2915,13 +2915,13 @@ bool CBlockBase::UpdateBlockAddress(const uint256& hashFork, const uint256& hash
                                 txcd.UncompressCode();
                                 if (txcd.IsCreate())
                                 {
-                                    mapAddress[destTo.data] = CAddressContext(CContractAddressContext(txcd.GetType(), txcd.GetCodeOwner(), txcd.GetName(), txcd.GetDescribe(), tx.GetHash(), txcd.GetSourceCodeHash(),
+                                    mapAddress[destTo.data] = CAddressContext(CContractAddressContext(txcd.GetType(), txcd.GetName(), txcd.GetDescribe(), tx.GetHash(), txcd.GetSourceCodeHash(),
                                                                                                       contractAddressContext.hashWasmCreateCode, contractAddressContext.hashWasmRunCode),
                                                                               block.GetBlockNumber());
                                 }
                                 else
                                 {
-                                    mapAddress[destTo.data] = CAddressContext(CContractAddressContext(txcd.GetType(), contractAddressContext.destCodeOwner, txcd.GetName(), txcd.GetDescribe(), tx.GetHash(), contractAddressContext.hashSourceCode,
+                                    mapAddress[destTo.data] = CAddressContext(CContractAddressContext(txcd.GetType(), txcd.GetName(), txcd.GetDescribe(), tx.GetHash(), txcd.GetSourceCodeHash(),
                                                                                                       contractAddressContext.hashWasmCreateCode, contractAddressContext.hashWasmRunCode),
                                                                               block.GetBlockNumber());
                                 }

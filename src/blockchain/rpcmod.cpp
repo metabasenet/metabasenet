@@ -2877,12 +2877,6 @@ CRPCResultPtr CRPCMod::RPCGetContractMuxCode(rpc::CRPCParamPtr param)
     }
     strName = spParam->strName;
 
-    CDestination destOwner(spParam->strOwner);
-    if (destOwner.IsNull())
-    {
-        throw CRPCException(RPC_INVALID_PARAMETER, "Invalid owner address");
-    }
-
     if (!spParam->strCode.IsValid() || spParam->strCode.empty())
     {
         throw CRPCException(RPC_INVALID_PARAMETER, "Invalid code");
@@ -2913,7 +2907,7 @@ CRPCResultPtr CRPCMod::RPCGetContractMuxCode(rpc::CRPCParamPtr param)
     }
 
     CTxContractData txcd;
-    if (!txcd.PacketCompress(nMuxType, strType, strName, destOwner, strDescribe, btCode, btSource))
+    if (!txcd.PacketCompress(nMuxType, strType, strName, strDescribe, btCode, btSource))
     {
         throw CRPCException(RPC_DESERIALIZATION_ERROR, "Packet fail");
     }
@@ -2977,11 +2971,22 @@ CRPCResultPtr CRPCMod::RPCListContractCode(CRPCParamPtr param)
         CListContractCodeResult::CCodedata codeData;
 
         codeData.strCodehash = kv.second.hashCode.ToString();
-        codeData.strSourcehash = kv.second.hashSource.ToString();
-        codeData.strType = kv.second.strType;
-        codeData.strOwner = kv.second.destOwner.ToString();
-        codeData.strName = kv.second.strName;
-        codeData.strDescribe = kv.second.strDescribe;
+        if (kv.second.hashSource != 0)
+        {
+            codeData.strSourcehash = kv.second.hashSource.ToString();
+        }
+        if (!kv.second.strType.empty())
+        {
+            codeData.strType = kv.second.strType;
+        }
+        if (!kv.second.strName.empty())
+        {
+            codeData.strName = kv.second.strName;
+        }
+        if (!kv.second.strDescribe.empty())
+        {
+            codeData.strDescribe = kv.second.strDescribe;
+        }
         codeData.strTxid = kv.second.hashCreateTxid.GetHex();
 
         spResult->vecCodedata.push_back(codeData);
@@ -3018,12 +3023,23 @@ CRPCResultPtr CRPCMod::RPCListContractAddress(CRPCParamPtr param)
 
         CDestination address(CContractId(kv.first));
         addressData.strAddress = address.ToString();
-        addressData.strType = kv.second.strType;
-        addressData.strOwner = kv.second.destCodeOwner.ToString();
-        addressData.strName = kv.second.strName;
-        addressData.strDescribe = kv.second.strDescribe;
+        if (!kv.second.strType.empty())
+        {
+            addressData.strType = kv.second.strType;
+        }
+        if (!kv.second.strName.empty())
+        {
+            addressData.strName = kv.second.strName;
+        }
+        if (!kv.second.strDescribe.empty())
+        {
+            addressData.strDescribe = kv.second.strDescribe;
+        }
         addressData.strTxid = kv.second.hashCreateTxid.GetHex();
-        addressData.strSourcehash = kv.second.hashSourceCode.GetHex();
+        if (kv.second.hashSourceCode != 0)
+        {
+            addressData.strSourcehash = kv.second.hashSourceCode.GetHex();
+        }
         addressData.strCodehash = kv.second.hashWasmCreateCode.GetHex();
 
         spResult->vecAddressdata.push_back(addressData);

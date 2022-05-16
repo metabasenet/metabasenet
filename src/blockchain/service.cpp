@@ -1133,16 +1133,6 @@ bool CService::SetContractTransaction(const bytes& btFormatData, const bytes& bt
             {
                 fExistWasmCode = false;
             }
-            if (!txcdDux.IsUpcode())
-            {
-                if (!fExistWasmCode)
-                {
-                    strErr = "Contract not exist";
-                    StdLog("CService", "Set contract transaction: %s, contract hash: %s, fork: %s",
-                           strErr.c_str(), hashWasmCreateCode.GetHex().c_str(), txNew.hashFork.GetHex().c_str());
-                    return false;
-                }
-            }
             if (txcdDux.IsSetup())
             {
                 if (!fExistWasmCode)

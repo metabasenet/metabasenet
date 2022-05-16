@@ -669,7 +669,7 @@ def gettransactionreceipt(txid, fork=None):
         return "",1
 
 # RPC: getcontractmuxcode
-def getcontractmuxcode(muxtype, name, owner, code, typein, describe, source):
+def getcontractmuxcode(muxtype, name, code, typein, describe, source):
     result, error = call({
         'id': 1,
         'jsonrpc': '2.0',
@@ -677,7 +677,6 @@ def getcontractmuxcode(muxtype, name, owner, code, typein, describe, source):
         'params': {
             'muxtype': muxtype,
             'name': name,
-            'owner': owner,
             'code': code,
             'type': typein,
             'describe': describe,
@@ -1010,7 +1009,7 @@ def transferFrom(from_addr, contract_addr, src_addr, dst_addr, wad_amount, fork=
     if ret == 0:
         waittransactionreceipt(txid, fork)
 
-def muxcontracttest(fromaddress, fork, cparam, muxtype, name, owner, codefile, typein, describe, sourcefile):
+def muxcontracttest(fromaddress, fork, cparam, muxtype, name, codefile, typein, describe, sourcefile):
     code = "None"
     source = "None"
     if muxtype == 'setup':
@@ -1024,7 +1023,7 @@ def muxcontracttest(fromaddress, fork, cparam, muxtype, name, owner, codefile, t
         source = fsource.read().hex()
         fsource.close()
 
-    muxcode, ret = getcontractmuxcode(muxtype, name, owner, code, typein, describe, source)
+    muxcode, ret = getcontractmuxcode(muxtype, name, code, typein, describe, source)
     if ret != 0:
         print('getcontractmuxcode fail')
         return ""
@@ -1107,21 +1106,20 @@ if __name__ == "__main__":
         createContract(sys.argv[2], sys.argv[3], fork, cparam)
 
     elif func == "muxcontracttest":
-        if len(sys.argv) < 12:
-            raise Exception('param error, need 12, argv count: {}'.format(len(sys.argv)))
+        if len(sys.argv) < 11:
+            raise Exception('param error, need 11, argv count: {}'.format(len(sys.argv)))
 
         fromaddress = sys.argv[2]
         fork = sys.argv[3]
         cparam = '{:0>64x}'.format(int(sys.argv[4])*COIN)
         muxtype = sys.argv[5]
         name = sys.argv[6]
-        owner = sys.argv[7]
-        codefile = sys.argv[8]
-        typein = sys.argv[9]
-        describe = sys.argv[10]
-        sourcefile = sys.argv[11]
+        codefile = sys.argv[7]
+        typein = sys.argv[8]
+        describe = sys.argv[9]
+        sourcefile = sys.argv[10]
 
-        muxcontracttest(fromaddress, fork, cparam, muxtype, name, owner, codefile, typein, describe, sourcefile)
+        muxcontracttest(fromaddress, fork, cparam, muxtype, name, codefile, typein, describe, sourcefile)
     
     elif func == "waitcontractcodeactivate":
         waitcontractcodeactivate()

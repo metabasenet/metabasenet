@@ -189,7 +189,7 @@
                 "type": "string",
                 "desc": "transaction hash"
             },
-	        "sign_hash": {
+            "sign_hash": {
                 "type": "string",
                 "desc": "sign hash"
             },
@@ -3967,10 +3967,6 @@
                     "type": "string",
                     "desc": "contract name, non empty"
                 },
-                "owner": {
-                    "type": "string",
-                    "desc": "contract owner address, non empty"
-                },
                 "code": {
                     "type": "string",
                     "desc": "contract code, non empty"
@@ -4002,11 +3998,11 @@
         },
         "example": [
             {
-                "request": "metabasenet-cli getcontractmuxcode create myname1 1549pyzf8dhx7r4x40k5j80f12btkpqfprjp134bcgcrjn963nzsx57xb 'code' -t=type1 -d=describe1 -s='source code'",
+                "request": "metabasenet-cli getcontractmuxcode create myname1 'code' -t=type1 -d=describe1 -s='source code'",
                 "response": "579b261853b14cf9d026f1e0027852c52c4dd65845fbac13baff216ba2b04cf8......"
             },
             {
-                "request": "curl -d '{\"id\":3,\"method\":\"getcontractmuxcode\",\"jsonrpc\":\"2.0\",\"params\":{\"muxtype\":\"create\",\"name\":\"myname1\",\"owner\":\"1549pyzf8dhx7r4x40k5j80f12btkpqfprjp134bcgcrjn963nzsx57xb\",\"code\":\"code1\",\"type\":\"type1\",\"describe\":\"describe1\",\"source\":\"source1\"}}' http://127.0.0.1:8812",
+                "request": "curl -d '{\"id\":3,\"method\":\"getcontractmuxcode\",\"jsonrpc\":\"2.0\",\"params\":{\"muxtype\":\"create\",\"name\":\"myname1\",\"code\":\"code1\",\"type\":\"type1\",\"describe\":\"describe1\",\"source\":\"source1\"}}' http://127.0.0.1:8812",
                 "response": "{\"id\":3,\"jsonrpc\":\"2.0\",\"result\":\"579b261853b14cf9d026f1e0027852c52c4dd65845fbac13baff216ba2b04cf8......\"}"
             }
         ],
@@ -4058,23 +4054,23 @@
                         },
                         "sourcehash": {
                             "type": "string",
-                            "desc": "contract source hash"
+                            "desc": "contract source hash",
+                            "required": false
                         },
                         "type": {
                             "type": "string",
-                            "desc": "contract code type"
-                        },
-                        "owner": {
-                            "type": "string",
-                            "desc": "contract code owner address"
+                            "desc": "contract code type",
+                            "required": false
                         },
                         "name": {
                             "type": "string",
-                            "desc": "contract code name"
+                            "desc": "contract code name",
+                            "required": false
                         },
                         "describe": {
                             "type": "string",
-                            "desc": "contract code describe"
+                            "desc": "contract code describe",
+                            "required": false
                         },
                         "txid": {
                             "type": "string",
@@ -4128,19 +4124,18 @@
                         },
                         "type": {
                             "type": "string",
-                            "desc": "contract type"
-                        },
-                        "owner": {
-                            "type": "string",
-                            "desc": "contract owner address"
+                            "desc": "contract type",
+                            "required": false
                         },
                         "name": {
                             "type": "string",
-                            "desc": "contract name"
+                            "desc": "contract name",
+                            "required": false
                         },
                         "describe": {
                             "type": "string",
-                            "desc": "contract describe"
+                            "desc": "contract describe",
+                            "required": false
                         },
                         "txid": {
                             "type": "string",
@@ -4148,7 +4143,8 @@
                         },
                         "sourcehash": {
                             "type": "string",
-                            "desc": "contract source hash"
+                            "desc": "contract source hash",
+                            "required": false
                         },
                         "codehash": {
                             "type": "string",

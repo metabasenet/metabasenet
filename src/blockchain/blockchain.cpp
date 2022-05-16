@@ -1556,7 +1556,7 @@ bool CBlockChain::VerifyBlockAddress(const uint256& hashFork, const CBlock& bloc
                             return false;
                         }
                         txcd.UncompressCode();
-                        ctxtAddress = CAddressContext(CContractAddressContext(txcd.GetType(), txcd.GetCodeOwner(), txcd.GetName(), txcd.GetDescribe(), tx.GetHash(), uint256(), txcd.GetWasmCreateCodeHash(), uint256()), block.GetBlockNumber());
+                        ctxtAddress = CAddressContext(CContractAddressContext(txcd.GetType(), txcd.GetName(), txcd.GetDescribe(), tx.GetHash(), uint256(), txcd.GetWasmCreateCodeHash(), uint256()), block.GetBlockNumber());
                     }
                     else
                     {

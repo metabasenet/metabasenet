@@ -13,7 +13,7 @@ using namespace metabasenet::crypto;
 //////////////////////////////
 // CTxContractData
 
-bool CTxContractData::PacketCompress(const uint8 nMuxTypeIn, const std::string& strTypeIn, const std::string& strNameIn, const CDestination& destCodeOwnerIn,
+bool CTxContractData::PacketCompress(const uint8 nMuxTypeIn, const std::string& strTypeIn, const std::string& strNameIn,
                                      const std::string& strDescribeIn, const bytes& btCodeIn, const bytes& btSourceIn)
 {
     if (nMuxTypeIn <= CF_MIN || nMuxTypeIn >= CF_MAX)
@@ -24,7 +24,6 @@ bool CTxContractData::PacketCompress(const uint8 nMuxTypeIn, const std::string& 
     nMuxType = nMuxTypeIn;
     strType = strTypeIn;
     strName = strNameIn;
-    destCodeOwner = destCodeOwnerIn;
     nCompressDescribe = 0;
     if (!strDescribeIn.empty())
     {

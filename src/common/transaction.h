@@ -614,7 +614,7 @@ public:
         return (nMuxType == CF_UPCODE);
     }
 
-    bool PacketCompress(const uint8 nMuxTypeIn, const std::string& strTypeIn, const std::string& strNameIn, const CDestination& destCodeOwnerIn,
+    bool PacketCompress(const uint8 nMuxTypeIn, const std::string& strTypeIn, const std::string& strNameIn,
                         const std::string& strDescribeIn, const bytes& btCodeIn, const bytes& btSourceIn);
     void SetSetupHash(const uint256& hashContractIn);
 
@@ -863,14 +863,13 @@ class CContractAddressContext
 
 public:
     CContractAddressContext() {}
-    CContractAddressContext(const std::string& strTypeIn, const CDestination& destCodeOwnerIn, const std::string& strNameIn, const std::string& strDescribeIn, const uint256& hashCreateTxidIn,
+    CContractAddressContext(const std::string& strTypeIn, const std::string& strNameIn, const std::string& strDescribeIn, const uint256& hashCreateTxidIn,
                             const uint256& hashSourceCodeIn, const uint256& hashWasmCreateCodeIn, const uint256& hashWasmRunCodeIn)
-      : strType(strTypeIn), destCodeOwner(destCodeOwnerIn), strName(strNameIn), strDescribe(strDescribeIn), hashCreateTxid(hashCreateTxidIn),
+      : strType(strTypeIn), strName(strNameIn), strDescribe(strDescribeIn), hashCreateTxid(hashCreateTxidIn),
         hashSourceCode(hashSourceCodeIn), hashWasmCreateCode(hashWasmCreateCodeIn), hashWasmRunCode(hashWasmRunCodeIn) {}
 
 public:
     std::string strType;
-    CDestination destCodeOwner;
     std::string strName;
     std::string strDescribe;
     uint256 hashCreateTxid;
@@ -883,7 +882,6 @@ protected:
     void Serialize(hcode::CStream& s, O& opt)
     {
         s.Serialize(strType, opt);
-        s.Serialize(destCodeOwner, opt);
         s.Serialize(strName, opt);
         s.Serialize(strDescribe, opt);
         s.Serialize(hashCreateTxid, opt);
