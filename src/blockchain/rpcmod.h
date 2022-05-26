@@ -146,7 +146,8 @@ private:
     rpc::CRPCResultPtr RPCGetContractAddress(rpc::CRPCParamPtr param);
     rpc::CRPCResultPtr RPCMakeTemplate(rpc::CRPCParamPtr param);
     rpc::CRPCResultPtr RPCDecodeTransaction(rpc::CRPCParamPtr param);
-    rpc::CRPCResultPtr GetDefiRelation(rpc::CRPCParamPtr param);
+    rpc::CRPCResultPtr RPCGetDefiRelation(rpc::CRPCParamPtr param);
+    rpc::CRPCResultPtr RPCListDefiRelation(rpc::CRPCParamPtr param);
     rpc::CRPCResultPtr RPCGetTxFee(rpc::CRPCParamPtr param);
     rpc::CRPCResultPtr RPCMakeSha256(rpc::CRPCParamPtr param);
     rpc::CRPCResultPtr RPCAesEncrypt(rpc::CRPCParamPtr param);
@@ -154,6 +155,7 @@ private:
     rpc::CRPCResultPtr RPCReverseHex(rpc::CRPCParamPtr param);
     rpc::CRPCResultPtr RPCFuncSign(rpc::CRPCParamPtr param);
     rpc::CRPCResultPtr RPCMakeHash(rpc::CRPCParamPtr param);
+    rpc::CRPCResultPtr RPCMakeDefiRelationSign(rpc::CRPCParamPtr param);
     /* Mint */
     rpc::CRPCResultPtr RPCGetWork(rpc::CRPCParamPtr param);
     rpc::CRPCResultPtr RPCSubmitWork(rpc::CRPCParamPtr param);

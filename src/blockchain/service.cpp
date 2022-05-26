@@ -454,6 +454,48 @@ bool CService::CallContract(const uint256& hashFork, const CDestination& from, c
     return pBlockChain->CallContract(hashFork, from, to, nAmount, nGasPrice, nGas, btContractParam, nStatus, btResult);
 }
 
+bool CService::GetDefiRelationSign(const uint256& hashFork, const CDestination& destSub, const CDestination& destParent, bytes& btSignData)
+{
+    crypto::CKey keyShared;
+    if (!keyShared.Renew())
+    {
+        StdLog("CService", "Get defi relation sign: Renew key failed");
+        return false;
+    }
+    crypto::CPubKey sharedPubKey = keyShared.GetPubKey();
+
+    // sub_sign: sign blake2b(DeFiRelation + forkid + shared_pubkey) with sendto
+    crypto::CPubKey subKey = destSub.GetPubKey();
+    string subSignStr = string("DeFiRelation") + hashFork.ToString() + sharedPubKey.ToString();
+    uint256 subSignHash = crypto::CryptoHash(subSignStr.data(), subSignStr.size());
+
+    bytes vchSubSig;
+    if (!pWallet->Sign(subKey, subSignHash, vchSubSig))
+    {
+        StdLog("CService", "Get defi relation sign: Sub sign failed");
+        return false;
+    }
+
+    // parent_sign: sign blake2b(DeFiRelation + parent_pubkey) with sharedPubKey
+    crypto::CPubKey parentKey = destParent.GetPubKey();
+    string parentSignStr = string("DeFiRelation") + parentKey.ToString();
+    uint256 parentSignHash = crypto::CryptoHash(parentSignStr.data(), parentSignStr.size());
+
+    bytes vchParentSig;
+    if (!keyShared.Sign(parentSignHash, vchParentSig))
+    {
+        StdLog("CService", "Get defi relation sign: Parent sign failed");
+        return false;
+    }
+
+    // vchData: shared_pubkey + sub_sig + parent_sig
+    btSignData.reserve(sharedPubKey.size() + vchSubSig.size() + vchParentSig.size());
+    btSignData.insert(btSignData.end(), sharedPubKey.begin(), sharedPubKey.end());
+    btSignData.insert(btSignData.end(), vchSubSig.begin(), vchSubSig.end());
+    btSignData.insert(btSignData.end(), vchParentSig.begin(), vchParentSig.end());
+    return true;
+}
+
 bool CService::HaveKey(const crypto::CPubKey& pubkey, const int32 nVersion)
 {
     return pWallet->Have(pubkey, nVersion);
@@ -899,6 +941,28 @@ bool CService::RetrieveInviteParent(const uint256& hashFork, const CDestination&
         return false;
     }
     return pBlockChain->RetrieveInviteParent(hashFork, hashLastBlock, destSub, destParent);
+}
+
+bool CService::ListDefiInviteRelation(const uint256& hashFork, std::map<CDestination, std::set<CDestination>>& mapDefiInvite)
+{
+    uint256 hashLastBlock;
+    if (!pBlockChain->RetrieveForkLast(hashFork, hashLastBlock))
+    {
+        StdLog("CService", "List defi invite relation: Retrieve fork last fail, fork: %s", hashFork.GetHex().c_str());
+        return false;
+    }
+
+    std::map<CDestination, CDestination> mapInviteContext;
+    if (!pBlockChain->ListInviteRelation(hashFork, hashLastBlock, mapInviteContext))
+    {
+        StdLog("CService", "List defi invite relation: List invite relation fail, fork: %s", hashFork.GetHex().c_str());
+        return false;
+    }
+    for (const auto& kv : mapInviteContext)
+    {
+        mapDefiInvite[kv.second].insert(kv.first);
+    }
+    return true;
 }
 
 bool CService::GetWork(vector<unsigned char>& vchWorkData, int& nPrevBlockHeight,

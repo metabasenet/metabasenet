@@ -298,7 +298,9 @@ CRPCMod::CRPCMod()
         //
         ("decodetransaction", &CRPCMod::RPCDecodeTransaction)
         //
-        ("getdefirelation", &CRPCMod::GetDefiRelation)
+        ("getdefirelation", &CRPCMod::RPCGetDefiRelation)
+        //
+        ("listdefirelation", &CRPCMod::RPCListDefiRelation)
         //
         ("gettxfee", &CRPCMod::RPCGetTxFee)
         //
@@ -313,6 +315,8 @@ CRPCMod::CRPCMod()
         ("funcsign", &CRPCMod::RPCFuncSign)
         //
         ("makehash", &CRPCMod::RPCMakeHash)
+        //
+        ("makedefirelsign", &CRPCMod::RPCMakeDefiRelationSign)
         /* Mint */
         ("getwork", &CRPCMod::RPCGetWork)
         //
@@ -3334,7 +3338,7 @@ CRPCResultPtr CRPCMod::RPCDecodeTransaction(CRPCParamPtr param)
     return MakeCDecodeTransactionResultPtr(TxToJSON(rawTx.GetHash(), rawTx, uint256(), -1, 0));
 }
 
-CRPCResultPtr CRPCMod::GetDefiRelation(CRPCParamPtr param)
+CRPCResultPtr CRPCMod::RPCGetDefiRelation(CRPCParamPtr param)
 {
     auto spParam = CastParamPtr<CGetDefiRelationParam>(param);
 
@@ -3361,6 +3365,41 @@ CRPCResultPtr CRPCMod::GetDefiRelation(CRPCParamPtr param)
     }
 
     return MakeCGetDefiRelationResultPtr(destParent.ToString());
+}
+
+CRPCResultPtr CRPCMod::RPCListDefiRelation(CRPCParamPtr param)
+{
+    auto spParam = CastParamPtr<CListDefiRelationParam>(param);
+
+    uint256 hashFork;
+    if (!GetForkHashOfDef(spParam->strFork, hashFork))
+    {
+        throw CRPCException(RPC_INVALID_PARAMETER, "Invalid fork");
+    }
+    if (!pService->HaveFork(hashFork))
+    {
+        throw CRPCException(RPC_INVALID_PARAMETER, "Unknown fork");
+    }
+
+    std::map<CDestination, std::set<CDestination>> mapDefiInvite;
+    if (!pService->ListDefiInviteRelation(hashFork, mapDefiInvite))
+    {
+        throw CRPCException(RPC_INTERNAL_ERROR, "Get fail");
+    }
+
+    auto spResult = MakeCListDefiRelationResultPtr();
+    for (const auto& kv : mapDefiInvite)
+    {
+        for (const auto& vd : kv.second)
+        {
+            CListDefiRelationResult::CRelationdata relData;
+            relData.strParentaddress = kv.first.ToString();
+            relData.strSubaddress = vd.ToString();
+            spResult->vecRelationdata.push_back(relData);
+        }
+    }
+
+    return spResult;
 }
 
 CRPCResultPtr CRPCMod::RPCGetTxFee(rpc::CRPCParamPtr param)
@@ -3533,6 +3572,41 @@ CRPCResultPtr CRPCMod::RPCMakeHash(rpc::CRPCParamPtr param)
     }
     uint256 hash = crypto::CryptoHash(btData.data(), btData.size());
     return MakeCMakeHashResultPtr(hash.GetHex());
+}
+
+CRPCResultPtr CRPCMod::RPCMakeDefiRelationSign(rpc::CRPCParamPtr param)
+{
+    auto spParam = CastParamPtr<CMakeDefiRelationSignParam>(param);
+
+    CDestination destParent(spParam->strParentaddress);
+    if (destParent.IsNull() || !destParent.IsPubKey())
+    {
+        throw CRPCException(RPC_INVALID_PARAMETER, "Invalid parentaddress");
+    }
+
+    CDestination destSub(spParam->strSubaddress);
+    if (destSub.IsNull() || !destSub.IsPubKey())
+    {
+        throw CRPCException(RPC_INVALID_PARAMETER, "Invalid subaddress");
+    }
+
+    uint256 hashFork;
+    if (!GetForkHashOfDef(spParam->strFork, hashFork))
+    {
+        throw CRPCException(RPC_INVALID_PARAMETER, "Invalid fork");
+    }
+    if (!pService->HaveFork(hashFork))
+    {
+        throw CRPCException(RPC_INVALID_PARAMETER, "Unknown fork");
+    }
+
+    bytes btSignData;
+    if (!pService->GetDefiRelationSign(hashFork, destSub, destParent, btSignData))
+    {
+        throw CRPCException(RPC_INVALID_ADDRESS_OR_KEY, "Invalid invite address");
+    }
+
+    return MakeCMakeDefiRelationSignResultPtr(hcode::ToHexString(btSignData));
 }
 
 // /* Mint */

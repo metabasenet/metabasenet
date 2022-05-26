@@ -143,6 +143,7 @@ public:
     virtual bool GetVoteRewardLockedAmount(const uint256& hashFork, const uint256& hashPrevBlock, const CDestination& dest, uint256& nLockedAmount) = 0;
     virtual bool VerifyForkName(const uint256& hashFork, const std::string& strForkName, const uint256& hashBlock = uint256()) = 0;
     virtual bool RetrieveInviteParent(const uint256& hashFork, const uint256& hashBlock, const CDestination& destSub, CDestination& destParent) = 0;
+    virtual bool ListInviteRelation(const uint256& hashFork, const uint256& hashBlock, std::map<CDestination, CDestination>& mapInviteContext) = 0;
 
     /////////////    CheckPoints    /////////////////////
     virtual bool HasCheckPoints(const uint256& hashFork) const = 0;
@@ -366,6 +367,7 @@ public:
     virtual bool ListDelegate(uint32 nCount, std::multimap<uint256, CDestination>& mapVotes) = 0;
     virtual bool GetTransactionReceipt(const uint256& hashFork, const uint256& txid, CTransactionReceipt& receipt, uint256& hashBlock, uint256& nBlockGasUsed) = 0;
     virtual bool CallContract(const uint256& hashFork, const CDestination& from, const CDestination& to, const uint256& nAmount, const uint256& nGasPrice, const uint256& nGas, const bytes& btContractParam, int& nStatus, bytes& btResult) = 0;
+    virtual bool GetDefiRelationSign(const uint256& hashFork, const CDestination& destSub, const CDestination& destParent, bytes& btSignData) = 0;
 
     /* Wallet */
     virtual bool HaveKey(const crypto::CPubKey& pubkey, const int32 nVersion = -1) = 0;
@@ -405,6 +407,7 @@ public:
     virtual bool GetContractCode(const uint256& hashFork, const uint256& hashCode, bytes& btCode) = 0;
     virtual bool GetDestTemplateData(const uint256& hashFork, const CDestination& dest, bytes& btTemplateData) = 0;
     virtual bool RetrieveInviteParent(const uint256& hashFork, const CDestination& destSub, CDestination& destParent) = 0;
+    virtual bool ListDefiInviteRelation(const uint256& hashFork, std::map<CDestination, std::set<CDestination>>& mapDefiInvite) = 0;
 
     /* Mint */
     virtual bool GetWork(std::vector<unsigned char>& vchWorkData, int& nPrevBlockHeight,

@@ -1939,6 +1939,11 @@ bool CBlockChain::RetrieveInviteParent(const uint256& hashFork, const uint256& h
     return cntrBlock.RetrieveInviteParent(hashFork, hashBlock, destSub, destParent);
 }
 
+bool CBlockChain::ListInviteRelation(const uint256& hashFork, const uint256& hashBlock, std::map<CDestination, CDestination>& mapInviteContext)
+{
+    return cntrBlock.ListInviteRelation(hashFork, hashBlock, mapInviteContext);
+}
+
 bool CBlockChain::CalcBlockVoteRewardTx(const uint256& hashPrev, const uint16 nBlockType, const int nBlockHeight, const uint32 nBlockTime, vector<CTransaction>& vVoteRewardTx)
 {
     boost::unique_lock<boost::shared_mutex> wlock(rwCvrAccess);

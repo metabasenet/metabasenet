@@ -3376,6 +3376,58 @@
             "{\"code\":-4,\"message\":\"Invalid invite address\"}"
         ]
     },
+    "listdefirelation": {
+        "type": "command",
+        "name": "ListDefiRelation",
+        "desc": "List defi invite relation.",
+        "request": {
+            "type": "object",
+            "content": {
+                "fork": {
+                    "type": "string",
+                    "desc": "fork hash",
+                    "required": false,
+                    "opt": "f"
+                }
+            }
+        },
+        "response": {
+            "type": "array",
+            "name": "relationdata",
+            "content": {
+                "invitedata": {
+                    "type": "object",
+                    "desc": "address data",
+                    "content": {
+                        "parentaddress": {
+                            "type": "string",
+                            "desc": "parent address"
+                        },
+                        "subaddress": {
+                            "type": "string",
+                            "desc": "sub address"
+                        }
+                    }
+                }
+            }
+        },
+        "example": [
+            {
+                "request": "metabasenet-cli listdefirelation",
+                "response": "[{\"parentaddress\" : \"1d6013pgw8sh95mbsrrxsn4zxvw35xd8s20a6d4jpbf24wjg1bc8cb36v\",\"subaddress\" : \"1fq3y1n8zvgp6v550dv1p7hfwg1bkc4x4k8snzzb5x3kb64qvh4c9cr4n\"}]"
+            },
+            {
+                "request": "curl -d '{\"id\":1,\"method\":\"listdefirelation\",\"jsonrpc\":\"2.0\",\"params\":{}}' http://127.0.0.1:8812",
+                "response": "{\"id\":1,\"jsonrpc\":\"2.0\",\"result\":[{\"parentaddress\" : \"1d6013pgw8sh95mbsrrxsn4zxvw35xd8s20a6d4jpbf24wjg1bc8cb36v\",\"subaddress\" : \"1fq3y1n8zvgp6v550dv1p7hfwg1bkc4x4k8snzzb5x3kb64qvh4c9cr4n\"}]}"
+            }
+        ],
+        "error": [
+            "{\"code\":-6,\"message\":\"Invalid address\"}",
+            "{\"code\":-6,\"message\":\"Invalid fork\"}",
+            "{\"code\":-6,\"message\":\"Unknown fork\"}",
+            "{\"code\":-32603,\"message\":\"Get fail\"}"
+        ]
+    },
     "gettxfee": {
         "type": "command",
         "name": "GetTransactionFee",
@@ -4377,6 +4429,52 @@
         ],
         "error": [
             "{\"code\":-6,\"message\":\"Invalid data\"}"
+        ]
+    },
+    "makedefirelsign": {
+        "type": "command",
+        "name": "MakeDefiRelationSign",
+        "desc": "Make defi relation sign",
+        "request": {
+            "type": "object",
+            "content": {
+                "parentaddress": {
+                    "type": "string",
+                    "desc": "parent address"
+                },
+                "subaddress": {
+                    "type": "string",
+                    "desc": "sub address"
+                },
+                "fork": {
+                    "type": "string",
+                    "desc": "fork",
+                    "required": false,
+                    "opt": "f"
+                }
+            }
+        },
+        "response": {
+            "type": "string",
+            "name": "signdata",
+            "desc": "sign data"
+        },
+        "example": [
+            {
+                "request": "metabasenet-cli makedefirelsign 1549pyzf8dhx7r4x40k5j80f12btkpqfprjp134bcgcrjn963nzsx57xb 1j6x8vdkkbnxe8qwjggfan9c8m8zhmez7gm3pznsqxgch3eyrwxby8eda",
+                "response": "00c679aa373df8d25fed062e5030f6033d039c5fa49a92d188a4d7ab831c6055d3790107553b37c99c0646599be09e3f342ac979149c2112e9d6356e267aeb502f4ee767f0f886055300719fcc13e30b50ba614dad158ee7af57cadbecd6bc0eb1f4a700cb63a0355f6348ee32f89bf917e7ecf73a525e40c1f127eb75974e0ddd7824654d84165e9a657c6361b7b43968bce0e338083fad35ee467f8382ad0a"
+            },
+            {
+                "request": "curl -d '{\"id\":3,\"method\":\"makedefirelsign\",\"jsonrpc\":\"2.0\",\"params\":{\"parentaddress\":\"1549pyzf8dhx7r4x40k5j80f12btkpqfprjp134bcgcrjn963nzsx57xb\", \"subaddress\":\"1j6x8vdkkbnxe8qwjggfan9c8m8zhmez7gm3pznsqxgch3eyrwxby8eda\"}}' http://127.0.0.1:8812",
+                "response": "{\"id\":3,\"jsonrpc\":\"2.0\",\"result\":\"00c679aa373df8d25fed062e5030f6033d039c5fa49a92d188a4d7ab831c6055d3790107553b37c99c0646599be09e3f342ac979149c2112e9d6356e267aeb502f4ee767f0f886055300719fcc13e30b50ba614dad158ee7af57cadbecd6bc0eb1f4a700cb63a0355f6348ee32f89bf917e7ecf73a525e40c1f127eb75974e0ddd7824654d84165e9a657c6361b7b43968bce0e338083fad35ee467f8382ad0a\"}"
+            }
+        ],
+        "error": [
+            "{\"code\":-6,\"message\":\"Invalid parentaddress\"}",
+            "{\"code\":-6,\"message\":\"Invalid subaddress\"}",
+            "{\"code\":-6,\"message\":\"Invalid fork\"}",
+            "{\"code\":-6,\"message\":\"Unknown fork\"}",
+            "{\"code\":-4,\"message\":\"Invalid invite address\"}"
         ]
     }
 }

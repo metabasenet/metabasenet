@@ -52,6 +52,7 @@ public:
     bool ListDelegate(uint32 nCount, std::multimap<uint256, CDestination>& mapVotes) override;
     bool GetTransactionReceipt(const uint256& hashFork, const uint256& txid, CTransactionReceipt& receipt, uint256& hashBlock, uint256& nBlockGasUsed) override;
     bool CallContract(const uint256& hashFork, const CDestination& from, const CDestination& to, const uint256& nAmount, const uint256& nGasPrice, const uint256& nGas, const bytes& btContractParam, int& nStatus, bytes& btResult) override;
+    bool GetDefiRelationSign(const uint256& hashFork, const CDestination& destSub, const CDestination& destParent, bytes& btSignData) override;
 
     /* Wallet */
     bool HaveKey(const crypto::CPubKey& pubkey, const int32 nVersion = -1) override;
@@ -89,6 +90,7 @@ public:
     bool GetContractCode(const uint256& hashFork, const uint256& hashCode, bytes& btCode) override;
     bool GetDestTemplateData(const uint256& hashFork, const CDestination& dest, bytes& btTemplateData) override;
     bool RetrieveInviteParent(const uint256& hashFork, const CDestination& destSub, CDestination& destParent) override;
+    bool ListDefiInviteRelation(const uint256& hashFork, std::map<CDestination, std::set<CDestination>>& mapDefiInvite) override;
 
     /* Mint */
     bool GetWork(std::vector<unsigned char>& vchWorkData, int& nPrevBlockHeight,

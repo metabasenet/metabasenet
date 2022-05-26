@@ -82,6 +82,7 @@ public:
     bool GetVoteRewardLockedAmount(const uint256& hashFork, const uint256& hashPrevBlock, const CDestination& dest, uint256& nLockedAmount) override;
     bool VerifyForkName(const uint256& hashFork, const std::string& strForkName, const uint256& hashBlock = uint256()) override;
     bool RetrieveInviteParent(const uint256& hashFork, const uint256& hashBlock, const CDestination& destSub, CDestination& destParent) override;
+    bool ListInviteRelation(const uint256& hashFork, const uint256& hashBlock, std::map<CDestination, CDestination>& mapInviteContext) override;
 
     /////////////    CheckPoints    /////////////////////
     typedef std::map<int, CCheckPoint> MapCheckPointsType;
