@@ -17,12 +17,12 @@ extern bool FASTTEST_FLAG;
 ///////////////////////////////////
 static const uint32 TOKEN_DECIMAL_DIGIT = 18;
 static const uint256 COIN(10, TOKEN_DECIMAL_DIGIT);
-static const uint256 MIN_TX_FEE(100000000);
-static const uint256 MIN_GAS_PRICE(10000);
+static const uint256 MIN_GAS_PRICE(10, 12);
 static const uint256 TX_BASE_GAS(10000);
+static const uint256 MIN_TX_FEE = MIN_GAS_PRICE * TX_BASE_GAS;
 static const uint256 DATA_GAS_PER_BYTE(50);
 static const uint256 DEF_TX_GAS_LIMIT(990000);
-static const uint256 DEF_TX_GAS_PRICE(10000);
+static const uint256 DEF_TX_GAS_PRICE = MIN_GAS_PRICE;
 
 static const unsigned int MAX_BLOCK_SIZE = 2000000;
 static const unsigned int MAX_TX_SIZE = (MAX_BLOCK_SIZE / 20);

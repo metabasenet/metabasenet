@@ -3387,6 +3387,7 @@ CRPCResultPtr CRPCMod::RPCListDefiRelation(CRPCParamPtr param)
         throw CRPCException(RPC_INTERNAL_ERROR, "Get fail");
     }
 
+    int64 nItemCount = 0;
     auto spResult = MakeCListDefiRelationResultPtr();
     for (const auto& kv : mapDefiInvite)
     {
@@ -3396,6 +3397,14 @@ CRPCResultPtr CRPCMod::RPCListDefiRelation(CRPCParamPtr param)
             relData.strParentaddress = kv.first.ToString();
             relData.strSubaddress = vd.ToString();
             spResult->vecRelationdata.push_back(relData);
+            if (++nItemCount >= 1024)
+            {
+                break;
+            }
+        }
+        if (nItemCount >= 1024)
+        {
+            break;
         }
     }
 

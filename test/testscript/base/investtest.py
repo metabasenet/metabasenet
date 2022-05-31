@@ -9,7 +9,7 @@ import sys
 import random
 from pprint import pprint
 
-COIN = 10000000000
+COIN = 1000000000000000000
 TX_FEE = 0.01
 
 rpcurl_mainnet = 'http://127.0.0.1:8812'
