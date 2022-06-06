@@ -41,7 +41,7 @@ Second key pairs (for mining):
 # Start P2P listening (IPv4)
 listen4   
 
-connect=218.12.12.56:8813(Test Net)
+connect=218.12.12.56:6603(Test Net)
 connect=112.126.160.14:16601(Test Net)
 
 # Public key address for DPOS(spending address/wallet address)

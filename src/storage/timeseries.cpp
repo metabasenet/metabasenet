@@ -194,7 +194,7 @@ bool CTimeSeriesBase::RepairFile(uint32 nFile, uint32 nOffset)
 //////////////////////////////
 // CTimeSeriesCached
 
-const uint32 CTimeSeriesCached::nMagicNum = 0x8A5CA1E8;
+const uint32 CTimeSeriesCached::nMagicNum = 0xD289C073;
 
 CTimeSeriesCached::CTimeSeriesCached()
   : cacheStream(FILE_CACHE_SIZE)
@@ -263,7 +263,7 @@ bool CTimeSeriesCached::VacateCache(uint32 nNeeded)
 //////////////////////////////
 // CTimeSeriesChunk
 
-const uint32 CTimeSeriesChunk::nMagicNum = 0x8A5CA1E8;
+const uint32 CTimeSeriesChunk::nMagicNum = 0xD289C073;
 
 CTimeSeriesChunk::CTimeSeriesChunk()
 {

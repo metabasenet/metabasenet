@@ -12,8 +12,8 @@ from pprint import pprint
 COIN = 1000000000000000000
 TX_FEE = 0.01
 
-rpcurl_mainnet = 'http://127.0.0.1:8812'
-rpcurl_testnet = 'http://127.0.0.1:8814'
+rpcurl_mainnet = 'http://127.0.0.1:6602'
+rpcurl_testnet = 'http://127.0.0.1:6604'
 
 genesis_privkey = '9ae89671cc1a74e9e404a16982ae48d21c56d4ad8278bc9755235a68fc841271'
 genesis_addr = '1231kgws0rhjtfewv57jegfe5bp4dncax60szxk8f4y546jsfkap3t5ws'
@@ -816,7 +816,7 @@ cryptonightkey=28efbfda61b473c37549d02784648d89fe21ff082b7a42da9ef97b0b83cdb1a9
 listen4
 port=7721
 rpcport=7722
-addnode=127.0.0.1:8811
+addnode=127.0.0.1:6601
 
 node3:
 mpvssaddress=181x15vfy56wrhaxqspz8mgaex618t6zk7fchemyaxt7qx5txggt9hprc
@@ -826,7 +826,7 @@ cryptonightkey=28efbfda61b473c37549d02784648d89fe21ff082b7a42da9ef97b0b83cdb1a9
 listen4
 port=7733
 rpcport=7734
-addnode=127.0.0.1:8811
+addnode=127.0.0.1:6601
 
 # MAINNET
 importprivkey 9ae89671cc1a74e9e404a16982ae48d21c56d4ad8278bc9755235a68fc841271 123

@@ -22,7 +22,7 @@ Options:
   -logfilesize=<size>                   Log file size(M) (default: 200M)
   -loghistorysize=<size>                Log history size(M) (default: 2048M)
   -fulldb                               Launch server full db
-  -rpcport=port                         Listen for JSON-RPC connections on <port> (default: 8812 or testnet: 8814))
+  -rpcport=port                         Listen for JSON-RPC connections on <port> (default: 6602 or testnet: 6604))
   -rpclisten                            Accept RPC IPv4 and IPv6 connections (default: 0)
   -rpclisten4                           Accept RPC IPv4 connections (default: 0)
   -rpclisten6                           Accept RPC IPv6 connections (default: 0)
@@ -103,6 +103,8 @@ Options:
  - [getcontractaddress](#getcontractaddress): Return encoded address for the given contract id.
  - [maketemplate](#maketemplate): Return encoded address for the given template id.
  - [decodetransaction](#decodetransaction): Return a JSON object representing the serialized, hex-encoded transaction.
+ - [getdefirelation](#getdefirelation): Get defi invite address relation.
+ - [listdefirelation](#listdefirelation): List defi invite relation.
  - [gettxfee](#gettxfee): Return TxFee for vchData Hex data
  - [makesha256](#makesha256): Make sha256
  - [aesencrypt](#aesencrypt): aes encrypt
@@ -122,6 +124,7 @@ Options:
  - [getcontractcode](#getcontractcode): Get contract code
  - [funcsign](#funcsign): Function sign
  - [makehash](#makehash): Make hash
+ - [makedefirelsign](#makedefirelsign): Make defi relation sign
 ---
 
 ### help
@@ -182,7 +185,7 @@ Stop metabasenet server.
 >> metabasenet-cli stop
 << metabasenet server stopping
 
->> curl -d '{"id":1,"method":"stop","jsonrpc":"2.0","params":{}}' http://127.0.0.1:8812
+>> curl -d '{"id":1,"method":"stop","jsonrpc":"2.0","params":{}}' http://127.0.0.1:6602
 << {"id":1,"jsonrpc":"2.0","result":"metabasenet server stopping"}
 ```
 **Errors:**
@@ -215,7 +218,7 @@ Get metabasenet server version.
 >> metabasenet-cli version
 << MetabaseNet server version is v0.1.0
 
->> curl -d '{"id":0,"method":"version","jsonrpc":"2.0","params":{}}' http://127.0.0.1:8812
+>> curl -d '{"id":0,"method":"version","jsonrpc":"2.0","params":{}}' http://127.0.0.1:6602
 << {"id":0,"jsonrpc":"2.0","result":"MetabaseNet server version is v0.1.0"}
 ```
 **Errors:**
@@ -248,7 +251,7 @@ Return the number of connections to other nodes.
 >> metabasenet-cli getpeercount
 << 0
 
->> curl -d '{"id":3,"method":"getpeercount","jsonrpc":"2.0","params":{}}' http://127.0.0.1:8812
+>> curl -d '{"id":3,"method":"getpeercount","jsonrpc":"2.0","params":{}}' http://127.0.0.1:6602
 << {"id":3,"jsonrpc":"2.0","result":0}
 ```
 **Errors:**
@@ -297,7 +300,7 @@ Return data about each connected network node.
 >> metabasenet-cli listpeer
 << [{"address":"113.105.146.22","services":"NODE_NETWORK,NODE_DELEGATED","lastsend":"2019-10-25 03:11:09","lastrecv":"2019-10-25 03:11:09","conntime":"2019-10-25 03:05:23","version":"0.1.0","subver":"/MetabaseNet:0.9.2/Protocol:0.1.0/9be9a865898c5cea90c716c17603cf3f0f185a5b","inbound":false,"height":31028,"banscore":true}]
 
->> curl -d '{"id":40,"method":"listpeer","jsonrpc":"2.0","params":{}}' http://127.0.0.1:8812
+>> curl -d '{"id":40,"method":"listpeer","jsonrpc":"2.0","params":{}}' http://127.0.0.1:6602
 << {"id":40,"jsonrpc":"2.0","result":[{"address":"113.105.146.22","services":"NODE_NETWORK,NODE_DELEGATED","lastsend":"2019-10-25 03:11:09","lastrecv":"2019-10-25 03:11:09","conntime":"2019-10-25 03:05:23","version":"0.1.0","subver":"/MetabaseNet:0.9.2/Protocol:0.1.0/9be9a865898c5cea90c716c17603cf3f0f185a5b","inbound":false,"height":31028,"banscore":true}]}
 ```
 **Errors:**
@@ -333,8 +336,8 @@ Attempt to add a node into the addnode list.
 >> metabasenet-cli addnode 113.105.146.22
 << Add node successfully: 113.105.146.22
 
->> curl -d '{"id":3,"method":"addnode","jsonrpc":"2.0","params":{"node":"113.105.146.22:8811"}}' http://127.0.0.1:8812
-<< {"id":3,"jsonrpc":"2.0","result":"Add node successfully: 113.105.146.22:8811"}
+>> curl -d '{"id":3,"method":"addnode","jsonrpc":"2.0","params":{"node":"113.105.146.22:6601"}}' http://127.0.0.1:6602
+<< {"id":3,"jsonrpc":"2.0","result":"Add node successfully: 113.105.146.22:6601"}
 ```
 **Errors:**
 ```
@@ -369,8 +372,8 @@ Attempt to remove a node from the addnode list.
 >> metabasenet-cli removenode 113.105.146.22
 << Remove node successfully: 113.105.146.22
 
->> curl -d '{"id":67,"method":"removenode","jsonrpc":"2.0","params":{"node":"113.105.146.22:8811"}}' http://127.0.0.1:8812
-<< {"id":67,"jsonrpc":"2.0","result":"Remove node successfully: 113.105.146.22:8811"}
+>> curl -d '{"id":67,"method":"removenode","jsonrpc":"2.0","params":{"node":"113.105.146.22:6601"}}' http://127.0.0.1:6602
+<< {"id":67,"jsonrpc":"2.0","result":"Remove node successfully: 113.105.146.22:6601"}
 ```
 **Errors:**
 ```
@@ -402,7 +405,7 @@ Return the number of forks.
 >> metabasenet-cli getforkcount
 << 1
 
->> curl -d '{"id":69,"method":"getforkcount","jsonrpc":"2.0","params":{}}' http://127.0.0.1:8812
+>> curl -d '{"id":69,"method":"getforkcount","jsonrpc":"2.0","params":{}}' http://127.0.0.1:6602
 << {"id":69,"jsonrpc":"2.0","result":1}
 ```
 **Errors:**
@@ -514,13 +517,13 @@ Return the list of ancestry and subline.
 >> metabasenet-cli getgenealogy
 << {"ancestry":[],"subline":[]}
 
->> curl -d '{"id":75,"method":"getgenealogy","jsonrpc":"2.0","params":{}}' http://127.0.0.1:8812
+>> curl -d '{"id":75,"method":"getgenealogy","jsonrpc":"2.0","params":{}}' http://127.0.0.1:6602
 << {"id":75,"jsonrpc":"2.0","result":{"ancestry":[],"subline":[]}}
 
 >> metabasenet-cli getgenealogy 1
 << {"code":-6,"message":"Unknown fork"}
 
->> curl -d '{"id":1,"method":"getgenealogy","jsonrpc":"2.0","params":{"fork":"1"}}' http://127.0.0.1:8812
+>> curl -d '{"id":1,"method":"getgenealogy","jsonrpc":"2.0","params":{"fork":"1"}}' http://127.0.0.1:6602
 << {"id":1,"jsonrpc":"2.0","error":{"code":-6,"message":"Unknown fork"}}
 ```
 **Errors:**
@@ -561,7 +564,7 @@ Return the location with given block.
 >> metabasenet-cli getblocklocation 609a797ca28042d562b11355038c516d65ba30b91c7033d83c61b81aa8c538e3
 << {"fork":"a63d6f9d8055dc1bd7799593fb46ddc1b4e4519bd049e8eba1a0806917dcafc0","height":1}
 
->> curl -d '{"id":6,"method":"getblocklocation","jsonrpc":"2.0","params":{"block":"609a797ca28042d562b11355038c516d65ba30b91c7033d83c61b81aa8c538e3"}}' http://127.0.0.1:8812
+>> curl -d '{"id":6,"method":"getblocklocation","jsonrpc":"2.0","params":{"block":"609a797ca28042d562b11355038c516d65ba30b91c7033d83c61b81aa8c538e3"}}' http://127.0.0.1:6602
 << {"id":6,"jsonrpc":"2.0","result":{"fork":"a63d6f9d8055dc1bd7799593fb46ddc1b4e4519bd049e8eba1a0806917dcafc0","height":1}}
 ```
 **Errors:**
@@ -597,13 +600,13 @@ Return the number of blocks in the given fork, includes extended block and vacan
 >> metabasenet-cli getblockcount
 << 32081
 
->> curl -d '{"id":4,"method":"getblockcount","jsonrpc":"2.0","params":{}}' http://127.0.0.1:8812
+>> curl -d '{"id":4,"method":"getblockcount","jsonrpc":"2.0","params":{}}' http://127.0.0.1:6602
 << {"id":4,"jsonrpc":"2.0","result":32081}
 
 >> metabasenet-cli getblockcount -f=a63d6f9d8055dc1bd7799593fb46ddc1b4e4519bd049e8eba1a0806917dcafc0
 << 32081
 
->> curl -d '{"id":5,"method":"getblockcount","jsonrpc":"2.0","params":{"fork":"0"}}' http://127.0.0.1:8812
+>> curl -d '{"id":5,"method":"getblockcount","jsonrpc":"2.0","params":{"fork":"0"}}' http://127.0.0.1:6602
 << {"id":5,"jsonrpc":"2.0","result":32081}
 ```
 **Errors:**
@@ -647,7 +650,7 @@ First of the list is the main block hash, others are extended blocks hash in ord
 >> metabasenet-cli getblockhash 0
 << ["a63d6f9d8055dc1bd7799593fb46ddc1b4e4519bd049e8eba1a0806917dcafc0"]
 
->> curl -d '{"id":37,"method":"getblockhash","jsonrpc":"2.0","params":{"height":0}}' http://127.0.0.1:8812
+>> curl -d '{"id":37,"method":"getblockhash","jsonrpc":"2.0","params":{"height":0}}' http://127.0.0.1:6602
 << {"id":37,"jsonrpc":"2.0","result":["a63d6f9d8055dc1bd7799593fb46ddc1b4e4519bd049e8eba1a0806917dcafc0"]}
 ```
 **Errors:**
@@ -687,7 +690,7 @@ Return a block hash in fork at specific number.
 >> metabasenet-cli getblocknumberhash 0
 << ["a63d6f9d8055dc1bd7799593fb46ddc1b4e4519bd049e8eba1a0806917dcafc0"]
 
->> curl -d '{"id":37,"method":"getblocknumberhash","jsonrpc":"2.0","params":{"number":0}}' http://127.0.0.1:8812
+>> curl -d '{"id":37,"method":"getblocknumberhash","jsonrpc":"2.0","params":{"number":0}}' http://127.0.0.1:6602
 << {"id":37,"jsonrpc":"2.0","result":["a63d6f9d8055dc1bd7799593fb46ddc1b4e4519bd049e8eba1a0806917dcafc0"]}
 ```
 **Errors:**
@@ -744,7 +747,7 @@ Return details of a block with given block-hash.
 >> metabasenet-cli getblock ca49b8d07ac2849c455a813dd967bb0b306b48406d787259f4ddb8f6a0e0cf4c
 << {"hash":"ca49b8d07ac2849c455a813dd967bb0b306b48406d787259f4ddb8f6a0e0cf4c","version":1,"type":"primary-pow","time":1538138566,"prev":"47b86e794e7ce0546def4fe3603d58d9cc9fc87eeee676bd15ae90e45ab51f8a","fork":"a63d6f9d8055dc1bd7799593fb46ddc1b4e4519bd049e8eba1a0806917dcafc0","height":31296,"txmint":"3d4ed629c594b924d72480e29a332ca91915be685c85940a8c501f8248269e29","tx":[]}
 
->> curl -d '{"id":10,"method":"getblock","jsonrpc":"2.0","params":{"block":"ca49b8d07ac2849c455a813dd967bb0b306b48406d787259f4ddb8f6a0e0cf4c"}}' http://127.0.0.1:8812
+>> curl -d '{"id":10,"method":"getblock","jsonrpc":"2.0","params":{"block":"ca49b8d07ac2849c455a813dd967bb0b306b48406d787259f4ddb8f6a0e0cf4c"}}' http://127.0.0.1:6602
 << {"id":10,"jsonrpc":"2.0","result":{"hash":"ca49b8d07ac2849c455a813dd967bb0b306b48406d787259f4ddb8f6a0e0cf4c","version":1,"type":"primary-pow","time":1538138566,"prev":"47b86e794e7ce0546def4fe3603d58d9cc9fc87eeee676bd15ae90e45ab51f8a","fork":"a63d6f9d8055dc1bd7799593fb46ddc1b4e4519bd049e8eba1a0806917dcafc0","height":31296,"txmint":"3d4ed629c594b924d72480e29a332ca91915be685c85940a8c501f8248269e29","tx":[]}}
 ```
 **Errors:**
@@ -790,6 +793,7 @@ Return details of a block with given block-hash.
    "txmint":                            (object, required) transaction mint data
    {
      "txid": "",                        (string, required) transaction hash
+     "sign_hash": "",                   (string, required) sign hash
      "version": 0,                      (uint, required) version
      "type": "",                        (string, required) transaction type
      "time": 0,                         (uint, required) transaction timestamp
@@ -812,6 +816,7 @@ Return details of a block with given block-hash.
    [
      {
        "txid": "",                      (string, required) transaction hash
+       "sign_hash": "",                 (string, required) sign hash
        "version": 0,                    (uint, required) version
        "type": "",                      (string, required) transaction type
        "time": 0,                       (uint, required) transaction timestamp
@@ -839,7 +844,7 @@ Return details of a block with given block-hash.
 >> metabasenet-cli getblockdetail 0000497da49cf85b3f7faabe13716534b6dfd9e287b109356cb6bcb8c795f0d7
 << {"hash":"0000497da49cf85b3f7faabe13716534b6dfd9e287b109356cb6bcb8c795f0d7","hashPrev":"0000497c07f9b1309dd48aa729ef8cea91dd2610b9e93fe6d5a210d035a7d6f0","version":1,"type":"primary-pow","time":1576134143,"bits":36,"fork":"00000000b0a9be545f022309e148894d1e1c853ccac3ef04cb6f5e5c70f41a70","height":18813,"txmint":{"txid":"5df1e5ffc3bea8bb3e86f822e5072aa2843242f1889f3cdc5559f7201569079a","version":1,"type":"work","time":1576134143,"anchor":"0000497c07f9b1309dd48aa729ef8cea91dd2610b9e93fe6d5a210d035a7d6f0","vin":[],"from":"000000000000000000000000000000000000000000000000000000000","to":"20g075m4mh5trbkdy8vbh74n9h7t3npe7tewpnvsfb19p57jnyf3kdh45","amount":1153.000800,"txfee":0.000000,"data":"","sig":"","fork":"00000000b0a9be545f022309e148894d1e1c853ccac3ef04cb6f5e5c70f41a70","confirmations":15},"tx":[{"txid":"5df1e5eb943a31136951da3afb491d4d6f4e3aeba5cfca9c4ef5ca00c30920b8","version":1,"type":"token","time":1576134123,"anchor":"00000000b0a9be545f022309e148894d1e1c853ccac3ef04cb6f5e5c70f41a70","vin":[{"txid":"5df1e2d022709018117f93273ca192308776586916ba21ee7e513fe04fab9b2f","vout":0},{"txid":"5df1dee3e78e4526f90d15cdcc8e96fedfe1103eca7065772f2ac2bc41d4ad8f","vout":1}],"from":"20g07atym1beahmdk267hkqrgvhw1x0gj3bwth8q7yxcyfgcbszbpqgsr","to":"1xjzjhz5w0an635wngt5qyx8xbg9x2vg0wzkz1a9hx5c97w0b9k0wbzjt","amount":499.999900,"txfee":0.000100,"data":"","sig":"64f1a77bd0e00f8023ffa2f7e0a76eb795414d9a57eb2f4ce5e9cc730c8103c501e1cbd24fa95312b81d2dc5ef6f60c39a9485819d4fa11bcfdde5f99151c8a4f99612f76c34f85b16bee2dd3c06e7cb876fb1ef7d6f7d2160de2d3fd9beb75c9b19e90ed9c46053ce81106e1e37717ad175489f30045180be1a2cc7ae524f790e","fork":"00000000b0a9be545f022309e148894d1e1c853ccac3ef04cb6f5e5c70f41a70","confirmations":15},{"txid":"5df1e5eb90ce47fceb3ace5e463f88db7ec98769e2a77571f5bc4b7e957aa69f","version":1,"type":"token","time":1576134123,"anchor":"00000000b0a9be545f022309e148894d1e1c853ccac3ef04cb6f5e5c70f41a70","vin":[{"txid":"5df1e5eb943a31136951da3afb491d4d6f4e3aeba5cfca9c4ef5ca00c30920b8","vout":1}],"from":"20g07atym1beahmdk267hkqrgvhw1x0gj3bwth8q7yxcyfgcbszbpqgsr","to":"1c23w26d19h6sntvktzfycpgwfge4efy3zghdjc93mnxbptdw7yqwbwgy","amount":499.999900,"txfee":0.000100,"data":"","sig":"64f1a77bd0e00f8023ffa2f7e0a76eb795414d9a57eb2f4ce5e9cc730c8103c501e1cbd24fa95312b81d2dc5ef6f60c39a9485819d4fa11bcfdde5f99151c8a4f9374f46f5caf72e9488a168a64c21744d3160b67d168376420945f9375dfda5a5967678db5f32e26ea17e990f9d00890ae0cc4b72ed0ed8a12f80c2aa6de40700","fork":"00000000b0a9be545f022309e148894d1e1c853ccac3ef04cb6f5e5c70f41a70","confirmations":15},{"txid":"5df1e5eb8208741b33a708a72a29a7380843789975e000dcc74eb31f857b691e","version":1,"type":"token","time":1576134123,"anchor":"00000000b0a9be545f022309e148894d1e1c853ccac3ef04cb6f5e5c70f41a70","vin":[{"txid":"5df1e1ea583124fa957a4c995cdea702bbdea2e832f8b0fe9a2d1d32578b8869","vout":0},{"txid":"5df1e5eb90ce47fceb3ace5e463f88db7ec98769e2a77571f5bc4b7e957aa69f","vout":1}],"from":"20g07atym1beahmdk267hkqrgvhw1x0gj3bwth8q7yxcyfgcbszbpqgsr","to":"11nf1cnwft7f2yhr3qnbx9qxsc0b75y4gn7v1rd1qza8khzjdv7623gmm","amount":999.999900,"txfee":0.000100,"data":"","sig":"64f1a77bd0e00f8023ffa2f7e0a76eb795414d9a57eb2f4ce5e9cc730c8103c501e1cbd24fa95312b81d2dc5ef6f60c39a9485819d4fa11bcfdde5f99151c8a4f95b134de0889f32099b50f354d754b34b4cebdfab6eaa150f0de465967c020a3f140713591b1faf03d4112fa0924a796aca54be26fb8091ba472e8e0632e7c600","fork":"00000000b0a9be545f022309e148894d1e1c853ccac3ef04cb6f5e5c70f41a70","confirmations":15},{"txid":"5df1e5eb17690dbeae0609370f87c30b490eaf123500fdd55f961780415d5d22","version":1,"type":"token","time":1576134123,"anchor":"00000000b0a9be545f022309e148894d1e1c853ccac3ef04cb6f5e5c70f41a70","vin":[{"txid":"5df1e5eb8208741b33a708a72a29a7380843789975e000dcc74eb31f857b691e","vout":1}],"from":"20g07atym1beahmdk267hkqrgvhw1x0gj3bwth8q7yxcyfgcbszbpqgsr","to":"1eenpdhcyk5y3ma5pjzf3gp2drq344mc7vcdep170zmbafg5317ae044h","amount":499.999900,"txfee":0.000100,"data":"","sig":"64f1a77bd0e00f8023ffa2f7e0a76eb795414d9a57eb2f4ce5e9cc730c8103c501e1cbd24fa95312b81d2dc5ef6f60c39a9485819d4fa11bcfdde5f99151c8a4f977497144b8d4fc40250ecfc7e007d03f1d6293decd0bb115a0b5939a92314282edce494dde0b992e2b503a1f9f50ae00f6f8bc850fd4cbd5e32771f54bea470f","fork":"00000000b0a9be545f022309e148894d1e1c853ccac3ef04cb6f5e5c70f41a70","confirmations":15},{"txid":"5df1e5eb3000e640a2bea70acdc4f994fb05c8a36e54480e5cdc0ccc578f9cc0","version":1,"type":"token","time":1576134123,"anchor":"00000000b0a9be545f022309e148894d1e1c853ccac3ef04cb6f5e5c70f41a70","vin":[{"txid":"5df1e3e1bd39f2188ce116039c8af172b9a6b4a4ae464bef5734b496540d9db4","vout":0},{"txid":"5df1e5eb17690dbeae0609370f87c30b490eaf123500fdd55f961780415d5d22","vout":1}],"from":"20g07atym1beahmdk267hkqrgvhw1x0gj3bwth8q7yxcyfgcbszbpqgsr","to":"1q6xgeqaa9hzy19qhhfpmg7hhee05bnq6ha7ph2kvb1d2w6b8qe8hffcy","amount":499.999900,"txfee":0.000100,"data":"","sig":"64f1a77bd0e00f8023ffa2f7e0a76eb795414d9a57eb2f4ce5e9cc730c8103c501e1cbd24fa95312b81d2dc5ef6f60c39a9485819d4fa11bcfdde5f99151c8a4f969d47d443711312df441072eca89c3cea44197bec0a7b709ad9d533684f051081c94ed71bea935a8f2eb224cf3a4cb6fa0c79e8925e68a6b8ff35a3fe196a80f","fork":"00000000b0a9be545f022309e148894d1e1c853ccac3ef04cb6f5e5c70f41a70","confirmations":15},{"txid":"5df1e5ebb45d6713d5048b73780a2e5e9e36a10c5b432bb409ff930b116ffef1","version":1,"type":"token","time":1576134123,"anchor":"00000000b0a9be545f022309e148894d1e1c853ccac3ef04cb6f5e5c70f41a70","vin":[{"txid":"5df1e5eb3000e640a2bea70acdc4f994fb05c8a36e54480e5cdc0ccc578f9cc0","vout":1}],"from":"20g07atym1beahmdk267hkqrgvhw1x0gj3bwth8q7yxcyfgcbszbpqgsr","to":"1mp11457nha6830emx3mkv4r2zvtg6aebsacdd72x8gzkpqrpvcn6ygd9","amount":499.999900,"txfee":0.000100,"data":"","sig":"64f1a77bd0e00f8023ffa2f7e0a76eb795414d9a57eb2f4ce5e9cc730c8103c501e1cbd24fa95312b81d2dc5ef6f60c39a9485819d4fa11bcfdde5f99151c8a4f9c517184e60c41bde9d504d48a02f815a6de60889175d0307b5810336d1c0eacc63978ff83338a5c7546c6e16d76336ac9c436f95cf9dc9e06928e3df80a7a00e","fork":"00000000b0a9be545f022309e148894d1e1c853ccac3ef04cb6f5e5c70f41a70","confirmations":15},{"txid":"5df1e5eb169ec81721b49ca9325b80afd950a685067aa003ae83b8d6d0d982b0","version":1,"type":"token","time":1576134123,"anchor":"00000000b0a9be545f022309e148894d1e1c853ccac3ef04cb6f5e5c70f41a70","vin":[{"txid":"5df1e337d09b7d286885cd69c0da98c7d04cf740221019d70bcbbb313a159d2a","vout":0},{"txid":"5df1e5ebb45d6713d5048b73780a2e5e9e36a10c5b432bb409ff930b116ffef1","vout":1}],"from":"20g07atym1beahmdk267hkqrgvhw1x0gj3bwth8q7yxcyfgcbszbpqgsr","to":"1a2fse94fpjepygypmn7qwg8jv8jt2nybqdp2me317tn3t7qy20m9gqmt","amount":499.999900,"txfee":0.000100,"data":"","sig":"64f1a77bd0e00f8023ffa2f7e0a76eb795414d9a57eb2f4ce5e9cc730c8103c501e1cbd24fa95312b81d2dc5ef6f60c39a9485819d4fa11bcfdde5f99151c8a4f98b71bda06c23d650ed07d3a0c743689583df2c7f0c26be9c8a75b26e20d3cdafd2bfc6653ce519bd2164ae5f1301b65a220b1a7a34fb0676850f26fcf567c30e","fork":"00000000b0a9be545f022309e148894d1e1c853ccac3ef04cb6f5e5c70f41a70","confirmations":15},{"txid":"5df1e5ebf4b068ad6775a68cb27a95abea0ee058b1d7c356e46fa04e006b255e","version":1,"type":"token","time":1576134123,"anchor":"00000000b0a9be545f022309e148894d1e1c853ccac3ef04cb6f5e5c70f41a70","vin":[{"txid":"5df1e5eb169ec81721b49ca9325b80afd950a685067aa003ae83b8d6d0d982b0","vout":1}],"from":"20g07atym1beahmdk267hkqrgvhw1x0gj3bwth8q7yxcyfgcbszbpqgsr","to":"161pk1rj8qkxmbwfcw4131b9qmxqcby7975vhe81h6k3wczg8r7dw7xg2","amount":499.999900,"txfee":0.000100,"data":"","sig":"64f1a77bd0e00f8023ffa2f7e0a76eb795414d9a57eb2f4ce5e9cc730c8103c501e1cbd24fa95312b81d2dc5ef6f60c39a9485819d4fa11bcfdde5f99151c8a4f959d19b18b937ef40516e051d8e36a86d86291f2fb2f4db30ba465eb076154b294b0024ab95267f353f095053bd0160999eaeb902c7add7bf11f54ebce1166202","fork":"00000000b0a9be545f022309e148894d1e1c853ccac3ef04cb6f5e5c70f41a70","confirmations":15}],"prev":"0000497c07f9b1309dd48aa729ef8cea91dd2610b9e93fe6d5a210d035a7d6f0"}
 
->> curl -d '{"id":10,"method":"getblockdetail","jsonrpc":"2.0","params":{"block":"0000497da49cf85b3f7faabe13716534b6dfd9e287b109356cb6bcb8c795f0d7"}}' http://127.0.0.1:8812
+>> curl -d '{"id":10,"method":"getblockdetail","jsonrpc":"2.0","params":{"block":"0000497da49cf85b3f7faabe13716534b6dfd9e287b109356cb6bcb8c795f0d7"}}' http://127.0.0.1:6602
 << {"id":10,"jsonrpc":"2.0","result":{"hash":"0000497da49cf85b3f7faabe13716534b6dfd9e287b109356cb6bcb8c795f0d7","hashPrev":"0000497c07f9b1309dd48aa729ef8cea91dd2610b9e93fe6d5a210d035a7d6f0","version":1,"type":"primary-pow","time":1576134143,"bits":36,"fork":"00000000b0a9be545f022309e148894d1e1c853ccac3ef04cb6f5e5c70f41a70","height":18813,"txmint":{"txid":"5df1e5ffc3bea8bb3e86f822e5072aa2843242f1889f3cdc5559f7201569079a","version":1,"type":"work","time":1576134143,"anchor":"0000497c07f9b1309dd48aa729ef8cea91dd2610b9e93fe6d5a210d035a7d6f0","vin":[],"from":"000000000000000000000000000000000000000000000000000000000","to":"20g075m4mh5trbkdy8vbh74n9h7t3npe7tewpnvsfb19p57jnyf3kdh45","amount":1153.000800,"txfee":0.000000,"data":"","sig":"","fork":"00000000b0a9be545f022309e148894d1e1c853ccac3ef04cb6f5e5c70f41a70","confirmations":63},"tx":[{"txid":"5df1e5eb943a31136951da3afb491d4d6f4e3aeba5cfca9c4ef5ca00c30920b8","version":1,"type":"token","time":1576134123,"anchor":"00000000b0a9be545f022309e148894d1e1c853ccac3ef04cb6f5e5c70f41a70","vin":[{"txid":"5df1e2d022709018117f93273ca192308776586916ba21ee7e513fe04fab9b2f","vout":0},{"txid":"5df1dee3e78e4526f90d15cdcc8e96fedfe1103eca7065772f2ac2bc41d4ad8f","vout":1}],"from":"20g07atym1beahmdk267hkqrgvhw1x0gj3bwth8q7yxcyfgcbszbpqgsr","to":"1xjzjhz5w0an635wngt5qyx8xbg9x2vg0wzkz1a9hx5c97w0b9k0wbzjt","amount":499.999900,"txfee":0.000100,"data":"","sig":"64f1a77bd0e00f8023ffa2f7e0a76eb795414d9a57eb2f4ce5e9cc730c8103c501e1cbd24fa95312b81d2dc5ef6f60c39a9485819d4fa11bcfdde5f99151c8a4f99612f76c34f85b16bee2dd3c06e7cb876fb1ef7d6f7d2160de2d3fd9beb75c9b19e90ed9c46053ce81106e1e37717ad175489f30045180be1a2cc7ae524f790e","fork":"00000000b0a9be545f022309e148894d1e1c853ccac3ef04cb6f5e5c70f41a70","confirmations":63},{"txid":"5df1e5eb90ce47fceb3ace5e463f88db7ec98769e2a77571f5bc4b7e957aa69f","version":1,"type":"token","time":1576134123,"anchor":"00000000b0a9be545f022309e148894d1e1c853ccac3ef04cb6f5e5c70f41a70","vin":[{"txid":"5df1e5eb943a31136951da3afb491d4d6f4e3aeba5cfca9c4ef5ca00c30920b8","vout":1}],"from":"20g07atym1beahmdk267hkqrgvhw1x0gj3bwth8q7yxcyfgcbszbpqgsr","to":"1c23w26d19h6sntvktzfycpgwfge4efy3zghdjc93mnxbptdw7yqwbwgy","amount":499.999900,"txfee":0.000100,"data":"","sig":"64f1a77bd0e00f8023ffa2f7e0a76eb795414d9a57eb2f4ce5e9cc730c8103c501e1cbd24fa95312b81d2dc5ef6f60c39a9485819d4fa11bcfdde5f99151c8a4f9374f46f5caf72e9488a168a64c21744d3160b67d168376420945f9375dfda5a5967678db5f32e26ea17e990f9d00890ae0cc4b72ed0ed8a12f80c2aa6de40700","fork":"00000000b0a9be545f022309e148894d1e1c853ccac3ef04cb6f5e5c70f41a70","confirmations":63},{"txid":"5df1e5eb8208741b33a708a72a29a7380843789975e000dcc74eb31f857b691e","version":1,"type":"token","time":1576134123,"anchor":"00000000b0a9be545f022309e148894d1e1c853ccac3ef04cb6f5e5c70f41a70","vin":[{"txid":"5df1e1ea583124fa957a4c995cdea702bbdea2e832f8b0fe9a2d1d32578b8869","vout":0},{"txid":"5df1e5eb90ce47fceb3ace5e463f88db7ec98769e2a77571f5bc4b7e957aa69f","vout":1}],"from":"20g07atym1beahmdk267hkqrgvhw1x0gj3bwth8q7yxcyfgcbszbpqgsr","to":"11nf1cnwft7f2yhr3qnbx9qxsc0b75y4gn7v1rd1qza8khzjdv7623gmm","amount":999.999900,"txfee":0.000100,"data":"","sig":"64f1a77bd0e00f8023ffa2f7e0a76eb795414d9a57eb2f4ce5e9cc730c8103c501e1cbd24fa95312b81d2dc5ef6f60c39a9485819d4fa11bcfdde5f99151c8a4f95b134de0889f32099b50f354d754b34b4cebdfab6eaa150f0de465967c020a3f140713591b1faf03d4112fa0924a796aca54be26fb8091ba472e8e0632e7c600","fork":"00000000b0a9be545f022309e148894d1e1c853ccac3ef04cb6f5e5c70f41a70","confirmations":63},{"txid":"5df1e5eb17690dbeae0609370f87c30b490eaf123500fdd55f961780415d5d22","version":1,"type":"token","time":1576134123,"anchor":"00000000b0a9be545f022309e148894d1e1c853ccac3ef04cb6f5e5c70f41a70","vin":[{"txid":"5df1e5eb8208741b33a708a72a29a7380843789975e000dcc74eb31f857b691e","vout":1}],"from":"20g07atym1beahmdk267hkqrgvhw1x0gj3bwth8q7yxcyfgcbszbpqgsr","to":"1eenpdhcyk5y3ma5pjzf3gp2drq344mc7vcdep170zmbafg5317ae044h","amount":499.999900,"txfee":0.000100,"data":"","sig":"64f1a77bd0e00f8023ffa2f7e0a76eb795414d9a57eb2f4ce5e9cc730c8103c501e1cbd24fa95312b81d2dc5ef6f60c39a9485819d4fa11bcfdde5f99151c8a4f977497144b8d4fc40250ecfc7e007d03f1d6293decd0bb115a0b5939a92314282edce494dde0b992e2b503a1f9f50ae00f6f8bc850fd4cbd5e32771f54bea470f","fork":"00000000b0a9be545f022309e148894d1e1c853ccac3ef04cb6f5e5c70f41a70","confirmations":63},{"txid":"5df1e5eb3000e640a2bea70acdc4f994fb05c8a36e54480e5cdc0ccc578f9cc0","version":1,"type":"token","time":1576134123,"anchor":"00000000b0a9be545f022309e148894d1e1c853ccac3ef04cb6f5e5c70f41a70","vin":[{"txid":"5df1e3e1bd39f2188ce116039c8af172b9a6b4a4ae464bef5734b496540d9db4","vout":0},{"txid":"5df1e5eb17690dbeae0609370f87c30b490eaf123500fdd55f961780415d5d22","vout":1}],"from":"20g07atym1beahmdk267hkqrgvhw1x0gj3bwth8q7yxcyfgcbszbpqgsr","to":"1q6xgeqaa9hzy19qhhfpmg7hhee05bnq6ha7ph2kvb1d2w6b8qe8hffcy","amount":499.999900,"txfee":0.000100,"data":"","sig":"64f1a77bd0e00f8023ffa2f7e0a76eb795414d9a57eb2f4ce5e9cc730c8103c501e1cbd24fa95312b81d2dc5ef6f60c39a9485819d4fa11bcfdde5f99151c8a4f969d47d443711312df441072eca89c3cea44197bec0a7b709ad9d533684f051081c94ed71bea935a8f2eb224cf3a4cb6fa0c79e8925e68a6b8ff35a3fe196a80f","fork":"00000000b0a9be545f022309e148894d1e1c853ccac3ef04cb6f5e5c70f41a70","confirmations":63},{"txid":"5df1e5ebb45d6713d5048b73780a2e5e9e36a10c5b432bb409ff930b116ffef1","version":1,"type":"token","time":1576134123,"anchor":"00000000b0a9be545f022309e148894d1e1c853ccac3ef04cb6f5e5c70f41a70","vin":[{"txid":"5df1e5eb3000e640a2bea70acdc4f994fb05c8a36e54480e5cdc0ccc578f9cc0","vout":1}],"from":"20g07atym1beahmdk267hkqrgvhw1x0gj3bwth8q7yxcyfgcbszbpqgsr","to":"1mp11457nha6830emx3mkv4r2zvtg6aebsacdd72x8gzkpqrpvcn6ygd9","amount":499.999900,"txfee":0.000100,"data":"","sig":"64f1a77bd0e00f8023ffa2f7e0a76eb795414d9a57eb2f4ce5e9cc730c8103c501e1cbd24fa95312b81d2dc5ef6f60c39a9485819d4fa11bcfdde5f99151c8a4f9c517184e60c41bde9d504d48a02f815a6de60889175d0307b5810336d1c0eacc63978ff83338a5c7546c6e16d76336ac9c436f95cf9dc9e06928e3df80a7a00e","fork":"00000000b0a9be545f022309e148894d1e1c853ccac3ef04cb6f5e5c70f41a70","confirmations":63},{"txid":"5df1e5eb169ec81721b49ca9325b80afd950a685067aa003ae83b8d6d0d982b0","version":1,"type":"token","time":1576134123,"anchor":"00000000b0a9be545f022309e148894d1e1c853ccac3ef04cb6f5e5c70f41a70","vin":[{"txid":"5df1e337d09b7d286885cd69c0da98c7d04cf740221019d70bcbbb313a159d2a","vout":0},{"txid":"5df1e5ebb45d6713d5048b73780a2e5e9e36a10c5b432bb409ff930b116ffef1","vout":1}],"from":"20g07atym1beahmdk267hkqrgvhw1x0gj3bwth8q7yxcyfgcbszbpqgsr","to":"1a2fse94fpjepygypmn7qwg8jv8jt2nybqdp2me317tn3t7qy20m9gqmt","amount":499.999900,"txfee":0.000100,"data":"","sig":"64f1a77bd0e00f8023ffa2f7e0a76eb795414d9a57eb2f4ce5e9cc730c8103c501e1cbd24fa95312b81d2dc5ef6f60c39a9485819d4fa11bcfdde5f99151c8a4f98b71bda06c23d650ed07d3a0c743689583df2c7f0c26be9c8a75b26e20d3cdafd2bfc6653ce519bd2164ae5f1301b65a220b1a7a34fb0676850f26fcf567c30e","fork":"00000000b0a9be545f022309e148894d1e1c853ccac3ef04cb6f5e5c70f41a70","confirmations":63},{"txid":"5df1e5ebf4b068ad6775a68cb27a95abea0ee058b1d7c356e46fa04e006b255e","version":1,"type":"token","time":1576134123,"anchor":"00000000b0a9be545f022309e148894d1e1c853ccac3ef04cb6f5e5c70f41a70","vin":[{"txid":"5df1e5eb169ec81721b49ca9325b80afd950a685067aa003ae83b8d6d0d982b0","vout":1}],"from":"20g07atym1beahmdk267hkqrgvhw1x0gj3bwth8q7yxcyfgcbszbpqgsr","to":"161pk1rj8qkxmbwfcw4131b9qmxqcby7975vhe81h6k3wczg8r7dw7xg2","amount":499.999900,"txfee":0.000100,"data":"","sig":"64f1a77bd0e00f8023ffa2f7e0a76eb795414d9a57eb2f4ce5e9cc730c8103c501e1cbd24fa95312b81d2dc5ef6f60c39a9485819d4fa11bcfdde5f99151c8a4f959d19b18b937ef40516e051d8e36a86d86291f2fb2f4db30ba465eb076154b294b0024ab95267f353f095053bd0160999eaeb902c7add7bf11f54ebce1166202","fork":"00000000b0a9be545f022309e148894d1e1c853ccac3ef04cb6f5e5c70f41a70","confirmations":63}],"prev":"0000497c07f9b1309dd48aa729ef8cea91dd2610b9e93fe6d5a210d035a7d6f0"}}
 ```
 **Errors:**
@@ -900,7 +905,7 @@ Return details of a block with given block hash or height or number.
 >> metabasenet-cli getblockdata -b=ca49b8d07ac2849c455a813dd967bb0b306b48406d787259f4ddb8f6a0e0cf4c
 << {"hash":"ca49b8d07ac2849c455a813dd967bb0b306b48406d787259f4ddb8f6a0e0cf4c","version":1,"type":"primary-pow","time":1538138566,"prev":"47b86e794e7ce0546def4fe3603d58d9cc9fc87eeee676bd15ae90e45ab51f8a","fork":"a63d6f9d8055dc1bd7799593fb46ddc1b4e4519bd049e8eba1a0806917dcafc0","height":31296,"txmint":"3d4ed629c594b924d72480e29a332ca91915be685c85940a8c501f8248269e29","tx":[]}
 
->> curl -d '{"id":10,"method":"getblockdata","jsonrpc":"2.0","params":{"blockhash":"ca49b8d07ac2849c455a813dd967bb0b306b48406d787259f4ddb8f6a0e0cf4c"}}' http://127.0.0.1:8812
+>> curl -d '{"id":10,"method":"getblockdata","jsonrpc":"2.0","params":{"blockhash":"ca49b8d07ac2849c455a813dd967bb0b306b48406d787259f4ddb8f6a0e0cf4c"}}' http://127.0.0.1:6602
 << {"id":10,"jsonrpc":"2.0","result":{"hash":"ca49b8d07ac2849c455a813dd967bb0b306b48406d787259f4ddb8f6a0e0cf4c","version":1,"type":"primary-pow","time":1538138566,"prev":"47b86e794e7ce0546def4fe3603d58d9cc9fc87eeee676bd15ae90e45ab51f8a","fork":"a63d6f9d8055dc1bd7799593fb46ddc1b4e4519bd049e8eba1a0806917dcafc0","height":31296,"txmint":"3d4ed629c594b924d72480e29a332ca91915be685c85940a8c501f8248269e29","tx":[]}}
 ```
 **Errors:**
@@ -972,7 +977,7 @@ Otherwise,return all transaction ids and sizes in memory pool for given fork.
 >> metabasenet-cli gettxpool
 << {"count":0,"size":0}
 
->> curl -d '{"id":11,"method":"gettxpool","jsonrpc":"2.0","params":{}}' http://127.0.0.1:8812
+>> curl -d '{"id":11,"method":"gettxpool","jsonrpc":"2.0","params":{}}' http://127.0.0.1:6602
 << {"id":11,"jsonrpc":"2.0","result":{"count":0,"size":0}}
 ```
 **Errors:**
@@ -1016,6 +1021,7 @@ Get transaction information
    "transaction":                       (object, optional) transaction data
    {
      "txid": "",                        (string, required) transaction hash
+     "sign_hash": "",                   (string, required) sign hash
      "version": 0,                      (uint, required) version
      "type": "",                        (string, required) transaction type
      "time": 0,                         (uint, required) transaction timestamp
@@ -1041,13 +1047,13 @@ Get transaction information
 >> metabasenet-cli gettransaction 5df09031322f99db08a4747d652e0733f60c9b523a6a489b5f72e0031a2b2a03
 << {"transaction":{"txid":"5df09031322f99db08a4747d652e0733f60c9b523a6a489b5f72e0031a2b2a03","version":1,"type":"token","time":1576046641,"anchor":"00000000b0a9be545f022309e148894d1e1c853ccac3ef04cb6f5e5c70f41a70","vin":[{"txid":"5df088912a5a607904d8c69670a8b704c5739e847d2002c862f6b0cd712b797a","vout":0}],"from":"1n56xmva8131c4q0961anv5wdzfqtdctyg9e53fxp65f1jyhbtkfbxz6q","to":"1mkeeh3zeeejsvknz5d0bm78k81s585jbj5kf0rxjx3ah6ngh33b1erg9","amount":162.260000,"txfee":0.100000,"data":"","sig":"d6594d9215c58224f9707a84f773b00394561df0bba769a279dd065b98bc03a946928f8a6508a728eceff3e22d5181da16b78087c79b68532b31553bdc855000","fork":"00000000b0a9be545f022309e148894d1e1c853ccac3ef04cb6f5e5c70f41a70","confirmations":1597}}
 
->> curl -d '{"id":13,"method":"gettransaction","jsonrpc":"2.0","params":{"txid":"5df09031322f99db08a4747d652e0733f60c9b523a6a489b5f72e0031a2b2a03","serialized":false}}' http://127.0.0.1:8812
+>> curl -d '{"id":13,"method":"gettransaction","jsonrpc":"2.0","params":{"txid":"5df09031322f99db08a4747d652e0733f60c9b523a6a489b5f72e0031a2b2a03","serialized":false}}' http://127.0.0.1:6602
 << {"id":13,"jsonrpc":"2.0","result":{"transaction":{"txid":"5df09031322f99db08a4747d652e0733f60c9b523a6a489b5f72e0031a2b2a03","version":1,"type":"token","time":1576046641,"anchor":"00000000b0a9be545f022309e148894d1e1c853ccac3ef04cb6f5e5c70f41a70","vin":[{"txid":"5df088912a5a607904d8c69670a8b704c5739e847d2002c862f6b0cd712b797a","vout":0}],"from":"1n56xmva8131c4q0961anv5wdzfqtdctyg9e53fxp65f1jyhbtkfbxz6q","to":"1mkeeh3zeeejsvknz5d0bm78k81s585jbj5kf0rxjx3ah6ngh33b1erg9","amount":162.260000,"txfee":0.100000,"data":"","sig":"d6594d9215c58224f9707a84f773b00394561df0bba769a279dd065b98bc03a946928f8a6508a728eceff3e22d5181da16b78087c79b68532b31553bdc855000","fork":"00000000b0a9be545f022309e148894d1e1c853ccac3ef04cb6f5e5c70f41a70","confirmations":1631}}}
 
 >> metabasenet-cli gettransaction -s 5df09031322f99db08a4747d652e0733f60c9b523a6a489b5f72e0031a2b2a03
 << {"serialization":"010000003190f05d00000000701af4705c5e6fcb04efc3ca3c851c1e4d8948e10923025f54bea9b000000000017a792b71cdb0f662c802207d849e73c504b7a87096c6d80479605a2a9188f05d0001a4dce88fee73a59dcebf2b40ba1d13407254164b9166f063b2e8d513561118d620e4ab0900000000a0860100000000000040d6594d9215c58224f9707a84f773b00394561df0bba769a279dd065b98bc03a946928f8a6508a728eceff3e22d5181da16b78087c79b68532b31553bdc855000"}
 
->> curl -d '{"id":13,"method":"gettransaction","jsonrpc":"2.0","params":{"txid":"5df09031322f99db08a4747d652e0733f60c9b523a6a489b5f72e0031a2b2a03","serialized":true}}' http://127.0.0.1:8812
+>> curl -d '{"id":13,"method":"gettransaction","jsonrpc":"2.0","params":{"txid":"5df09031322f99db08a4747d652e0733f60c9b523a6a489b5f72e0031a2b2a03","serialized":true}}' http://127.0.0.1:6602
 << {"id":13,"jsonrpc":"2.0","result":{"serialization":"010000003190f05d00000000701af4705c5e6fcb04efc3ca3c851c1e4d8948e10923025f54bea9b000000000017a792b71cdb0f662c802207d849e73c504b7a87096c6d80479605a2a9188f05d0001a4dce88fee73a59dcebf2b40ba1d13407254164b9166f063b2e8d513561118d620e4ab0900000000a0860100000000000040d6594d9215c58224f9707a84f773b00394561df0bba769a279dd065b98bc03a946928f8a6508a728eceff3e22d5181da16b78087c79b68532b31553bdc855000"}}
 ```
 **Errors:**
@@ -1083,7 +1089,7 @@ Submit raw transaction (serialized, hex-encoded) to local node and network.
 >> metabasenet-cli sendtransaction 01000000000000002b747e24738befccff4a05c21dba749632cb8eb410233fa110e3f58a779b4325010ef45be50157453a57519929052d0818c269dee60be98958d5ab65bc7e0919810001b9c3b7aa16c6cb1bf193faf717580d03347148b2145ca98b30b1376d634c12f440420f0000000000a0860100000000000212348182e8a36441d116ce7a97f9a216d43a3dfc4280295874007b8ff5fd45eec9052e0182e8a36441d116ce7a97f9a216d43a3dfc4280295874007b8ff5fd45eec9052ed494d90cd96c252446b4a10459fea8c06186154b2bee2ce2182556e9ba40e7e69ddae2501862e4251bba2abf11c90d6f1fd0dec48a1419e81bb8c7d922cf3e03
 << 0a1b944071970589aa524a6f4e40e0b50bab9a64feefc292867692bbf35442a6
 
->> curl -d '{"id":9,"method":"sendtransaction","jsonrpc":"2.0","params":{"txdata":"01000000000000002b747e24738befccff4a05c21dba749632cb8eb410233fa110e3f58a779b4325010ef45be50157453a57519929052d0818c269dee60be98958d5ab65bc7e0919810001b9c3b7aa16c6cb1bf193faf717580d03347148b2145ca98b30b1376d634c12f440420f0000000000a0860100000000000212348182e8a36441d116ce7a97f9a216d43a3dfc4280295874007b8ff5fd45eec9052e0182e8a36441d116ce7a97f9a216d43a3dfc4280295874007b8ff5fd45eec9052ed494d90cd96c252446b4a10459fea8c06186154b2bee2ce2182556e9ba40e7e69ddae2501862e4251bba2abf11c90d6f1fd0dec48a1419e81bb8c7d922cf3e03"}}' http://127.0.0.1:8812
+>> curl -d '{"id":9,"method":"sendtransaction","jsonrpc":"2.0","params":{"txdata":"01000000000000002b747e24738befccff4a05c21dba749632cb8eb410233fa110e3f58a779b4325010ef45be50157453a57519929052d0818c269dee60be98958d5ab65bc7e0919810001b9c3b7aa16c6cb1bf193faf717580d03347148b2145ca98b30b1376d634c12f440420f0000000000a0860100000000000212348182e8a36441d116ce7a97f9a216d43a3dfc4280295874007b8ff5fd45eec9052e0182e8a36441d116ce7a97f9a216d43a3dfc4280295874007b8ff5fd45eec9052ed494d90cd96c252446b4a10459fea8c06186154b2bee2ce2182556e9ba40e7e69ddae2501862e4251bba2abf11c90d6f1fd0dec48a1419e81bb8c7d922cf3e03"}}' http://127.0.0.1:6602
 << {"id":9,"jsonrpc":"2.0","result":"0a1b944071970589aa524a6f4e40e0b50bab9a64feefc292867692bbf35442a6"}
 ```
 **Errors:**
@@ -1120,7 +1126,7 @@ Return the number of height in the given fork.
 >> metabasenet-cli getforkheight
 << 32081
 
->> curl -d '{"id":4,"method":"getforkheight","jsonrpc":"2.0","params":{}}' http://127.0.0.1:8812
+>> curl -d '{"id":4,"method":"getforkheight","jsonrpc":"2.0","params":{}}' http://127.0.0.1:6602
 << {"id":4,"jsonrpc":"2.0","result":32081}
 
 >> metabasenet-cli getforkheight -f=a63d6f9d8055dc1bd7799593fb46ddc1b4e4519bd049e8eba1a0806917dcafc0
@@ -1159,7 +1165,7 @@ Get votes
 >> metabasenet-cli getvotes 20m04f7cbzcgqjtj6arnv65s9ap8f1setyezt34kg2q9vdvd1tgspy5r0
 << 70000000.000000
 
->> curl -d '{"id":1,"method":"getvotes","jsonrpc":"2.0","params":{"address":"20m04f7cbzcgqjtj6arnv65s9ap8f1setyezt34kg2q9vdvd1tgspy5r0"}}' http://127.0.0.1:8812
+>> curl -d '{"id":1,"method":"getvotes","jsonrpc":"2.0","params":{"address":"20m04f7cbzcgqjtj6arnv65s9ap8f1setyezt34kg2q9vdvd1tgspy5r0"}}' http://127.0.0.1:6602
 << {"id":0,"jsonrpc":"2.0","result":70000000.000000}
 ```
 **Errors:**
@@ -1205,7 +1211,7 @@ List delegate
 >> metabasenet-cli listdelegate
 << {"address":"20m01802pgptaswc5b2dq09kmj10ns88bn69q0msrnz64mtypx4xm5sff","votes":100002000.000000}
 
->> curl -d '{"id":1,"method":"listdelegate","jsonrpc":"2.0","params":{}}' http://127.0.0.1:8812
+>> curl -d '{"id":1,"method":"listdelegate","jsonrpc":"2.0","params":{}}' http://127.0.0.1:6602
 << {"id":0,"jsonrpc":"2.0","result":"{"address":"20m01802pgptaswc5b2dq09kmj10ns88bn69q0msrnz64mtypx4xm5sff","votes":100002000.000000}"}
 ```
 **Errors:**
@@ -1253,7 +1259,7 @@ Return Object that has pubkey as keys, associated status as values.
 >> metabasenet-cli listkey
 << [{"key":"3d266a564ec85f3385babf615b1d7eeb01b3e4456d35174732bb9ec0fa8c8f4f","version": 1,"locked": true},{"key":"58e148d9e8610a6504c26ed346d15920c4d832cf0f03ecb8a016e0d0ec838b1b","version": 1,"locked": true}]
 
->> curl -d '{"id":43,"method":"listkey","jsonrpc":"2.0","params":{}}' http://127.0.0.1:8812
+>> curl -d '{"id":43,"method":"listkey","jsonrpc":"2.0","params":{}}' http://127.0.0.1:6602
 << {"id":43,"jsonrpc":"2.0","result":[{"key":"3d266a564ec85f3385babf615b1d7eeb01b3e4456d35174732bb9ec0fa8c8f4f","version": 1,"locked": true},{"key":"58e148d9e8610a6504c26ed346d15920c4d832cf0f03ecb8a016e0d0ec838b1b","version": 1,"locked": true}]}
 ```
 **Errors:**
@@ -1289,7 +1295,7 @@ Return a new pubkey for receiving payments.
 >> metabasenet-cli getnewkey 123
 << f4124c636d37b1308ba95c14b2487134030d5817f7fa93f11bcbc616aab7c3b9
 
->> curl -d '{"id":7,"method":"getnewkey","jsonrpc":"2.0","params":{"passphrase":"123"}}' http://127.0.0.1:8812
+>> curl -d '{"id":7,"method":"getnewkey","jsonrpc":"2.0","params":{"passphrase":"123"}}' http://127.0.0.1:6602
 << {"id":7,"jsonrpc":"2.0","result":"f4124c636d37b1308ba95c14b2487134030d5817f7fa93f11bcbc616aab7c3b9"}
 ```
 **Errors:**
@@ -1328,7 +1334,7 @@ Remove Key in Wallet.
 >> metabasenet-cli removekey f4124c636d37b1308ba95c14b2487134030d5817f7fa93f11bcbc616aab7c3b9 123
 << f4124c636d37b1308ba95c14b2487134030d5817f7fa93f11bcbc616aab7c3b9
 
->> curl -d '{"id":7,"method":"removekey","jsonrpc":"2.0","params":{"pubkey":"f4124c636d37b1308ba95c14b2487134030d5817f7fa93f11bcbc616aab7c3b9","passphrase":"123"}}' http://127.0.0.1:8812
+>> curl -d '{"id":7,"method":"removekey","jsonrpc":"2.0","params":{"pubkey":"f4124c636d37b1308ba95c14b2487134030d5817f7fa93f11bcbc616aab7c3b9","passphrase":"123"}}' http://127.0.0.1:6602
 << {"id":7,"jsonrpc":"2.0","result":"f4124c636d37b1308ba95c14b2487134030d5817f7fa93f11bcbc616aab7c3b9"}
 ```
 **Errors:**
@@ -1369,7 +1375,7 @@ Changes the passphrase for <oldpassphrase> to <passphrase>
 >> encryptkey f4c3babec11363be80e7b6aa1d803d63206a11f36fc99b874b63a262110a0add -new=456 -old=123
 << Encrypt key successfully: f4c3babec11363be80e7b6aa1d803d63206a11f36fc99b874b63a262110a0add
 
->> curl -d '{"id":5,"method":"encryptkey","jsonrpc":"2.0","params":{"pubkey":"f4c3babec11363be80e7b6aa1d803d63206a11f36fc99b874b63a262110a0add","passphrase":"456","oldpassphrase":"123"}}' http://127.0.0.1:8812
+>> curl -d '{"id":5,"method":"encryptkey","jsonrpc":"2.0","params":{"pubkey":"f4c3babec11363be80e7b6aa1d803d63206a11f36fc99b874b63a262110a0add","passphrase":"456","oldpassphrase":"123"}}' http://127.0.0.1:6602
 << {"id":5,"jsonrpc":"2.0","result":"Encrypt key successfully: f4c3babec11363be80e7b6aa1d803d63206a11f36fc99b874b63a262110a0add"}
 ```
 **Errors:**
@@ -1410,7 +1416,7 @@ before being able to call any methods which require the key to be unlocked.
 >> metabasenet-cli lockkey 2e05c9ee45fdf58f7b007458298042fc3d3ad416a2f9977ace16d14164a3e882
 << Lock key successfully: 2e05c9ee45fdf58f7b007458298042fc3d3ad416a2f9977ace16d14164a3e882
 
->> curl -d '{"id":1,"method":"lockkey","jsonrpc":"2.0","params":{"pubkey":"2e05c9ee45fdf58f7b007458298042fc3d3ad416a2f9977ace16d14164a3e882"}}' http://127.0.0.1:8812
+>> curl -d '{"id":1,"method":"lockkey","jsonrpc":"2.0","params":{"pubkey":"2e05c9ee45fdf58f7b007458298042fc3d3ad416a2f9977ace16d14164a3e882"}}' http://127.0.0.1:6602
 << {"id":1,"jsonrpc":"2.0","result":"Lock key successfully: 2e05c9ee45fdf58f7b007458298042fc3d3ad416a2f9977ace16d14164a3e882"}
 ```
 **Errors:**
@@ -1453,13 +1459,13 @@ before being able to call any methods which require the key to be locked.
 >> metabasenet-cli unlockkey d716e72ce58e649a57d54751a7707e325b522497da3a69ae8301a2cbec391c07 1234
 << Unlock key successfully: d716e72ce58e649a57d54751a7707e325b522497da3a69ae8301a2cbec391c07
 
->> curl -d '{"id":13,"method":"unlockkey","jsonrpc":"2.0","params":{"pubkey":"d716e72ce58e649a57d54751a7707e325b522497da3a69ae8301a2cbec391c07","passphrase":"1234"}}' http://127.0.0.1:8812
+>> curl -d '{"id":13,"method":"unlockkey","jsonrpc":"2.0","params":{"pubkey":"d716e72ce58e649a57d54751a7707e325b522497da3a69ae8301a2cbec391c07","passphrase":"1234"}}' http://127.0.0.1:6602
 << {"id":13,"jsonrpc":"2.0","result":"Unlock key successfully: d716e72ce58e649a57d54751a7707e325b522497da3a69ae8301a2cbec391c07"}
 
 >> metabasenet-cli unlockkey f4124c636d37b1308ba95c14b2487134030d5817f7fa93f11bcbc616aab7c3b9 123 10
 << Unlock key successfully: f4124c636d37b1308ba95c14b2487134030d5817f7fa93f11bcbc616aab7c3b9
 
->> curl -d '{"id":15,"method":"unlockkey","jsonrpc":"2.0","params":{"pubkey":"f4124c636d37b1308ba95c14b2487134030d5817f7fa93f11bcbc616aab7c3b9","passphrase":"123","timeout":10}}' http://127.0.0.1:8812
+>> curl -d '{"id":15,"method":"unlockkey","jsonrpc":"2.0","params":{"pubkey":"f4124c636d37b1308ba95c14b2487134030d5817f7fa93f11bcbc616aab7c3b9","passphrase":"123","timeout":10}}' http://127.0.0.1:6602
 << {"id":15,"jsonrpc":"2.0","result":"Unlock key successfully: f4124c636d37b1308ba95c14b2487134030d5817f7fa93f11bcbc616aab7c3b9"}
 ```
 **Errors:**
@@ -1500,7 +1506,7 @@ Add a private key to your wallet.
 >> metabasenet-cli importprivkey feb51e048380c0ade1cdb60b25e9f3e05cd4507553a97faadc8a94771fcb1a5b 123
 << d716e72ce58e649a57d54751a7707e325b522497da3a69ae8301a2cbec391c07
 
->> curl -d '{"id":9,"method":"importprivkey","jsonrpc":"2.0","params":{"privkey":"feb51e048380c0ade1cdb60b25e9f3e05cd4507553a97faadc8a94771fcb1a5b","passphrase":"123"}}' http://127.0.0.1:8812
+>> curl -d '{"id":9,"method":"importprivkey","jsonrpc":"2.0","params":{"privkey":"feb51e048380c0ade1cdb60b25e9f3e05cd4507553a97faadc8a94771fcb1a5b","passphrase":"123"}}' http://127.0.0.1:6602
 << {"id":9,"jsonrpc":"2.0","result":"d716e72ce58e649a57d54751a7707e325b522497da3a69ae8301a2cbec391c07"}
 ```
 **Errors:**
@@ -1538,7 +1544,7 @@ Add a public key to your wallet.
 >> metabasenet-cli importpubkey 73f3b3d8545b60e58deb791c4da33089a40d7c6156a89e76e00ac0be2a9924d5
 << 1tmj9janyr05e0xmyn1b62z0dmj4k18td3hwyq3f5c1dn9p5kydsjpvrm
 
->> curl -d '{"id":31,"method":"importpubkey","jsonrpc":"2.0","params":{"pubkey":"73f3b3d8545b60e58deb791c4da33089a40d7c6156a89e76e00ac0be2a9924d5"}' http://127.0.0.1:8812
+>> curl -d '{"id":31,"method":"importpubkey","jsonrpc":"2.0","params":{"pubkey":"73f3b3d8545b60e58deb791c4da33089a40d7c6156a89e76e00ac0be2a9924d5"}' http://127.0.0.1:6602
 << {"id":31,"jsonrpc":"2.0","result":"73f3b3d8545b60e58deb791c4da33089a40d7c6156a89e76e00ac0be2a9924d5"}
 ```
 **Errors:**
@@ -1575,7 +1581,7 @@ Reveal the serialized key corresponding to <pubkey>.
 >> metabasenet-cli importkey 642e19a647f9f2b795b8edf97c849ab1866855c9ac6b59d4cf2d9e63d23639de010000002f63a31bed90496a03bb58269e77b98751aa902be47ecbf9ac3adef221cbdcf6ecfba5a9c86e92323fb5af7a2df3f805caaf5dd80caf630e5eb206f0
 << de3936d2639e2dcfd4596bacc9556886b19a847cf9edb895b7f2f947a6192e64
 
->> curl -d '{"id":3,"method":"importkey","jsonrpc":"2.0","params":{"pubkey":"642e19a647f9f2b795b8edf97c849ab1866855c9ac6b59d4cf2d9e63d23639de010000002f63a31bed90496a03bb58269e77b98751aa902be47ecbf9ac3adef221cbdcf6ecfba5a9c86e92323fb5af7a2df3f805caaf5dd80caf630e5eb206f0"}}' http://127.0.0.1:8812
+>> curl -d '{"id":3,"method":"importkey","jsonrpc":"2.0","params":{"pubkey":"642e19a647f9f2b795b8edf97c849ab1866855c9ac6b59d4cf2d9e63d23639de010000002f63a31bed90496a03bb58269e77b98751aa902be47ecbf9ac3adef221cbdcf6ecfba5a9c86e92323fb5af7a2df3f805caaf5dd80caf630e5eb206f0"}}' http://127.0.0.1:6602
 << {"id":3,"jsonrpc":"2.0","result":"de3936d2639e2dcfd4596bacc9556886b19a847cf9edb895b7f2f947a6192e64"}
 ```
 **Errors:**
@@ -1613,7 +1619,7 @@ Reveal the serialized key corresponding to <pubkey>.
 >> metabasenet-cli exportkey de3936d2639e2dcfd4596bacc9556886b19a847cf9edb895b7f2f947a6192e64
 << 642e19a647f9f2b795b8edf97c849ab1866855c9ac6b59d4cf2d9e63d23639de010000002f63a31bed90496a03bb58269e77b98751aa902be47ecbf9ac3adef221cbdcf6ecfba5a9c86e92323fb5af7a2df3f805caaf5dd80caf630e5eb206f0
 
->> curl -d '{"id":13,"method":"exportkey","jsonrpc":"2.0","params":{"pubkey":"de3936d2639e2dcfd4596bacc9556886b19a847cf9edb895b7f2f947a6192e64"}}' http://127.0.0.1:8812
+>> curl -d '{"id":13,"method":"exportkey","jsonrpc":"2.0","params":{"pubkey":"de3936d2639e2dcfd4596bacc9556886b19a847cf9edb895b7f2f947a6192e64"}}' http://127.0.0.1:6602
 << {"id":13,"jsonrpc":"2.0","result":"642e19a647f9f2b795b8edf97c849ab1866855c9ac6b59d4cf2d9e63d23639de010000002f63a31bed90496a03bb58269e77b98751aa902be47ecbf9ac3adef221cbdcf6ecfba5a9c86e92323fb5af7a2df3f805caaf5dd80caf630e5eb206f0"}
 ```
 **Errors:**
@@ -1691,7 +1697,7 @@ Return encoded address for the given template id.
 >> metabasenet-cli addnewtemplate mint '{"mint": "e8e3770e774d5ad84a8ea65ed08cc7c5c30b42e045623604d5c5c6be95afb4f9", "spent": "1z6taz5dyrv2xa11pc92y0ggbrf2wf36gbtk8wjprb96qe3kqwfm3ayc1"}'
 << 20g0b87qxcd52ceh9zmpzx0hy46pjfzdnqbkh8f4tqs4y0r6sxyzyny25
 
->> curl -d '{"id":1,"method":"addnewtemplate","jsonrpc":"2.0","params":{"type":"mint","mint":{"mint":"e8e3770e774d5ad84a8ea65ed08cc7c5c30b42e045623604d5c5c6be95afb4f9","spent":"1z6taz5dyrv2xa11pc92y0ggbrf2wf36gbtk8wjprb96qe3kqwfm3ayc1"}}}' http://127.0.0.1:8812
+>> curl -d '{"id":1,"method":"addnewtemplate","jsonrpc":"2.0","params":{"type":"mint","mint":{"mint":"e8e3770e774d5ad84a8ea65ed08cc7c5c30b42e045623604d5c5c6be95afb4f9","spent":"1z6taz5dyrv2xa11pc92y0ggbrf2wf36gbtk8wjprb96qe3kqwfm3ayc1"}}}' http://127.0.0.1:6602
 << {"id":1,"jsonrpc":"2.0","result":"20g0b87qxcd52ceh9zmpzx0hy46pjfzdnqbkh8f4tqs4y0r6sxyzyny25"}
 
 >> metabasenet-cli addnewtemplate delegate '{"delegate":"2e05c9ee45fdf58f7b007458298042fc3d3ad416a2f9977ace16d14164a3e882","owner":"1gbma6s21t4bcwymqz6h1dn1t7qy45019b1t00ywfyqymbvp90mqc1wmq","rewardratio":500}'
@@ -1738,7 +1744,7 @@ Return encoded address for the given template.
 >> metabasenet-cli importtemplate 0100010282e8a36441d116ce7a97f9a216d43a3dfc4280295874007b8ff5fd45eec9052e01b9c3b7aa16c6cb1bf193faf717580d03347148b2145ca98b30b1376d634c12f402
 << 21w2040000000000000000000000000000000000000000000000epcek
 
->> curl -d '{"id":52,"method":"importtemplate","jsonrpc":"2.0","params":{"data":"0100010282e8a36441d116ce7a97f9a216d43a3dfc4280295874007b8ff5fd45eec9052e01b9c3b7aa16c6cb1bf193faf717580d03347148b2145ca98b30b1376d634c12f402"}}' http://127.0.0.1:8812
+>> curl -d '{"id":52,"method":"importtemplate","jsonrpc":"2.0","params":{"data":"0100010282e8a36441d116ce7a97f9a216d43a3dfc4280295874007b8ff5fd45eec9052e01b9c3b7aa16c6cb1bf193faf717580d03347148b2145ca98b30b1376d634c12f402"}}' http://127.0.0.1:6602
 << {"id":52,"jsonrpc":"2.0","result":"21w2040000000000000000000000000000000000000000000000epcek"}
 ```
 **Errors:**
@@ -1775,7 +1781,7 @@ Return encoded address for the given template.
 >> metabasenet-cli exporttemplate 2040fpytdr4k5h8tk0nferr7zb51tkccrkgqf341s6tg05q9xe6hth1m
 << 0100010282e8a36441d116ce7a97f9a216d43a3dfc4280295874007b8ff5fd45eec9052e01b9c3b7aa16c6cb1bf193faf717580d03347148b2145ca98b30b1376d634c12f402
 
->> curl -d '{"id":25,"method":"exporttemplate","jsonrpc":"2.0","params":{"address":"2040fpytdr4k5h8tk0nferr7zb51tkccrkgqf341s6tg05q9xe6hth1m4"}}' http://127.0.0.1:8812
+>> curl -d '{"id":25,"method":"exporttemplate","jsonrpc":"2.0","params":{"address":"2040fpytdr4k5h8tk0nferr7zb51tkccrkgqf341s6tg05q9xe6hth1m4"}}' http://127.0.0.1:6602
 << {"id":25,"jsonrpc":"2.0","result":"0100010282e8a36441d116ce7a97f9a216d43a3dfc4280295874007b8ff5fd45eec9052e01b9c3b7aa16c6cb1bf193faf717580d03347148b2145ca98b30b1376d634c12f402"}
 ```
 **Errors:**
@@ -1812,7 +1818,7 @@ Remove template in Wallet.
 >> metabasenet-cli removetemplate 20m01gbqzmw3nvndx684nsxp1z3tcy4rg0715tgc9sraxd7m56ydttama
 << Success
 
->> curl -d '{"id":7,"method":"removetemplate","jsonrpc":"2.0","params":{"address":"20m01gbqzmw3nvndx684nsxp1z3tcy4rg0715tgc9sraxd7m56ydttama"}}' http://127.0.0.1:8812
+>> curl -d '{"id":7,"method":"removetemplate","jsonrpc":"2.0","params":{"address":"20m01gbqzmw3nvndx684nsxp1z3tcy4rg0715tgc9sraxd7m56ydttama"}}' http://127.0.0.1:6602
 << {"id":7,"jsonrpc":"2.0","result":"Success"}
 ```
 **Errors:**
@@ -1901,13 +1907,13 @@ Return information about <address>.
 >> metabasenet-cli validateaddress 20g0753dp5b817d7v0hbag6a4neetzfdgbcyt2pkx93hrzn97epzbyn26
 << {"isvalid":true,"addressdata":{"address":"20g0753dp5b817d7v0hbag6a4neetzfdgbcyt2pkx93hrzn97epzbyn26","ismine":true,"type":"template","template":"mint"}}
 
->> curl -d '{"id":2,"method":"validateaddress","jsonrpc":"2.0","params":{"address":"20g0753dp5b817d7v0hbag6a4neetzfdgbcyt2pkx93hrzn97epzbyn26"}}' http://127.0.0.1:8812
+>> curl -d '{"id":2,"method":"validateaddress","jsonrpc":"2.0","params":{"address":"20g0753dp5b817d7v0hbag6a4neetzfdgbcyt2pkx93hrzn97epzbyn26"}}' http://127.0.0.1:6602
 << {"id":2,"jsonrpc":"2.0","result":{"isvalid":true,"addressdata":{"address":"20g0753dp5b817d7v0hbag6a4neetzfdgbcyt2pkx93hrzn97epzbyn26","ismine":true,"type":"template","template":"mint"}}}
 
 >> metabasenet-cli validateaddress 123
 << {"isvalid":false}
 
->> curl -d '{"id":3,"method":"validateaddress","jsonrpc":"2.0","params":{"address":"123"}}' http://127.0.0.1:8812
+>> curl -d '{"id":3,"method":"validateaddress","jsonrpc":"2.0","params":{"address":"123"}}' http://127.0.0.1:6602
 << {"id":3,"jsonrpc":"2.0","result":{"isvalid":false}}
 ```
 **Errors:**
@@ -1962,13 +1968,13 @@ If (address) is specified, return the balance in the address.
 >> metabasenet-cli getbalance
 << [{"address":"20g098nza351f53wppg0kfnsbxqf80h3x8fwp9vdmc98fbrgbv6mtjagy","nonce":7,"avail":30.00000000,"locked":0.00000000,"unconfirmedin":0.00000000,"unconfirmedout":0.00000000}]
 
->> curl -d '{"id":1,"method":"getbalance","jsonrpc":"2.0","params":{}}' http://127.0.0.1:8812
+>> curl -d '{"id":1,"method":"getbalance","jsonrpc":"2.0","params":{}}' http://127.0.0.1:6602
 << {"id":1,"jsonrpc":"2.0","result":[{"address":"20g098nza351f53wppg0kfnsbxqf80h3x8fwp9vdmc98fbrgbv6mtjagy","nonce":7,"avail":30.00000000,"locked":0.00000000,"unconfirmedin":0.00000000,"unconfirmedout":0.00000000}]}
 
 >> metabasenet-cli getbalance -a=20g0944xkyk8ybcmzhpv86vb5777jn1sfrdf3svzqn9phxftqth8116bm
 << [{"address":"20g0944xkyk8ybcmzhpv86vb5777jn1sfrdf3svzqn9phxftqth8116bm","nonce":7,"avail":58.99990000,"locked":0.00000000,"unconfirmedin":13.99990000,"unconfirmedout":0.00000000}]
 
->> curl -d '{"id":20,"method":"getbalance","jsonrpc":"2.0","params":{"address":"20g0944xkyk8ybcmzhpv86vb5777jn1sfrdf3svzqn9phxftqth8116bm"}}' http://127.0.0.1:8812
+>> curl -d '{"id":20,"method":"getbalance","jsonrpc":"2.0","params":{"address":"20g0944xkyk8ybcmzhpv86vb5777jn1sfrdf3svzqn9phxftqth8116bm"}}' http://127.0.0.1:6602
 << {"id":20,"jsonrpc":"2.0","result":[{"address":"20g0944xkyk8ybcmzhpv86vb5777jn1sfrdf3svzqn9phxftqth8116bm","nonce":7,"avail":58.99990000,"locked":0.00000000,"unconfirmedin":13.99990000,"unconfirmedout":0.00000000}]}
 ```
 **Errors:**
@@ -2029,7 +2035,7 @@ return up to (count) most recent transactions skipping the first (offset) transa
 >> metabasenet-cli listtransaction 20m053vhn4ygv9m8pzhevnjvtgbbqhgs66qv31ez39v9xbxvk0ynhfzer -n=2 -o=11 -r
 << [{"txid":"61a774aea9e125d307ed18e34eec05bcce6875acc2531b94008c9b94c816ea7a","txindex":11,"blocknumber":12,"transfertype":"common","txtype":"certification","time":1638364334,"to":"20m053vhn4ygv9m8pzhevnjvtgbbqhgs66qv31ez39v9xbxvk0ynhfzer","amount":"0.0000000001","fee":"0.0000000000","from":"20m053vhn4ygv9m8pzhevnjvtgbbqhgs66qv31ez39v9xbxvk0ynhfzer"},{"txid":"61a774b84bfed7a6728ea4c4553e480c4c8e7af7c8046d30ba67209b5b9a49de","txindex":10,"blocknumber":12,"transfertype":"common","txtype":"stake","time":1638364344,"to":"20m053vhn4ygv9m8pzhevnjvtgbbqhgs66qv31ez39v9xbxvk0ynhfzer","amount":"5.0000000000","fee":"0.0000000000","from":"000000000000000000000000000000000000000000000000000000000"}]
 
->> curl -d '{"id":2,"method":"listtransaction","jsonrpc":"2.0","params":{"address":"20m053vhn4ygv9m8pzhevnjvtgbbqhgs66qv31ez39v9xbxvk0ynhfzer","offset":11,"count":2,"reverse":true}}' http://127.0.0.1:8812
+>> curl -d '{"id":2,"method":"listtransaction","jsonrpc":"2.0","params":{"address":"20m053vhn4ygv9m8pzhevnjvtgbbqhgs66qv31ez39v9xbxvk0ynhfzer","offset":11,"count":2,"reverse":true}}' http://127.0.0.1:6602
 << {"id":2,"jsonrpc":"2.0","result":[{"txid":"61a774aea9e125d307ed18e34eec05bcce6875acc2531b94008c9b94c816ea7a","txindex":11,"blocknumber":12,"transfertype":"common","txtype":"certification","time":1638364334,"to":"20m053vhn4ygv9m8pzhevnjvtgbbqhgs66qv31ez39v9xbxvk0ynhfzer","amount":"0.0000000001","fee":"0.0000000000","from":"20m053vhn4ygv9m8pzhevnjvtgbbqhgs66qv31ez39v9xbxvk0ynhfzer"},{"txid":"61a774b84bfed7a6728ea4c4553e480c4c8e7af7c8046d30ba67209b5b9a49de","txindex":10,"blocknumber":12,"transfertype":"common","txtype":"stake","time":1638364344,"to":"20m053vhn4ygv9m8pzhevnjvtgbbqhgs66qv31ez39v9xbxvk0ynhfzer","amount":"5.0000000000","fee":"0.0000000000","from":"000000000000000000000000000000000000000000000000000000000"}]}
 ```
 **Errors:**
@@ -2045,7 +2051,7 @@ return up to (count) most recent transactions skipping the first (offset) transa
 ### sendfrom
 **Usage:**
 ```
-        sendfrom <"from"> <"to"> <"amount"> (-n=nonce) (-p="gasprice") (-g=gas) (-f="fork") (-d="data") (-fd="fdata") (-td="todata") (-cc="contractcode") (-cp="contractparam")
+        sendfrom <"from"> <"to"> <"amount"> (-n=nonce) (-p="gasprice") (-g=gas) (-f="fork") (-t=txtype) (-d="data") (-fd="fdata") (-td="todata") (-cc="contractcode") (-cp="contractparam")
 
 <amount> and <txfee> are real and rounded to the nearest 0.000001
 Return transaction id
@@ -2059,6 +2065,7 @@ Return transaction id
  -p="gasprice"                          (string, optional) gas price (big float)
  -g=gas                                 (uint, optional) gas
  -f="fork"                              (string, optional) fork hash
+ -t=txtype                              (uint, optional) tx type, 0: token, 1: defi relation
  -d="data"                              (string, optional) output data
  -fd="fdata"                            (string, optional) format data
  -td="todata"                           (string, optional) If the 'to' address of transaction is a template, this option allows to save the template hex data. The hex data is equal output of RPC 'exporttemplate'
@@ -2076,6 +2083,7 @@ Return transaction id
    "gasprice": "",                      (string, optional) gas price (big float)
    "gas": 0,                            (uint, optional) gas
    "fork": "",                          (string, optional) fork hash
+   "txtype": 0,                         (uint, optional) tx type, 0: token, 1: defi relation
    "data": "",                          (string, optional) output data
    "fdata": "",                         (string, optional) format data
    "todata": "",                        (string, optional) If the 'to' address of transaction is a template, this option allows to save the template hex data. The hex data is equal output of RPC 'exporttemplate'
@@ -2092,31 +2100,31 @@ Return transaction id
 >> metabasenet-cli sendfrom 1549pyzf8dhx7r4x40k5j80f12btkpqfprjp134bcgcrjn963nzsx57xb 1nh9060wk5t4g2828wd8zw9x4aysvhca4b3f7yd6mmnzhkvrfv9ptxp89 10
 << 61addf4764ad69c36aff77647f983b9c9441de5cb2428f9ce969130743dcfee0
 
->> curl -d '{"id":18,"method":"sendfrom","jsonrpc":"2.0","params":{"from":"1549pyzf8dhx7r4x40k5j80f12btkpqfprjp134bcgcrjn963nzsx57xb","to":"1nh9060wk5t4g2828wd8zw9x4aysvhca4b3f7yd6mmnzhkvrfv9ptxp89","amount":10.0000000000}}' http://127.0.0.1:8812
+>> curl -d '{"id":18,"method":"sendfrom","jsonrpc":"2.0","params":{"from":"1549pyzf8dhx7r4x40k5j80f12btkpqfprjp134bcgcrjn963nzsx57xb","to":"1nh9060wk5t4g2828wd8zw9x4aysvhca4b3f7yd6mmnzhkvrfv9ptxp89","amount":10.0000000000}}' http://127.0.0.1:6602
 << {"id":18,"jsonrpc":"2.0","result":"61addf4764ad69c36aff77647f983b9c9441de5cb2428f9ce969130743dcfee0"}
 
 >> metabasenet-cli sendfrom 1549pyzf8dhx7r4x40k5j80f12btkpqfprjp134bcgcrjn963nzsx57xb 1j6x8vdkkbnxe8qwjggfan9c8m8zhmez7gm3pznsqxgch3eyrwxby8eda 10 -f=00000001a8b04e2d045c5c99aec41f3b9e7393bf9c237c0b2d6cf92997da2f0d
 << 61ade019cedde7580b4a44c2cda6b4a2d6fdbb0d2ff0115e9cd4ce7a93d30fd2
 
->> curl -d '{"id":53,"method":"sendfrom","jsonrpc":"2.0","params":{"from":"1549pyzf8dhx7r4x40k5j80f12btkpqfprjp134bcgcrjn963nzsx57xb","to":"1j6x8vdkkbnxe8qwjggfan9c8m8zhmez7gm3pznsqxgch3eyrwxby8eda","amount":10.0000000000,"fork":"00000001a8b04e2d045c5c99aec41f3b9e7393bf9c237c0b2d6cf92997da2f0d"}}' http://127.0.0.1:8812
+>> curl -d '{"id":53,"method":"sendfrom","jsonrpc":"2.0","params":{"from":"1549pyzf8dhx7r4x40k5j80f12btkpqfprjp134bcgcrjn963nzsx57xb","to":"1j6x8vdkkbnxe8qwjggfan9c8m8zhmez7gm3pznsqxgch3eyrwxby8eda","amount":10.0000000000,"fork":"00000001a8b04e2d045c5c99aec41f3b9e7393bf9c237c0b2d6cf92997da2f0d"}}' http://127.0.0.1:6602
 << {"id":53,"jsonrpc":"2.0","result":"61ade019cedde7580b4a44c2cda6b4a2d6fdbb0d2ff0115e9cd4ce7a93d30fd2"}
 
 >> metabasenet-cli sendfrom 1549pyzf8dhx7r4x40k5j80f12btkpqfprjp134bcgcrjn963nzsx57xb 1nh9060wk5t4g2828wd8zw9x4aysvhca4b3f7yd6mmnzhkvrfv9ptxp89 10 -n=2 -p=0.000002 -g=30000 -d=9a87d21254
 << 61aed5c5bc247e361d96f41f2edcedd93a1e6faaaee4f341e75b82a1fc25f84b
 
->> curl -d '{"id":18,"method":"sendfrom","jsonrpc":"2.0","params":{"from":"1549pyzf8dhx7r4x40k5j80f12btkpqfprjp134bcgcrjn963nzsx57xb","to":"1nh9060wk5t4g2828wd8zw9x4aysvhca4b3f7yd6mmnzhkvrfv9ptxp89","amount":10.0000000000,"nonce":2,"gasprice":"0.000002","gas":30000,"data":"9a87d21254"}}' http://127.0.0.1:8812
+>> curl -d '{"id":18,"method":"sendfrom","jsonrpc":"2.0","params":{"from":"1549pyzf8dhx7r4x40k5j80f12btkpqfprjp134bcgcrjn963nzsx57xb","to":"1nh9060wk5t4g2828wd8zw9x4aysvhca4b3f7yd6mmnzhkvrfv9ptxp89","amount":10.0000000000,"nonce":2,"gasprice":"0.000002","gas":30000,"data":"9a87d21254"}}' http://127.0.0.1:6602
 << {"id":18,"jsonrpc":"2.0","result":"61aed5c5bc247e361d96f41f2edcedd93a1e6faaaee4f341e75b82a1fc25f84b"}
 
 >> metabasenet-cli sendfrom 1549pyzf8dhx7r4x40k5j80f12btkpqfprjp134bcgcrjn963nzsx57xb 20m0f7zkhbd840hk34zwfeazr8cwkkskxhcdqpz0jw6rx2a160bb38wth 1000000 -td=050017b24437dafecb9c83cb9f8bbe60c43acf42eebcb69c1525e6f84077fb293f880191ba8db6735d7ae45f92841eaaa588a23f1a3be785076fd737ec1911bbd8e757f4010000
 << 61aed6e51699a60f02424ade7dbcded73d31f788eedef8a64c0e3dd024845848
 
->> curl -d '{"id":18,"method":"sendfrom","jsonrpc":"2.0","params":{"from":"1549pyzf8dhx7r4x40k5j80f12btkpqfprjp134bcgcrjn963nzsx57xb","to":"20m0f7zkhbd840hk34zwfeazr8cwkkskxhcdqpz0jw6rx2a160bb38wth","amount":1000000.0000000000,"todata":"050017b24437dafecb9c83cb9f8bbe60c43acf42eebcb69c1525e6f84077fb293f880191ba8db6735d7ae45f92841eaaa588a23f1a3be785076fd737ec1911bbd8e757f4010000"}}' http://127.0.0.1:8812
+>> curl -d '{"id":18,"method":"sendfrom","jsonrpc":"2.0","params":{"from":"1549pyzf8dhx7r4x40k5j80f12btkpqfprjp134bcgcrjn963nzsx57xb","to":"20m0f7zkhbd840hk34zwfeazr8cwkkskxhcdqpz0jw6rx2a160bb38wth","amount":1000000.0000000000,"todata":"050017b24437dafecb9c83cb9f8bbe60c43acf42eebcb69c1525e6f84077fb293f880191ba8db6735d7ae45f92841eaaa588a23f1a3be785076fd737ec1911bbd8e757f4010000"}}' http://127.0.0.1:6602
 << {"id":18,"jsonrpc":"2.0","result":"61aed6e51699a60f02424ade7dbcded73d31f788eedef8a64c0e3dd024845848"}
 
 >> metabasenet-cli sendfrom 1549pyzf8dhx7r4x40k5j80f12btkpqfprjp134bcgcrjn963nzsx57xb 0 0 -cc=<contract code> -cp=<contract param>
 << 61aed7a28e04217f524d434e8d7ca2b84818c56595b040ec2199fec5f52b62b0
 
->> curl -d '{"id":18,"method":"sendfrom","jsonrpc":"2.0","params":{"from":"1549pyzf8dhx7r4x40k5j80f12btkpqfprjp134bcgcrjn963nzsx57xb","to":"0","amount":0.0000000000,"contractcode":"<contract code>","contractparam":"<contract param>"}}' http://127.0.0.1:8812
+>> curl -d '{"id":18,"method":"sendfrom","jsonrpc":"2.0","params":{"from":"1549pyzf8dhx7r4x40k5j80f12btkpqfprjp134bcgcrjn963nzsx57xb","to":"0","amount":0.0000000000,"contractcode":"<contract code>","contractparam":"<contract param>"}}' http://127.0.0.1:6602
 << {"id":18,"jsonrpc":"2.0","result":"61aed7a28e04217f524d434e8d7ca2b84818c56595b040ec2199fec5f52b62b0"}
 ```
 **Errors:**
@@ -2135,7 +2143,7 @@ Return transaction id
 ### createtransaction
 **Usage:**
 ```
-        createtransaction <"from"> <"to"> <"amount"> (-n=nonce) (-p="gasprice") (-g=gas) (-f="fork") (-d="data") (-fd="fdata") (-td="todata") (-cc="contractcode") (-cp="contractparam")
+        createtransaction <"from"> <"to"> <"amount"> (-n=nonce) (-p="gasprice") (-g=gas) (-f="fork") (-t=txtype) (-d="data") (-fd="fdata") (-td="todata") (-cc="contractcode") (-cp="contractparam")
 
 <amount> and <txfee> are real and rounded to the nearest 0.000001.
 Return serialized tx.
@@ -2149,6 +2157,7 @@ Return serialized tx.
  -p="gasprice"                          (string, optional) gas price (big float)
  -g=gas                                 (uint, optional) gas
  -f="fork"                              (string, optional) fork hash
+ -t=txtype                              (uint, optional) tx type, 0: token, 1: defi relation
  -d="data"                              (string, optional) output data
  -fd="fdata"                            (string, optional) format data
  -td="todata"                           (string, optional) If the 'to' address of transaction is a template, this option allows to save the template hex data. The hex data is equal output of RPC 'exporttemplate'
@@ -2166,6 +2175,7 @@ Return serialized tx.
    "gasprice": "",                      (string, optional) gas price (big float)
    "gas": 0,                            (uint, optional) gas
    "fork": "",                          (string, optional) fork hash
+   "txtype": 0,                         (uint, optional) tx type, 0: token, 1: defi relation
    "data": "",                          (string, optional) output data
    "fdata": "",                         (string, optional) format data
    "todata": "",                        (string, optional) If the 'to' address of transaction is a template, this option allows to save the template hex data. The hex data is equal output of RPC 'exporttemplate'
@@ -2182,7 +2192,7 @@ Return serialized tx.
 >> metabasenet-cli createtransaction 1549pyzf8dhx7r4x40k5j80f12btkpqfprjp134bcgcrjn963nzsx57xb 1j6x8vdkkbnxe8qwjggfan9c8m8zhmez7gm3pznsqxgch3eyrwxby8eda 10
 << 010000003ee1ad61cce55a95fe6632d870026256751566288e53d5b6b963846ff038ebab0000000008000000000000000129136f7de86c7a7c13a404cb2401e112f53b5df6c4ac11916c83312aa4c3aff30191ba8db6735d7ae45f92841eaaa588a23f1a3be785076fd737ec1911bbd8e75700e8764817000000000000000000000000000000000000000000000000000000102700000000000000000000000000000000000000000000000000000000000010270000000000000000000000000000000000000000000000000000000000000000
 
->> curl -d '{"id":59,"method":"createtransaction","jsonrpc":"2.0","params":{"from":"1549pyzf8dhx7r4x40k5j80f12btkpqfprjp134bcgcrjn963nzsx57xb","to":"1j6x8vdkkbnxe8qwjggfan9c8m8zhmez7gm3pznsqxgch3eyrwxby8eda","amount":10.0000000000,}}' http://127.0.0.1:8812
+>> curl -d '{"id":59,"method":"createtransaction","jsonrpc":"2.0","params":{"from":"1549pyzf8dhx7r4x40k5j80f12btkpqfprjp134bcgcrjn963nzsx57xb","to":"1j6x8vdkkbnxe8qwjggfan9c8m8zhmez7gm3pznsqxgch3eyrwxby8eda","amount":10.0000000000,}}' http://127.0.0.1:6602
 << {"id":59,"jsonrpc":"2.0","result":"010000003ee1ad61cce55a95fe6632d870026256751566288e53d5b6b963846ff038ebab0000000008000000000000000129136f7de86c7a7c13a404cb2401e112f53b5df6c4ac11916c83312aa4c3aff30191ba8db6735d7ae45f92841eaaa588a23f1a3be785076fd737ec1911bbd8e75700e8764817000000000000000000000000000000000000000000000000000000102700000000000000000000000000000000000000000000000000000000000010270000000000000000000000000000000000000000000000000000000000000000"}
 ```
 **Errors:**
@@ -2225,7 +2235,7 @@ completed : true if transaction has a completed set of signature (false if not)
 >> metabasenet-cli signtransaction 010000003ee1ad61cce55a95fe6632d870026256751566288e53d5b6b963846ff038ebab0000000008000000000000000129136f7de86c7a7c13a404cb2401e112f53b5df6c4ac11916c83312aa4c3aff30191ba8db6735d7ae45f92841eaaa588a23f1a3be785076fd737ec1911bbd8e75700e8764817000000000000000000000000000000000000000000000000000000102700000000000000000000000000000000000000000000000000000000000010270000000000000000000000000000000000000000000000000000000000000000
 << {"hex":"010000003ee1ad61cce55a95fe6632d870026256751566288e53d5b6b963846ff038ebab0000000008000000000000000129136f7de86c7a7c13a404cb2401e112f53b5df6c4ac11916c83312aa4c3aff30191ba8db6735d7ae45f92841eaaa588a23f1a3be785076fd737ec1911bbd8e75700e876481700000000000000000000000000000000000000000000000000000010270000000000000000000000000000000000000000000000000000000000001027000000000000000000000000000000000000000000000000000000000000004031451e46035a856453d8d078e22a785d432bd03e95cbcc2e94cd0b3a1e926f0bcdc5074daf21e316d19817ecc7bc1241c36c3e153d798aa0d74f71adfc969c00","complete":true}
 
->> curl -d '{"id":62,"method":"signtransaction","jsonrpc":"2.0","params":{"txdata":"010000003ee1ad61cce55a95fe6632d870026256751566288e53d5b6b963846ff038ebab0000000008000000000000000129136f7de86c7a7c13a404cb2401e112f53b5df6c4ac11916c83312aa4c3aff30191ba8db6735d7ae45f92841eaaa588a23f1a3be785076fd737ec1911bbd8e75700e8764817000000000000000000000000000000000000000000000000000000102700000000000000000000000000000000000000000000000000000000000010270000000000000000000000000000000000000000000000000000000000000000"}}' http://127.0.0.1:8812
+>> curl -d '{"id":62,"method":"signtransaction","jsonrpc":"2.0","params":{"txdata":"010000003ee1ad61cce55a95fe6632d870026256751566288e53d5b6b963846ff038ebab0000000008000000000000000129136f7de86c7a7c13a404cb2401e112f53b5df6c4ac11916c83312aa4c3aff30191ba8db6735d7ae45f92841eaaa588a23f1a3be785076fd737ec1911bbd8e75700e8764817000000000000000000000000000000000000000000000000000000102700000000000000000000000000000000000000000000000000000000000010270000000000000000000000000000000000000000000000000000000000000000"}}' http://127.0.0.1:6602
 << {"id":62,"jsonrpc":"2.0","result":{"hex":"01000000000000002b747e24738befccff4a05c21dba749632cb8eb410233fa110e3f58a779b4325010ef45be50157453a57519929052d0818c269dee60be98958d5ab65bc7e0919810001b9c3b7aa16c6cb1bf193faf717580d03347148b2145ca98b30b1376d634c12f440420f0000000000a0860100000000000212348182e8a36441d116ce7a97f9a216d43a3dfc4280295874007b8ff5fd45eec9052e0182e8a36441d116ce7a97f9a216d43a3dfc4280295874007b8ff5fd45eec9052ed494d90010000003ee1ad61cce55a95fe6632d870026256751566288e53d5b6b963846ff038ebab0000000008000000000000000129136f7de86c7a7c13a404cb2401e112f53b5df6c4ac11916c83312aa4c3aff30191ba8db6735d7ae45f92841eaaa588a23f1a3be785076fd737ec1911bbd8e75700e876481700000000000000000000000000000000000000000000000000000010270000000000000000000000000000000000000000000000000000000000001027000000000000000000000000000000000000000000000000000000000000004031451e46035a856453d8d078e22a785d432bd03e95cbcc2e94cd0b3a1e926f0bcdc5074daf21e316d19817ecc7bc1241c36c3e153d798aa0d74f71adfc969c00cd96c252446b4a10459fea8c06186154b2bee2ce2182556e9ba40e7e69ddae2501862e4251bba2abf11c90d6f1fd0dec48a1419e81bb8c7d922cf3e03","complete":true}}
 ```
 **Errors:**
@@ -2272,7 +2282,7 @@ Sign a message with the private key of an pubkey
 >> metabasenet-cli signmessage 2e05c9ee45fdf58f7b007458298042fc3d3ad416a2f9977ace16d14164a3e882 123456
 << 045977f8c07e6d846d6055357f36a70c16c071cb85115e3ffb498e171a9ac3f4aed1292203a0c8e42c4becafad3ced0d9874abd2a8b788fda9f07099a1e71707
 
->> curl -d '{"id":4,"method":"signmessage","jsonrpc":"2.0","params":{"pubkey":"2e05c9ee45fdf58f7b007458298042fc3d3ad416a2f9977ace16d14164a3e882","message":"123456"}}' http://127.0.0.1:8812
+>> curl -d '{"id":4,"method":"signmessage","jsonrpc":"2.0","params":{"pubkey":"2e05c9ee45fdf58f7b007458298042fc3d3ad416a2f9977ace16d14164a3e882","message":"123456"}}' http://127.0.0.1:6602
 << {"id":4,"jsonrpc":"2.0","result":"045977f8c07e6d846d6055357f36a70c16c071cb85115e3ffb498e171a9ac3f4aed1292203a0c8e42c4becafad3ced0d9874abd2a8b788fda9f07099a1e71707"}
 
 >> metabasenet-cli signmessage dc7547feed1d145c21915a739f1fcc75f7b9f88ebe4dba176628844d6916803e 3bdc5190cd3283c81d6b7a186610ce4ada5e81c4f7fcb153b379afc6154d0014
@@ -2366,7 +2376,7 @@ List all of the addresses from pub keys and template ids
 >> metabasenet-cli listaddress
 << [{"type":"pubkey","address":"1gbma6s21t4bcwymqz6h1dn1t7qy45019b1t00ywfyqymbvp90mqc1wmq","pubkey":"182e8a36441d116ce7a97f9a216d43a3dfc4280295874007b8ff5fd45eec9052e"},{"type":"template","address":"208043ht3c51qztrdfa0f3349pe2m8ajjw1mdb2py68fbckaa2s24tq55","template":"multisig","templatedata":{"type":"multisig","hex":"0200010282e8a36441d116ce7a97f9a216d43a3dfc4280295874007b8ff5fd45eec9052eb9c3b7aa16c6cb1bf193faf717580d03347148b2145ca98b30b1376d634c12f4","multisig":{"sigsrequired":1,"addresses":["1gbma6s21t4bcwymqz6h1dn1t7qy45019b1t00ywfyqymbvp90mqc1wmq","1q71vfagprv5hqwckzbvhep0d0ct72j5j2heak2sgp4vptrtc2btdje3q"]}}},{"type":"template","address":"20g0b87qxcd52ceh9zmpzx0hy46pjfzdnqbkh8f4tqs4y0r6sxyzyny25","template":"mint","templatedata":{"type":"mint","hex":"0400f9b4af95bec6c5d504366245e0420bc3c5c78cd05ea68e4ad85a4d770e77e3e801f9b4af95bec6c5d504366245e0420bc3c5c78cd05ea68e4ad85a4d770e77e3e8","mint":{"mint":"1z6taz5dyrv2xa11pc92y0ggbrf2wf36gbtk8wjprb96qe3kqwfm3ayc1","spent":"1z6taz5dyrv2xa11pc92y0ggbrf2wf36gbtk8wjprb96qe3kqwfm3ayc1"}}}]
 
->> curl -d '{"id":1,"method":"listaddress","jsonrpc":"2.0","params":{}}' http://127.0.0.1:8812
+>> curl -d '{"id":1,"method":"listaddress","jsonrpc":"2.0","params":{}}' http://127.0.0.1:6602
 << {"id":0,"jsonrpc":"2.0","result":[{"type":"pubkey","address":"1gbma6s21t4bcwymqz6h1dn1t7qy45019b1t00ywfyqymbvp90mqc1wmq","pubkey":"182e8a36441d116ce7a97f9a216d43a3dfc4280295874007b8ff5fd45eec9052e"},{"type":"template","address":"208043ht3c51qztrdfa0f3349pe2m8ajjw1mdb2py68fbckaa2s24tq55","template":"multisig","templatedata":{"type":"multisig","hex":"0200010282e8a36441d116ce7a97f9a216d43a3dfc4280295874007b8ff5fd45eec9052eb9c3b7aa16c6cb1bf193faf717580d03347148b2145ca98b30b1376d634c12f4","multisig":{"sigsrequired":1,"addresses":["1gbma6s21t4bcwymqz6h1dn1t7qy45019b1t00ywfyqymbvp90mqc1wmq","1q71vfagprv5hqwckzbvhep0d0ct72j5j2heak2sgp4vptrtc2btdje3q"]}}},{"type":"template","address":"20g0b87qxcd52ceh9zmpzx0hy46pjfzdnqbkh8f4tqs4y0r6sxyzyny25","template":"mint","templatedata":{"type":"mint","hex":"0400f9b4af95bec6c5d504366245e0420bc3c5c78cd05ea68e4ad85a4d770e77e3e801f9b4af95bec6c5d504366245e0420bc3c5c78cd05ea68e4ad85a4d770e77e3e8","mint":{"mint":"1z6taz5dyrv2xa11pc92y0ggbrf2wf36gbtk8wjprb96qe3kqwfm3ayc1","spent":"1z6taz5dyrv2xa11pc92y0ggbrf2wf36gbtk8wjprb96qe3kqwfm3ayc1"}}}]}
 ```
 **Errors:**
@@ -2515,7 +2525,7 @@ Return hex-encoded block.
 >> metabasenet-cli makeorigin a63d6f9d8055dc1bd7799593fb46ddc1b4e4519bd049e8eba1a0806917dcafc0 1p2e0yjz5y1ga705csrzpsp1wre1vjqepkbwnpchyx2vay86wf01pz3qs 1500 test-fork POW 1.0 0
 << {"hash" : "327ec1ffabeae75295401ec69591f845e6025c24d31ae07d9f6e9dec3462bd7a","hex" : "010000ffc06f585ac0afdc176980a0a1ebe849d09b51e4b4c1dd46fb939579d71bdc55809d6f3da600000000000000000000000000000000000000000000000000000000000000004c8001000000e109746573742d666f726be203504f574301a46400000000000000a540420f0000000000e62101b09c0f4be5f060a380acce3f6cd83cc383b95dd69af95b323ee8b6af20dc7803010000010000000000000000000000000000000000000000000000000000000000000000000000000001b09c0f4be5f060a380acce3f6cd83cc383b95dd69af95b323ee8b6af20dc7803002f685900000000000000000000000009746573742d666f726b000040f253de866a5357b5a11e493162885f4b8a34e94279e29b8354b237aaec650af420b61d24721b4e5e3a4096e9370c77f7dad6c05ced6eedcb2229958671620c05"}
 
->> curl -d '{"id":4,"method":"makeorigin","jsonrpc":"2.0","params":{"prev":"a63d6f9d8055dc1bd7799593fb46ddc1b4e4519bd049e8eba1a0806917dcafc0","owner":"1p2e0yjz5y1ga705csrzpsp1wre1vjqepkbwnpchyx2vay86wf01pz3qs","amount":1500,"name":"test-fork","symbol":"POW","reward":1,"halvecycle":0,"isolated":true,"private":false,"enclosed":false}}' http://127.0.0.1:8812
+>> curl -d '{"id":4,"method":"makeorigin","jsonrpc":"2.0","params":{"prev":"a63d6f9d8055dc1bd7799593fb46ddc1b4e4519bd049e8eba1a0806917dcafc0","owner":"1p2e0yjz5y1ga705csrzpsp1wre1vjqepkbwnpchyx2vay86wf01pz3qs","amount":1500,"name":"test-fork","symbol":"POW","reward":1,"halvecycle":0,"isolated":true,"private":false,"enclosed":false}}' http://127.0.0.1:6602
 << {"id":4,"jsonrpc":"2.0","result":{"hash":"327ec1ffabeae75295401ec69591f845e6025c24d31ae07d9f6e9dec3462bd7a","hex":"010000ffc06f585ac0afdc176980a0a1ebe849d09b51e4b4c1dd46fb939579d71bdc55809d6f3da600000000000000000000000000000000000000000000000000000000000000004c8001000000e109746573742d666f726be203504f574301a46400000000000000a540420f0000000000e62101b09c0f4be5f060a380acce3f6cd83cc383b95dd69af95b323ee8b6af20dc7803010000010000000000000000000000000000000000000000000000000000000000000000000000000001b09c0f4be5f060a380acce3f6cd83cc383b95dd69af95b323ee8b6af20dc7803002f685900000000000000000000000009746573742d666f726b000040f253de866a5357b5a11e493162885f4b8a34e94279e29b8354b237aaec650af420b61d24721b4e5e3a4096e9370c77f7dad6c05ced6eedcb2229958671620c05"}}
 
 >> metabasenet-cli makeorigin a63d6f9d8055dc1bd7799593fb46ddc1b4e4519bd049e8eba1a0806917dcafc0 1p2e0yjz5y1ga705csrzpsp1wre1vjqepkbwnpchyx2vay86wf01pz3qs 1500 test-fork POW 1.0 0 -i -nop -e
@@ -2575,13 +2585,13 @@ Verify a signed message
 >> metabasenet-cli verifymessage 2e05c9ee45fdf58f7b007458298042fc3d3ad416a2f9977ace16d14164a3e882 123456 045977f8c07e6d846d6055357f36a70c16c071cb85115e3ffb498e171a9ac3f4aed1292203a0c8e42c4becafad3ced0d9874abd2a8b788fda9f07099a1e71707
 << true
 
->> curl -d '{"id":5,"method":"verifymessage","jsonrpc":"2.0","params":{"pubkey":"2e05c9ee45fdf58f7b007458298042fc3d3ad416a2f9977ace16d14164a3e882","message":"123456","sig":"045977f8c07e6d846d6055357f36a70c16c071cb85115e3ffb498e171a9ac3f4aed1292203a0c8e42c4becafad3ced0d9874abd2a8b788fda9f07099a1e71707"}}' http://127.0.0.1:8812
+>> curl -d '{"id":5,"method":"verifymessage","jsonrpc":"2.0","params":{"pubkey":"2e05c9ee45fdf58f7b007458298042fc3d3ad416a2f9977ace16d14164a3e882","message":"123456","sig":"045977f8c07e6d846d6055357f36a70c16c071cb85115e3ffb498e171a9ac3f4aed1292203a0c8e42c4becafad3ced0d9874abd2a8b788fda9f07099a1e71707"}}' http://127.0.0.1:6602
 << {"id":5,"jsonrpc":"2.0","result":true}
 
 >> metabasenet-cli verifymessage 2e05c9ee45fdf58f7b007458298042fc3d3ad416a2f9977ace16d14164a3e882 12345 045977f8c07e6d846d6055357f36a70c16c071cb85115e3ffb498e171a9ac3f4aed1292203a0c8e42c4becafad3ced0d9874abd2a8b788fda9f07099a1e71707
 << false
 
->> curl -d '{"id":6,"method":"verifymessage","jsonrpc":"2.0","params":{"pubkey":"2e05c9ee45fdf58f7b007458298042fc3d3ad416a2f9977ace16d14164a3e882","message":"12345","sig":"045977f8c07e6d846d6055357f36a70c16c071cb85115e3ffb498e171a9ac3f4aed1292203a0c8e42c4becafad3ced0d9874abd2a8b788fda9f07099a1e71707"}}' http://127.0.0.1:8812
+>> curl -d '{"id":6,"method":"verifymessage","jsonrpc":"2.0","params":{"pubkey":"2e05c9ee45fdf58f7b007458298042fc3d3ad416a2f9977ace16d14164a3e882","message":"12345","sig":"045977f8c07e6d846d6055357f36a70c16c071cb85115e3ffb498e171a9ac3f4aed1292203a0c8e42c4becafad3ced0d9874abd2a8b788fda9f07099a1e71707"}}' http://127.0.0.1:6602
 << {"id":6,"jsonrpc":"2.0","result":false}
 ```
 **Errors:**
@@ -2620,7 +2630,7 @@ Make a public/private key pair.
 >> metabasenet-cli makekeypair
 << {"privkey":"833a5d51d2db84debc0eb3a40d7d41b2723452d211d7e81ce489a95ef48b2324","pubkey":"e8e3770e774d5ad84a8ea65ed08cc7c5c30b42e045623604d5c5c6be95afb4f9"}
 
->> curl -d '{"id":42,"method":"makekeypair","jsonrpc":"2.0","params":{}}' http://127.0.0.1:8812
+>> curl -d '{"id":42,"method":"makekeypair","jsonrpc":"2.0","params":{}}' http://127.0.0.1:6602
 << {"id":42,"jsonrpc":"2.0","result":{"privkey":"833a5d51d2db84debc0eb3a40d7d41b2723452d211d7e81ce489a95ef48b2324","pubkey":"e8e3770e774d5ad84a8ea65ed08cc7c5c30b42e045623604d5c5c6be95afb4f9"}}
 ```
 **Errors:**
@@ -2656,13 +2666,13 @@ Return public key by address or private key.
 >> metabasenet-cli getpubkey 15c02b5f9eb6e516159c230011a87e57757645b53d3534958f910c08feb5c203
 << 06c4246621002576ec70545f04f2cb75378e3f1a16eca2c596fc1c64f52e122b
 
->> curl -d '{"id":44,"method":"getpubkey","jsonrpc":"2.0","params":{"privkey":"15c02b5f9eb6e516159c230011a87e57757645b53d3534958f910c08feb5c203"}}' http://127.0.0.1:8812
+>> curl -d '{"id":44,"method":"getpubkey","jsonrpc":"2.0","params":{"privkey":"15c02b5f9eb6e516159c230011a87e57757645b53d3534958f910c08feb5c203"}}' http://127.0.0.1:6602
 << {"id":44,"jsonrpc":"2.0","result":"06c4246621002576ec70545f04f2cb75378e3f1a16eca2c596fc1c64f52e122b"}
 
 >> metabasenet-cli getpubkey 1z6taz5dyrv2xa11pc92y0ggbrf2wf36gbtk8wjprb96qe3kqwfm3ayc1
 << e8e3770e774d5ad84a8ea65ed08cc7c5c30b42e045623604d5c5c6be95afb4f9
 
->> curl -d '{"id":44,"method":"getpubkey","jsonrpc":"2.0","params":{"privkey":"1z6taz5dyrv2xa11pc92y0ggbrf2wf36gbtk8wjprb96qe3kqwfm3ayc1"}}' http://127.0.0.1:8812
+>> curl -d '{"id":44,"method":"getpubkey","jsonrpc":"2.0","params":{"privkey":"1z6taz5dyrv2xa11pc92y0ggbrf2wf36gbtk8wjprb96qe3kqwfm3ayc1"}}' http://127.0.0.1:6602
 << {"id":44,"jsonrpc":"2.0","result":"e8e3770e774d5ad84a8ea65ed08cc7c5c30b42e045623604d5c5c6be95afb4f9"}
 ```
 **Errors:**
@@ -2698,7 +2708,7 @@ Return encoded address for the given public key.
 >> metabasenet-cli getpubkeyaddress e8e3770e774d5ad84a8ea65ed08cc7c5c30b42e045623604d5c5c6be95afb4f9
 << 1z6taz5dyrv2xa11pc92y0ggbrf2wf36gbtk8wjprb96qe3kqwfm3ayc1
 
->> curl -d '{"id":44,"method":"getpubkeyaddress","jsonrpc":"2.0","params":{"pubkey":"e8e3770e774d5ad84a8ea65ed08cc7c5c30b42e045623604d5c5c6be95afb4f9"}}' http://127.0.0.1:8812
+>> curl -d '{"id":44,"method":"getpubkeyaddress","jsonrpc":"2.0","params":{"pubkey":"e8e3770e774d5ad84a8ea65ed08cc7c5c30b42e045623604d5c5c6be95afb4f9"}}' http://127.0.0.1:6602
 << {"id":44,"jsonrpc":"2.0","result":"1z6taz5dyrv2xa11pc92y0ggbrf2wf36gbtk8wjprb96qe3kqwfm3ayc1"}
 ```
 **Errors:**
@@ -2734,7 +2744,7 @@ Return address for key.
 >> metabasenet-cli getaddresskey 1j6x8vdkkbnxe8qwjggfan9c8m8zhmez7gm3pznsqxgch3eyrwxby8eda
 << 57e7d8bb1119ec37d76f0785e73b1a3fa288a5aa1e84925fe47a5d73b68dba91
 
->> curl -d '{"id":44,"method":"getaddresskey","jsonrpc":"2.0","params":{"address":"1j6x8vdkkbnxe8qwjggfan9c8m8zhmez7gm3pznsqxgch3eyrwxby8eda"}}' http://127.0.0.1:8812
+>> curl -d '{"id":44,"method":"getaddresskey","jsonrpc":"2.0","params":{"address":"1j6x8vdkkbnxe8qwjggfan9c8m8zhmez7gm3pznsqxgch3eyrwxby8eda"}}' http://127.0.0.1:6602
 << {"id":44,"jsonrpc":"2.0","result":"57e7d8bb1119ec37d76f0785e73b1a3fa288a5aa1e84925fe47a5d73b68dba91"}
 ```
 **Errors:**
@@ -2770,7 +2780,7 @@ Return encoded address for the given template id.
 >> metabasenet-cli gettemplateaddress 2040fpytdr4k5h8tk0nferr7zb51tkccrkgqf341s6tg05q9xe6hth1m4
 << 21w2040000000000000000000000000000000000000000000000epcek
 
->> curl -d '{"id":53,"method":"gettemplateaddress","jsonrpc":"2.0","params":{"tid":"2040fpytdr4k5h8tk0nferr7zb51tkccrkgqf341s6tg05q9xe6hth1m4"}}' http://127.0.0.1:8812
+>> curl -d '{"id":53,"method":"gettemplateaddress","jsonrpc":"2.0","params":{"tid":"2040fpytdr4k5h8tk0nferr7zb51tkccrkgqf341s6tg05q9xe6hth1m4"}}' http://127.0.0.1:6602
 << {"id":53,"jsonrpc":"2.0","result":"21w2040000000000000000000000000000000000000000000000epcek"}
 ```
 **Errors:**
@@ -2806,7 +2816,7 @@ Return encoded address for the given contract id.
 >> metabasenet-cli getcontractaddress 114bdaff36abc82402036f4f9c975f7fccfd5dda33cc851c90a05f49e2692550
 << 3a0jpkrj9byg90745sgsxmqfxshznz5ww9xqg60h4s2nkdzyt9c8tw3mt
 
->> curl -d '{"id":53,"method":"getcontractaddress","jsonrpc":"2.0","params":{"cid":"114bdaff36abc82402036f4f9c975f7fccfd5dda33cc851c90a05f49e2692550"}}' http://127.0.0.1:8812
+>> curl -d '{"id":53,"method":"getcontractaddress","jsonrpc":"2.0","params":{"cid":"114bdaff36abc82402036f4f9c975f7fccfd5dda33cc851c90a05f49e2692550"}}' http://127.0.0.1:6602
 << {"id":53,"jsonrpc":"2.0","result":"3a0jpkrj9byg90745sgsxmqfxshznz5ww9xqg60h4s2nkdzyt9c8tw3mt"}
 ```
 **Errors:**
@@ -2887,7 +2897,7 @@ Return encoded address for the given template id.
 >> metabasenet-cli maketemplate mint '{"mint": "e8e3770e774d5ad84a8ea65ed08cc7c5c30b42e045623604d5c5c6be95afb4f9", "spent": "1z6taz5dyrv2xa11pc92y0ggbrf2wf36gbtk8wjprb96qe3kqwfm3ayc1"}'
 << {"address":"20g0b87qxcd52ceh9zmpzx0hy46pjfzdnqbkh8f4tqs4y0r6sxyzyny25","hex":"0400f9b4af95bec6c5d504366245e0420bc3c5c78cd05ea68e4ad85a4d770e77e3e801f9b4af95bec6c5d504366245e0420bc3c5c78cd05ea68e4ad85a4d770e77e3e8"}
 
->> curl -d '{"id":1,"method":"maketemplate","jsonrpc":"2.0","params":{"type":"mint","mint":{"mint":"e8e3770e774d5ad84a8ea65ed08cc7c5c30b42e045623604d5c5c6be95afb4f9","spent":"1z6taz5dyrv2xa11pc92y0ggbrf2wf36gbtk8wjprb96qe3kqwfm3ayc1"}}}' http://127.0.0.1:8812
+>> curl -d '{"id":1,"method":"maketemplate","jsonrpc":"2.0","params":{"type":"mint","mint":{"mint":"e8e3770e774d5ad84a8ea65ed08cc7c5c30b42e045623604d5c5c6be95afb4f9","spent":"1z6taz5dyrv2xa11pc92y0ggbrf2wf36gbtk8wjprb96qe3kqwfm3ayc1"}}}' http://127.0.0.1:6602
 << {"id":1,"jsonrpc":"2.0","result":"{"address":"20g0b87qxcd52ceh9zmpzx0hy46pjfzdnqbkh8f4tqs4y0r6sxyzyny25","hex":"0400f9b4af95bec6c5d504366245e0420bc3c5c78cd05ea68e4ad85a4d770e77e3e801f9b4af95bec6c5d504366245e0420bc3c5c78cd05ea68e4ad85a4d770e77e3e8"}"}
 
 >> metabasenet-cli maketemplate delegate '{"delegate":"2e05c9ee45fdf58f7b007458298042fc3d3ad416a2f9977ace16d14164a3e882","owner":"1gbma6s21t4bcwymqz6h1dn1t7qy45019b1t00ywfyqymbvp90mqc1wmq","rewardratio":500}'
@@ -2929,6 +2939,7 @@ Return a JSON object representing the serialized, hex-encoded transaction.
  "result" :
  {
    "txid": "",                          (string, required) transaction hash
+   "sign_hash": "",                     (string, required) sign hash
    "version": 0,                        (uint, required) version
    "type": "",                          (string, required) transaction type
    "time": 0,                           (uint, required) transaction timestamp
@@ -2953,13 +2964,100 @@ Return a JSON object representing the serialized, hex-encoded transaction.
 >> metabasenet-cli decodetransaction 010000003190f05d00000000701af4705c5e6fcb04efc3ca3c851c1e4d8948e10923025f54bea9b000000000017a792b71cdb0f662c802207d849e73c504b7a87096c6d80479605a2a9188f05d0001a4dce88fee73a59dcebf2b40ba1d13407254164b9166f063b2e8d513561118d620e4ab0900000000a0860100000000000040d6594d9215c58224f9707a84f773b00394561df0bba769a279dd065b98bc03a946928f8a6508a728eceff3e22d5181da16b78087c79b68532b31553bdc855000
 << {"txid":"5df09031322f99db08a4747d652e0733f60c9b523a6a489b5f72e0031a2b2a03","version":1,"type":"token","time":1576046641,"anchor":"00000000b0a9be545f022309e148894d1e1c853ccac3ef04cb6f5e5c70f41a70","vin":[{"txid":"5df088912a5a607904d8c69670a8b704c5739e847d2002c862f6b0cd712b797a","vout":0}],"sendfrom":"1n56xmva8131c4q0961anv5wdzfqtdctyg9e53fxp65f1jyhbtkfbxz6q","sendto":"1mkeeh3zeeejsvknz5d0bm78k81s585jbj5kf0rxjx3ah6ngh33b1erg9","amount":162.260000,"txfee":0.100000,"data":"","sig":"d6594d9215c58224f9707a84f773b00394561df0bba769a279dd065b98bc03a946928f8a6508a728eceff3e22d5181da16b78087c79b68532b31553bdc855000","fork":"00000000b0a9be545f022309e148894d1e1c853ccac3ef04cb6f5e5c70f41a70"}
 
->> curl -d '{"id":1,"method":"decodetransaction","jsonrpc":"2.0","params":{"txdata":"010000003190f05d00000000701af4705c5e6fcb04efc3ca3c851c1e4d8948e10923025f54bea9b000000000017a792b71cdb0f662c802207d849e73c504b7a87096c6d80479605a2a9188f05d0001a4dce88fee73a59dcebf2b40ba1d13407254164b9166f063b2e8d513561118d620e4ab0900000000a0860100000000000040d6594d9215c58224f9707a84f773b00394561df0bba769a279dd065b98bc03a946928f8a6508a728eceff3e22d5181da16b78087c79b68532b31553bdc855000"}}' http://127.0.0.1:8812
+>> curl -d '{"id":1,"method":"decodetransaction","jsonrpc":"2.0","params":{"txdata":"010000003190f05d00000000701af4705c5e6fcb04efc3ca3c851c1e4d8948e10923025f54bea9b000000000017a792b71cdb0f662c802207d849e73c504b7a87096c6d80479605a2a9188f05d0001a4dce88fee73a59dcebf2b40ba1d13407254164b9166f063b2e8d513561118d620e4ab0900000000a0860100000000000040d6594d9215c58224f9707a84f773b00394561df0bba769a279dd065b98bc03a946928f8a6508a728eceff3e22d5181da16b78087c79b68532b31553bdc855000"}}' http://127.0.0.1:6602
 << {"id":1,"jsonrpc":"2.0","result":{"txid":"5df09031322f99db08a4747d652e0733f60c9b523a6a489b5f72e0031a2b2a03","version":1,"type":"token","time":1576046641,"anchor":"00000000b0a9be545f022309e148894d1e1c853ccac3ef04cb6f5e5c70f41a70","vin":[{"txid":"5df088912a5a607904d8c69670a8b704c5739e847d2002c862f6b0cd712b797a","vout":0}],"sendfrom":"1n56xmva8131c4q0961anv5wdzfqtdctyg9e53fxp65f1jyhbtkfbxz6q","sendto":"1mkeeh3zeeejsvknz5d0bm78k81s585jbj5kf0rxjx3ah6ngh33b1erg9","amount":162.260000,"txfee":0.100000,"data":"","sig":"d6594d9215c58224f9707a84f773b00394561df0bba769a279dd065b98bc03a946928f8a6508a728eceff3e22d5181da16b78087c79b68532b31553bdc855000","fork":"00000000b0a9be545f022309e148894d1e1c853ccac3ef04cb6f5e5c70f41a70"}}
 ```
 **Errors:**
 ```
 * {"code":-8,"message":"TX decode failed"}
 * {"code":-6,"message":"Unknown anchor block"}
+```
+##### [Back to top](#commands)
+---
+### getdefirelation
+**Usage:**
+```
+        getdefirelation <"address"> (-f="fork")
+
+Get defi invite address relation.
+```
+**Arguments:**
+```
+ "address"                              (string, required) invited address
+ -f="fork"                              (string, optional) fork hash
+```
+**Request:**
+```
+ "param" :
+ {
+   "address": "",                       (string, required) invited address
+   "fork": ""                           (string, optional) fork hash
+ }
+```
+**Response:**
+```
+ "result": "parent"                     (string, required) invite parent address
+```
+**Examples:**
+```
+>> metabasenet-cli getdefirelation 1549pyzf8dhx7r4x40k5j80f12btkpqfprjp134bcgcrjn963nzsx57xb
+<< {"parent":"1j6x8vdkkbnxe8qwjggfan9c8m8zhmez7gm3pznsqxgch3eyrwxby8eda"}
+
+>> curl -d '{"id":1,"method":"getdefirelation","jsonrpc":"2.0","params":{"address":"1549pyzf8dhx7r4x40k5j80f12btkpqfprjp134bcgcrjn963nzsx57xb"}}' http://127.0.0.1:6602
+<< {"id":1,"jsonrpc":"2.0","result":{"parent":"1j6x8vdkkbnxe8qwjggfan9c8m8zhmez7gm3pznsqxgch3eyrwxby8eda"}}
+```
+**Errors:**
+```
+* {"code":-6,"message":"Invalid address"}
+* {"code":-6,"message":"Invalid fork"}
+* {"code":-6,"message":"Unknown fork"}
+* {"code":-4,"message":"Invalid invite address"}
+```
+##### [Back to top](#commands)
+---
+### listdefirelation
+**Usage:**
+```
+        listdefirelation (-f="fork")
+
+List defi invite relation.
+```
+**Arguments:**
+```
+ -f="fork"                              (string, optional) fork hash
+```
+**Request:**
+```
+ "param" :
+ {
+   "fork": ""                           (string, optional) fork hash
+ }
+```
+**Response:**
+```
+ "result" :
+   "relationdata":                      (array, required, default=RPCValid) 
+   [
+     {
+       "parentaddress": "",             (string, required) parent address
+       "subaddress": ""                 (string, required) sub address
+     }
+   ]
+```
+**Examples:**
+```
+>> metabasenet-cli listdefirelation
+<< [{"parentaddress" : "1d6013pgw8sh95mbsrrxsn4zxvw35xd8s20a6d4jpbf24wjg1bc8cb36v","subaddress" : "1fq3y1n8zvgp6v550dv1p7hfwg1bkc4x4k8snzzb5x3kb64qvh4c9cr4n"}]
+
+>> curl -d '{"id":1,"method":"listdefirelation","jsonrpc":"2.0","params":{}}' http://127.0.0.1:6602
+<< {"id":1,"jsonrpc":"2.0","result":[{"parentaddress" : "1d6013pgw8sh95mbsrrxsn4zxvw35xd8s20a6d4jpbf24wjg1bc8cb36v","subaddress" : "1fq3y1n8zvgp6v550dv1p7hfwg1bkc4x4k8snzzb5x3kb64qvh4c9cr4n"}]}
+```
+**Errors:**
+```
+* {"code":-6,"message":"Invalid address"}
+* {"code":-6,"message":"Invalid fork"}
+* {"code":-6,"message":"Unknown fork"}
+* {"code":-32603,"message":"Get fail"}
 ```
 ##### [Back to top](#commands)
 ---
@@ -2990,7 +3088,7 @@ Return TxFee for vchData Hex data
 >> metabasenet-cli gettxfee feeda13f124bbc
 << 0.01
 
->> curl -d '{"id":1,"method":"gettxfee","jsonrpc":"2.0","params":{"hexdata":"feeda13f124bbc"}}' http://127.0.0.1:8812
+>> curl -d '{"id":1,"method":"gettxfee","jsonrpc":"2.0","params":{"hexdata":"feeda13f124bbc"}}' http://127.0.0.1:6602
 << {"id":1,"jsonrpc":"2.0","result":"0.01"}
 ```
 **Errors:**
@@ -3030,7 +3128,7 @@ Make sha256
 >> metabasenet-cli makesha256
 << {"hexdata" : "381cdfe25a6fde17ee1b9fc905e30c832d5bb981405fdae15a3acb1c420b2f5e", "sha256" : "5e2ab85020823529d3ee2d8c4c41af4d10c205aa8cb45b139d0e7054e73c11d4"}
 
->> curl -d '{"id":1,"method":"makesha256","jsonrpc":"2.0","params":{"hexdata":"54ec6b4a77eadc39207697e816e2d2cc6881263ecab078a4c770228e11cbff99"}}' http://127.0.0.1:8812
+>> curl -d '{"id":1,"method":"makesha256","jsonrpc":"2.0","params":{"hexdata":"54ec6b4a77eadc39207697e816e2d2cc6881263ecab078a4c770228e11cbff99"}}' http://127.0.0.1:6602
 << {"id":1,"jsonrpc":"2.0","result":{"hexdata" : "381cdfe25a6fde17ee1b9fc905e30c832d5bb981405fdae15a3acb1c420b2f5e", "sha256" : "5e2ab85020823529d3ee2d8c4c41af4d10c205aa8cb45b139d0e7054e73c11d4"}}
 ```
 **Errors:**
@@ -3070,7 +3168,7 @@ aes encrypt
 >> metabasenet-cli aesencrypt 1965p604xzdrffvg90ax9bk0q3xyqn5zz2vc9zpbe3wdswzazj7d144mm 1jv78wjv22hmzcwv07bkkphnkj51y0kjc7g9rwdm05erwmr2n8tvh8yjn 381cdfe25a6fde17ee1b9fc905e30c832d5bb981405fdae15a3acb1c420b2f5e
 << 06839cf364696762f980640a618d49981a8ab103306605336881eaa112e3693e99325fdd73b9052253de02107e4a373c
 
->> curl -d '{"id":1,"method":"aesencrypt","jsonrpc":"2.0","params":{"localaddress":"1965p604xzdrffvg90ax9bk0q3xyqn5zz2vc9zpbe3wdswzazj7d144mm","remoteaddress":"1jv78wjv22hmzcwv07bkkphnkj51y0kjc7g9rwdm05erwmr2n8tvh8yjn","message":"381cdfe25a6fde17ee1b9fc905e30c832d5bb981405fdae15a3acb1c420b2f5e"}}' http://127.0.0.1:8812
+>> curl -d '{"id":1,"method":"aesencrypt","jsonrpc":"2.0","params":{"localaddress":"1965p604xzdrffvg90ax9bk0q3xyqn5zz2vc9zpbe3wdswzazj7d144mm","remoteaddress":"1jv78wjv22hmzcwv07bkkphnkj51y0kjc7g9rwdm05erwmr2n8tvh8yjn","message":"381cdfe25a6fde17ee1b9fc905e30c832d5bb981405fdae15a3acb1c420b2f5e"}}' http://127.0.0.1:6602
 << {"id":1,"jsonrpc":"2.0","result":"06839cf364696762f980640a618d49981a8ab103306605336881eaa112e3693e99325fdd73b9052253de02107e4a373c"}
 ```
 **Errors:**
@@ -3113,7 +3211,7 @@ aes decrypt
 >> metabasenet-cli aesdecrypt 1jv78wjv22hmzcwv07bkkphnkj51y0kjc7g9rwdm05erwmr2n8tvh8yjn 1965p604xzdrffvg90ax9bk0q3xyqn5zz2vc9zpbe3wdswzazj7d144mm 06839cf364696762f980640a618d49981a8ab103306605336881eaa112e3693e99325fdd73b9052253de02107e4a373c
 << 381cdfe25a6fde17ee1b9fc905e30c832d5bb981405fdae15a3acb1c420b2f5e
 
->> curl -d '{"id":1,"method":"aesdecrypt","jsonrpc":"2.0","params":{"localaddress":"1jv78wjv22hmzcwv07bkkphnkj51y0kjc7g9rwdm05erwmr2n8tvh8yjn","remoteaddress":"1965p604xzdrffvg90ax9bk0q3xyqn5zz2vc9zpbe3wdswzazj7d144mm","ciphertext":"06839cf364696762f980640a618d49981a8ab103306605336881eaa112e3693e99325fdd73b9052253de02107e4a373c"}}' http://127.0.0.1:8812
+>> curl -d '{"id":1,"method":"aesdecrypt","jsonrpc":"2.0","params":{"localaddress":"1jv78wjv22hmzcwv07bkkphnkj51y0kjc7g9rwdm05erwmr2n8tvh8yjn","remoteaddress":"1965p604xzdrffvg90ax9bk0q3xyqn5zz2vc9zpbe3wdswzazj7d144mm","ciphertext":"06839cf364696762f980640a618d49981a8ab103306605336881eaa112e3693e99325fdd73b9052253de02107e4a373c"}}' http://127.0.0.1:6602
 << {"id":1,"jsonrpc":"2.0","result":"381cdfe25a6fde17ee1b9fc905e30c832d5bb981405fdae15a3acb1c420b2f5e"}
 ```
 **Errors:**
@@ -3178,7 +3276,7 @@ Otherwise, return formatted proof-of-work parameters to work on:
 >> metabasenet-cli getwork 1pdr1knaaa4fzr846v89g3q2tzb8pbvbavbbft8xppkky0mqnmsq8gn5y ceae964a1119f110b0cff3614426dd692f8467a95cc2c276e523efc63c5e5031 7ee748e9a827d476d1b4ddb77dc8f9bad779f7b71593d5c5bf73b535e1cc2446
 << {"work":{"prevblockheight":23,"prevblockhash":"f734bb6bc12ab4058532113cfe6a3412d1036eae25f60a97ee1b17effc6e74de","prevblocktime":1538142032,"algo":1,"bits":25,"data":"01000100822fae5bde746efcef171bee970af625ae6e03d112346afe3c11328505b42ac16bbb34f74300000000000000000000000000000000000000000000000000000000000000000001190000000000000000000000000000000000000000000000000000000000000000"}}
 
->> curl -d '{"id":1,"method":"getwork","jsonrpc":"2.0","params":{"spent":"1pdr1knaaa4fzr846v89g3q2tzb8pbvbavbbft8xppkky0mqnmsq8gn5y","privkey":"ceae964a1119f110b0cff3614426dd692f8467a95cc2c276e523efc63c5e5031","prev":"7ee748e9a827d476d1b4ddb77dc8f9bad779f7b71593d5c5bf73b535e1cc2446"}}' http://127.0.0.1:8812
+>> curl -d '{"id":1,"method":"getwork","jsonrpc":"2.0","params":{"spent":"1pdr1knaaa4fzr846v89g3q2tzb8pbvbavbbft8xppkky0mqnmsq8gn5y","privkey":"ceae964a1119f110b0cff3614426dd692f8467a95cc2c276e523efc63c5e5031","prev":"7ee748e9a827d476d1b4ddb77dc8f9bad779f7b71593d5c5bf73b535e1cc2446"}}' http://127.0.0.1:6602
 << {"id":1,"jsonrpc":"2.0","result":{"work":{"prevblockheight":23,"prevblockhash":"f734bb6bc12ab4058532113cfe6a3412d1036eae25f60a97ee1b17effc6e74de","prevblocktime":1538142032,"algo":1,"bits":25,"data":"01000100822fae5bde746efcef171bee970af625ae6e03d112346afe3c11328505b42ac16bbb34f74300000000000000000000000000000000000000000000000000000000000000000001190000000000000000000000000000000000000000000000000000000000000000"}}}
 ```
 **Errors:**
@@ -3219,7 +3317,7 @@ Return hash of new block.
 >> metabasenet-cli submitwork 01000100502fae5b4624cce135b573bfc5d59315b7f779d7baf9c87db7ddb4d176d427a8e948e77e43000000000000000000000000000000000000000000000000000000000000000000011acfff020000000000000000000000000000000000000000000000000000000000 1dj5qcjst7eh4tems36n1m500hhyba3vx436t4a8hgdm7r7jrdbf2yqp9 41a9f94395ced97d5066e2d099df4f1e2bd96057f9c38e8ea3f8a02eccd0a98e
 << f734bb6bc12ab4058532113cfe6a3412d1036eae25f60a97ee1b17effc6e74de
 
->> curl -d '{"id":2,"method":"submitwork","jsonrpc":"2.0","params":{"data":"01000100502fae5b4624cce135b573bfc5d59315b7f779d7baf9c87db7ddb4d176d427a8e948e77e43000000000000000000000000000000000000000000000000000000000000000000011acfff020000000000000000000000000000000000000000000000000000000000","spent":"1dj5qcjst7eh4tems36n1m500hhyba3vx436t4a8hgdm7r7jrdbf2yqp9","privkey":"41a9f94395ced97d5066e2d099df4f1e2bd96057f9c38e8ea3f8a02eccd0a98e"}}' http://127.0.0.1:8812
+>> curl -d '{"id":2,"method":"submitwork","jsonrpc":"2.0","params":{"data":"01000100502fae5b4624cce135b573bfc5d59315b7f779d7baf9c87db7ddb4d176d427a8e948e77e43000000000000000000000000000000000000000000000000000000000000000000011acfff020000000000000000000000000000000000000000000000000000000000","spent":"1dj5qcjst7eh4tems36n1m500hhyba3vx436t4a8hgdm7r7jrdbf2yqp9","privkey":"41a9f94395ced97d5066e2d099df4f1e2bd96057f9c38e8ea3f8a02eccd0a98e"}}' http://127.0.0.1:6602
 << {"id":2,"jsonrpc":"2.0","result":"f734bb6bc12ab4058532113cfe6a3412d1036eae25f60a97ee1b17effc6e74de"}
 ```
 **Errors:**
@@ -3278,7 +3376,7 @@ Query statistical data
 09:11:59  1       12     
 09:12:59  1       22     
 
->> curl -d '{"id":1,"method":"querystat","jsonrpc":"2.0","params":{"type":"maker","begin":"09:11:00","count":2}}' http://127.0.0.1:8812
+>> curl -d '{"id":1,"method":"querystat","jsonrpc":"2.0","params":{"type":"maker","begin":"09:11:00","count":2}}' http://127.0.0.1:6602
 << {"id":0,"jsonrpc":"2.0","result":"time      blocktps  tps  
 09:11:59  1       12     
 09:12:59  1       22     "}
@@ -3320,7 +3418,7 @@ Reverse a hex string by byte
 >> metabasenet-cli reversehex e8e3770e774d5ad84a8ea65ed08cc7c5c30b42e045623604d5c5c6be95afb4f9
 << f9b4af95bec6c5d504366245e0420bc3c5c78cd05ea68e4ad85a4d770e77e3e8
 
->> curl -d '{"id":15,"method":"reversehex","jsonrpc":"2.0","params":{"hex":"e8e3770e774d5ad84a8ea65ed08cc7c5c30b42e045623604d5c5c6be95afb4f9"}}' http://127.0.0.1:8812
+>> curl -d '{"id":15,"method":"reversehex","jsonrpc":"2.0","params":{"hex":"e8e3770e774d5ad84a8ea65ed08cc7c5c30b42e045623604d5c5c6be95afb4f9"}}' http://127.0.0.1:6602
 << {"id":15,"jsonrpc":"2.0","result":"f9b4af95bec6c5d504366245e0420bc3c5c78cd05ea68e4ad85a4d770e77e3e8"}
 ```
 **Errors:**
@@ -3373,7 +3471,7 @@ Call contract api
 >> metabasenet-cli callcontract 1549pyzf8dhx7r4x40k5j80f12btkpqfprjp134bcgcrjn963nzsx57xb 3zfm64bkxqsfn10vhqgghj6hwcqaqhqcsg03gyf9nwba2brrf1h81egmk 0 -cp=8d4b7932
 << {"status":0,"result":"00000000000000000000000000000000000000000000000029a2241af62c0000"}
 
->> curl -d '{"id":3,"method":"callcontract","jsonrpc":"2.0","params":{"from":"1549pyzf8dhx7r4x40k5j80f12btkpqfprjp134bcgcrjn963nzsx57xb","to":"3zfm64bkxqsfn10vhqgghj6hwcqaqhqcsg03gyf9nwba2brrf1h81egmk","amount":0.0000000000,"contractparam":"8d4b7932"}}' http://127.0.0.1:8812
+>> curl -d '{"id":3,"method":"callcontract","jsonrpc":"2.0","params":{"from":"1549pyzf8dhx7r4x40k5j80f12btkpqfprjp134bcgcrjn963nzsx57xb","to":"3zfm64bkxqsfn10vhqgghj6hwcqaqhqcsg03gyf9nwba2brrf1h81egmk","amount":0.0000000000,"contractparam":"8d4b7932"}}' http://127.0.0.1:6602
 << {"id":3,"jsonrpc":"2.0","result":"{"status":0,"result":"00000000000000000000000000000000000000000000000029a2241af62c0000"}"}
 ```
 **Errors:**
@@ -3442,7 +3540,7 @@ Get transaction receipt
 >> metabasenet-cli gettransactionreceipt 61ade380031b5677d4afa3fc27affcc91a74ed41d48287c63847d08eed2a383c
 << {"txid":"61ade380031b5677d4afa3fc27affcc91a74ed41d48287c63847d08eed2a383c","txindex":5,"blockhash":"00000385ed7b808f3b169f12a190da3432ee76d65a3c9c971da564b22a471e9f","blocknumber":901,"from":"1549pyzf8dhx7r4x40k5j80f12btkpqfprjp134bcgcrjn963nzsx57xb","to":"300000000000000000000000000000000000000000000000000000000","blockgasused":371723,"txgasused":371723,"contractcodehash":"579b261853b14cf9d026f1e0027852c52c4dd65845fbac13baff216ba2b04cf8","contractaddress":"3zfm64bkxqsfn10vhqgghj6hwcqaqhqcsg03gyf9nwba2brrf1h81egmk","contractstatus":0,"contractgasleft":618277,"contractresult":"","logs":{"address":"","data":"","topics":[]},"logsbloom":"00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"}
 
->> curl -d '{"id":3,"method":"gettransactionreceipt","jsonrpc":"2.0","params":{"txid":"61ade380031b5677d4afa3fc27affcc91a74ed41d48287c63847d08eed2a383c"}}' http://127.0.0.1:8812
+>> curl -d '{"id":3,"method":"gettransactionreceipt","jsonrpc":"2.0","params":{"txid":"61ade380031b5677d4afa3fc27affcc91a74ed41d48287c63847d08eed2a383c"}}' http://127.0.0.1:6602
 << {"id":3,"jsonrpc":"2.0","result":"{"txid":"61ade380031b5677d4afa3fc27affcc91a74ed41d48287c63847d08eed2a383c","txindex":5,"blockhash":"00000385ed7b808f3b169f12a190da3432ee76d65a3c9c971da564b22a471e9f","blocknumber":901,"from":"1549pyzf8dhx7r4x40k5j80f12btkpqfprjp134bcgcrjn963nzsx57xb","to":"300000000000000000000000000000000000000000000000000000000","blockgasused":371723,"txgasused":371723,"contractcodehash":"579b261853b14cf9d026f1e0027852c52c4dd65845fbac13baff216ba2b04cf8","contractaddress":"3zfm64bkxqsfn10vhqgghj6hwcqaqhqcsg03gyf9nwba2brrf1h81egmk","contractstatus":0,"contractgasleft":618277,"contractresult":"","logs":{"address":"","data":"","topics":[]},"logsbloom":"00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"}"}
 ```
 **Errors:**
@@ -3456,7 +3554,7 @@ Get transaction receipt
 ### getcontractmuxcode
 **Usage:**
 ```
-        getcontractmuxcode <"muxtype"> <"name"> <"owner"> <"code"> (-t="type") (-d="describe") (-s="source")
+        getcontractmuxcode <"muxtype"> <"name"> <"code"> (-t="type") (-d="describe") (-s="source")
 
 Get contract mux code, including source code, name and code
 ```
@@ -3464,7 +3562,6 @@ Get contract mux code, including source code, name and code
 ```
  "muxtype"                              (string, required) dux type: create, setup, upcode
  "name"                                 (string, required) contract name, non empty
- "owner"                                (string, required) contract owner address, non empty
  "code"                                 (string, required) contract code, non empty
  -t="type"                              (string, optional) contract type, separated by '@' symbol, example: type1@type11@type111
  -d="describe"                          (string, optional) contract describe
@@ -3476,7 +3573,6 @@ Get contract mux code, including source code, name and code
  {
    "muxtype": "",                       (string, required) dux type: create, setup, upcode
    "name": "",                          (string, required) contract name, non empty
-   "owner": "",                         (string, required) contract owner address, non empty
    "code": "",                          (string, required) contract code, non empty
    "type": "",                          (string, optional) contract type, separated by '@' symbol, example: type1@type11@type111
    "describe": "",                      (string, optional) contract describe
@@ -3489,10 +3585,10 @@ Get contract mux code, including source code, name and code
 ```
 **Examples:**
 ```
->> metabasenet-cli getcontractmuxcode create myname1 1549pyzf8dhx7r4x40k5j80f12btkpqfprjp134bcgcrjn963nzsx57xb 'code' -t=type1 -d=describe1 -s='source code'
+>> metabasenet-cli getcontractmuxcode create myname1 'code' -t=type1 -d=describe1 -s='source code'
 << 579b261853b14cf9d026f1e0027852c52c4dd65845fbac13baff216ba2b04cf8......
 
->> curl -d '{"id":3,"method":"getcontractmuxcode","jsonrpc":"2.0","params":{"muxtype":"create","name":"myname1","owner":"1549pyzf8dhx7r4x40k5j80f12btkpqfprjp134bcgcrjn963nzsx57xb","code":"code1","type":"type1","describe":"describe1","source":"source1"}}' http://127.0.0.1:8812
+>> curl -d '{"id":3,"method":"getcontractmuxcode","jsonrpc":"2.0","params":{"muxtype":"create","name":"myname1","code":"code1","type":"type1","describe":"describe1","source":"source1"}}' http://127.0.0.1:6602
 << {"id":3,"jsonrpc":"2.0","result":"579b261853b14cf9d026f1e0027852c52c4dd65845fbac13baff216ba2b04cf8......"}
 ```
 **Errors:**
@@ -3533,13 +3629,11 @@ List contract code
    [
      {
        "codehash": "",                  (string, required) contract code hash
-       "sourcehash": "",                (string, required) contract source hash
-       "type": "",                      (string, required) contract code type
-       "owner": "",                     (string, required) contract code owner address
-       "name": "",                      (string, required) contract code name
-       "describe": "",                  (string, required) contract code describe
        "txid": "",                      (string, required) txid of contract code created
-       "status": 0                      (int, required) contract code status: 0: not activate, 1: activated
+       "sourcehash": "",                (string, optional) contract source hash
+       "type": "",                      (string, optional) contract code type
+       "name": "",                      (string, optional) contract code name
+       "describe": ""                   (string, optional) contract code describe
      }
    ]
 ```
@@ -3548,7 +3642,7 @@ List contract code
 >> metabasenet-cli listcontractcode
 << {"type":"type1@type11","name":"erc20","describe":"erc20test","txid":"61ade380031b5677d4afa3fc27affcc91a74ed41d48287c63847d08eed2a383c","sourcehash":"9358768717ec4837f96d73dbded55932b8865573bf88a6c5b2b5d8023d7fa2de","codehash":"579b261853b14cf9d026f1e0027852c52c4dd65845fbac13baff216ba2b04cf8"}
 
->> curl -d '{"id":3,"method":"listcontractcode","jsonrpc":"2.0","params":{}' http://127.0.0.1:8812
+>> curl -d '{"id":3,"method":"listcontractcode","jsonrpc":"2.0","params":{}' http://127.0.0.1:6602
 << {"id":3,"jsonrpc":"2.0","result":"{"type":"type1@type11","name":"erc20","describe":"erc20test","txid":"61ade380031b5677d4afa3fc27affcc91a74ed41d48287c63847d08eed2a383c","sourcehash":"9358768717ec4837f96d73dbded55932b8865573bf88a6c5b2b5d8023d7fa2de","codehash":"579b261853b14cf9d026f1e0027852c52c4dd65845fbac13baff216ba2b04cf8"}"}
 ```
 **Errors:**
@@ -3583,13 +3677,12 @@ List contract address
    [
      {
        "address": "",                   (string, required) contract address
-       "type": "",                      (string, required) contract type
-       "owner": "",                     (string, required) contract owner address
-       "name": "",                      (string, required) contract name
-       "describe": "",                  (string, required) contract describe
        "txid": "",                      (string, required) txid of contract created
-       "sourcehash": "",                (string, required) contract source hash
-       "codehash": ""                   (string, required) contract code hash
+       "codehash": "",                  (string, required) contract code hash
+       "type": "",                      (string, optional) contract type
+       "name": "",                      (string, optional) contract name
+       "describe": "",                  (string, optional) contract describe
+       "sourcehash": ""                 (string, optional) contract source hash
      }
    ]
 ```
@@ -3598,7 +3691,7 @@ List contract address
 >> metabasenet-cli listcontractaddress
 << {"type":"type1@type11","name":"erc20","describe":"erc20test","txid":"61ade380031b5677d4afa3fc27affcc91a74ed41d48287c63847d08eed2a383c","sourcehash":"9358768717ec4837f96d73dbded55932b8865573bf88a6c5b2b5d8023d7fa2de","codehash":"579b261853b14cf9d026f1e0027852c52c4dd65845fbac13baff216ba2b04cf8"}
 
->> curl -d '{"id":3,"method":"listcontractaddress","jsonrpc":"2.0","params":{}' http://127.0.0.1:8812
+>> curl -d '{"id":3,"method":"listcontractaddress","jsonrpc":"2.0","params":{}' http://127.0.0.1:6602
 << {"id":3,"jsonrpc":"2.0","result":"{"type":"type1@type11","name":"erc20","describe":"erc20test","txid":"61ade380031b5677d4afa3fc27affcc91a74ed41d48287c63847d08eed2a383c","sourcehash":"9358768717ec4837f96d73dbded55932b8865573bf88a6c5b2b5d8023d7fa2de","codehash":"579b261853b14cf9d026f1e0027852c52c4dd65845fbac13baff216ba2b04cf8"}"}
 ```
 **Errors:**
@@ -3645,7 +3738,7 @@ Get address contract
 >> metabasenet-cli getdestcontract 3zfm64bkxqsfn10vhqgghj6hwcqaqhqcsg03gyf9nwba2brrf1h81egmk
 << {"type":"type1@type11","name":"erc20","describe":"erc20test","txid":"61ade380031b5677d4afa3fc27affcc91a74ed41d48287c63847d08eed2a383c","sourcehash":"9358768717ec4837f96d73dbded55932b8865573bf88a6c5b2b5d8023d7fa2de","codehash":"579b261853b14cf9d026f1e0027852c52c4dd65845fbac13baff216ba2b04cf8"}
 
->> curl -d '{"id":3,"method":"getdestcontract","jsonrpc":"2.0","params":{"address":"3zfm64bkxqsfn10vhqgghj6hwcqaqhqcsg03gyf9nwba2brrf1h81egmk"}}' http://127.0.0.1:8812
+>> curl -d '{"id":3,"method":"getdestcontract","jsonrpc":"2.0","params":{"address":"3zfm64bkxqsfn10vhqgghj6hwcqaqhqcsg03gyf9nwba2brrf1h81egmk"}}' http://127.0.0.1:6602
 << {"id":3,"jsonrpc":"2.0","result":"{"type":"type1@type11","name":"erc20","describe":"erc20test","txid":"61ade380031b5677d4afa3fc27affcc91a74ed41d48287c63847d08eed2a383c","sourcehash":"9358768717ec4837f96d73dbded55932b8865573bf88a6c5b2b5d8023d7fa2de","codehash":"579b261853b14cf9d026f1e0027852c52c4dd65845fbac13baff216ba2b04cf8"}"}
 ```
 **Errors:**
@@ -3686,7 +3779,7 @@ Get contract source
 >> metabasenet-cli getcontractsource 9358768717ec4837f96d73dbded55932b8865573bf88a6c5b2b5d8023d7fa2de
 << 707261676d6120736f6c6964697479205e302e352e303b0a0a636f6e7472616374206572633230207b0a20202f2f205361......
 
->> curl -d '{"id":3,"method":"getcontractsource","jsonrpc":"2.0","params":{"sourcehash":"9358768717ec4837f96d73dbded55932b8865573bf88a6c5b2b5d8023d7fa2de"}}' http://127.0.0.1:8812
+>> curl -d '{"id":3,"method":"getcontractsource","jsonrpc":"2.0","params":{"sourcehash":"9358768717ec4837f96d73dbded55932b8865573bf88a6c5b2b5d8023d7fa2de"}}' http://127.0.0.1:6602
 << {"id":3,"jsonrpc":"2.0","result":"707261676d6120736f6c6964697479205e302e352e303b0a0a636f6e7472616374206572633230207b0a20202f2f205361......"}
 ```
 **Errors:**
@@ -3726,7 +3819,7 @@ Get contract code
 >> metabasenet-cli getcontractcode 579b261853b14cf9d026f1e0027852c52c4dd65845fbac13baff216ba2b04cf8
 << 0061736d01000000014e0b60027f7f0060017f0060037f7f7f006000017e60047e7f7f7f017f60057f7e7e7e7e0060067f7e7e7......
 
->> curl -d '{"id":3,"method":"getcontractcode","jsonrpc":"2.0","params":{"codehash":"579b261853b14cf9d026f1e0027852c52c4dd65845fbac13baff216ba2b04cf8"}}' http://127.0.0.1:8812
+>> curl -d '{"id":3,"method":"getcontractcode","jsonrpc":"2.0","params":{"codehash":"579b261853b14cf9d026f1e0027852c52c4dd65845fbac13baff216ba2b04cf8"}}' http://127.0.0.1:6602
 << {"id":3,"jsonrpc":"2.0","result":"0061736d01000000014e0b60027f7f0060017f0060037f7f7f006000017e60047e7f7f7f017f60057f7e7e7e7e0060067f7e7e7......"}
 ```
 **Errors:**
@@ -3764,7 +3857,7 @@ Function sign
 >> metabasenet-cli funcsign 1549pyzf8dhx7r4x40k5j80f12btkpqfprjp134bcgcrjn963nzsx57xb 35339avavkr9t9mvcdkmft2nay8efb8zsqyyzfen2be1aja4k5nghk08v 1
 << 5eccd2e09fe34ae041d9a90d896759041b2bc2844f43ed6929889b53e826386b
 
->> curl -d '{"id":3,"method":"funcsign","jsonrpc":"2.0","params":{"from":"1549pyzf8dhx7r4x40k5j80f12btkpqfprjp134bcgcrjn963nzsx57xb"}}' http://127.0.0.1:8812
+>> curl -d '{"id":3,"method":"funcsign","jsonrpc":"2.0","params":{"from":"1549pyzf8dhx7r4x40k5j80f12btkpqfprjp134bcgcrjn963nzsx57xb"}}' http://127.0.0.1:6602
 << {"id":3,"jsonrpc":"2.0","result":"5eccd565e410131217f89ade75e3f89a5a17627edaa7da7638babc94e331ea49"}
 ```
 **Errors:**
@@ -3800,12 +3893,56 @@ Make hash
 >> metabasenet-cli makehash 123456789
 << c764360e1f0eb7db438f602a4190754d5305edd82f902a645b38534a046ee897
 
->> curl -d '{"id":3,"method":"makehash","jsonrpc":"2.0","params":{"data":"123456789"}}' http://127.0.0.1:8812
+>> curl -d '{"id":3,"method":"makehash","jsonrpc":"2.0","params":{"data":"123456789"}}' http://127.0.0.1:6602
 << {"id":3,"jsonrpc":"2.0","result":"c764360e1f0eb7db438f602a4190754d5305edd82f902a645b38534a046ee897"}
 ```
 **Errors:**
 ```
 * {"code":-6,"message":"Invalid data"}
+```
+##### [Back to top](#commands)
+---
+### makedefirelsign
+**Usage:**
+```
+        makedefirelsign <"parentaddress"> <"subaddress"> (-f="fork")
+
+Make defi relation sign
+```
+**Arguments:**
+```
+ "parentaddress"                        (string, required) parent address
+ "subaddress"                           (string, required) sub address
+ -f="fork"                              (string, optional) fork
+```
+**Request:**
+```
+ "param" :
+ {
+   "parentaddress": "",                 (string, required) parent address
+   "subaddress": "",                    (string, required) sub address
+   "fork": ""                           (string, optional) fork
+ }
+```
+**Response:**
+```
+ "result": "signdata"                   (string, required) sign data
+```
+**Examples:**
+```
+>> metabasenet-cli makedefirelsign 1549pyzf8dhx7r4x40k5j80f12btkpqfprjp134bcgcrjn963nzsx57xb 1j6x8vdkkbnxe8qwjggfan9c8m8zhmez7gm3pznsqxgch3eyrwxby8eda
+<< 00c679aa373df8d25fed062e5030f6033d039c5fa49a92d188a4d7ab831c6055d3790107553b37c99c0646599be09e3f342ac979149c2112e9d6356e267aeb502f4ee767f0f886055300719fcc13e30b50ba614dad158ee7af57cadbecd6bc0eb1f4a700cb63a0355f6348ee32f89bf917e7ecf73a525e40c1f127eb75974e0ddd7824654d84165e9a657c6361b7b43968bce0e338083fad35ee467f8382ad0a
+
+>> curl -d '{"id":3,"method":"makedefirelsign","jsonrpc":"2.0","params":{"parentaddress":"1549pyzf8dhx7r4x40k5j80f12btkpqfprjp134bcgcrjn963nzsx57xb", "subaddress":"1j6x8vdkkbnxe8qwjggfan9c8m8zhmez7gm3pznsqxgch3eyrwxby8eda"}}' http://127.0.0.1:6602
+<< {"id":3,"jsonrpc":"2.0","result":"00c679aa373df8d25fed062e5030f6033d039c5fa49a92d188a4d7ab831c6055d3790107553b37c99c0646599be09e3f342ac979149c2112e9d6356e267aeb502f4ee767f0f886055300719fcc13e30b50ba614dad158ee7af57cadbecd6bc0eb1f4a700cb63a0355f6348ee32f89bf917e7ecf73a525e40c1f127eb75974e0ddd7824654d84165e9a657c6361b7b43968bce0e338083fad35ee467f8382ad0a"}
+```
+**Errors:**
+```
+* {"code":-6,"message":"Invalid parentaddress"}
+* {"code":-6,"message":"Invalid subaddress"}
+* {"code":-6,"message":"Invalid fork"}
+* {"code":-6,"message":"Unknown fork"}
+* {"code":-4,"message":"Invalid invite address"}
 ```
 ##### [Back to top](#commands)
 ---

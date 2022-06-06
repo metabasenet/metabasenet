@@ -170,7 +170,7 @@
             "opt": "rpcport",
             "default": 0,
             "format": "-rpcport=port",
-            "desc": "Listen for JSON-RPC connections on <port> (default: 8812 or testnet: 8814))"
+            "desc": "Listen for JSON-RPC connections on <port> (default: 6602 or testnet: 6604))"
         },
         {
             "name": "fRPCListen",
@@ -383,14 +383,14 @@
             "opt": "port",
             "default": 0,
             "format": "-port=<port>",
-            "desc": "Listen for connections on <port> (default: 8811 or testnet: 8813)"
+            "desc": "Listen for connections on <port> (default: 6601 or testnet: 6603)"
         },
         {
             "name": "strGateWay",
             "type": "string",
             "opt": "gateway",
             "format": "-gateway=<ip>:<port>",
-            "desc": "The form of <ip>:<port> of address of gateway(<ip> can be IPv4 or IPv6, default <port>: 8811, IPv6 format: [ip]:port)"
+            "desc": "The form of <ip>:<port> of address of gateway(<ip> can be IPv4 or IPv6, default <port>: 6601, IPv6 format: [ip]:port)"
         },
         {
             "name": "nMaxConnection",
@@ -413,14 +413,14 @@
             "type": "vector<string>",
             "opt": "addnode",
             "format": "-addnode=<address>:<port>",
-            "desc": "Add a node to connect to and attempt to keep the connection open(<address> can be IPv4 or IPv6 or domain name, default <port>: 8811, IPv6 format: [ip]:port)"
+            "desc": "Add a node to connect to and attempt to keep the connection open(<address> can be IPv4 or IPv6 or domain name, default <port>: 6601, IPv6 format: [ip]:port)"
         },
         {
             "name": "vConnectTo",
             "type": "vector<string>",
             "opt": "connect",
             "format": "-connect=<address>:<port>",
-            "desc": "Connect only to the specified node(<address> can be IPv4 or IPv6 or domain name, default <port>: 8811, IPv6 format: [ip]:port)"
+            "desc": "Connect only to the specified node(<address> can be IPv4 or IPv6 or domain name, default <port>: 6601, IPv6 format: [ip]:port)"
         },
         {
             "name": "strTrustAddress",
@@ -434,7 +434,7 @@
             "type": "vector<string>",
             "opt": "dnseed",
             "format": "-dnseed=<address>:<port>",
-            "desc": "DNSeed address list(<address> can be IPv4 or IPv6 or domain name, default <port>: 8816, IPv6 format: [ip]:port)"
+            "desc": "DNSeed address list(<address> can be IPv4 or IPv6 or domain name, default <port>: 6606, IPv6 format: [ip]:port)"
         }
     ]
 }

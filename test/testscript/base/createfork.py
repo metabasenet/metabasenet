@@ -12,8 +12,8 @@ from pprint import pprint
 COIN = 1000000000000000000
 TX_FEE = 0.01
 
-rpcurl_mainnet = 'http://127.0.0.1:8812'
-rpcurl_testnet = 'http://127.0.0.1:8814'
+rpcurl_mainnet = 'http://127.0.0.1:6602'
+rpcurl_testnet = 'http://127.0.0.1:6604'
 
 genesis_privkey = '9ae89671cc1a74e9e404a16982ae48d21c56d4ad8278bc9755235a68fc841271'
 genesis_addr = '1231kgws0rhjtfewv57jegfe5bp4dncax60szxk8f4y546jsfkap3t5ws'
