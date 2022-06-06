@@ -660,7 +660,7 @@ bool CBlockChain::GetBlockMintReward(const uint256& hashPrev, uint256& nReward)
             nReward = profile.nMintReward / uint256(u);
         }
     }
-    nReward = nReward / 2;
+    //nReward = nReward / 2;
     return true;
 }
 

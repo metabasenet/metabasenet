@@ -877,15 +877,14 @@ void CCoreProtocol::GetDelegatedBallot(const uint256& nAgreement, const size_t& 
         StdError("CoreProtocol", "Get delegated ballot: dest ballot size %llu is not equal amount size %llu", mapBallot.size(), vecAmount.size());
     }
 
-    int nSelected = 0;
-    for (const unsigned char* p = nAgreement.begin(); p != nAgreement.end(); ++p)
+    uint64 nSelected = 0;
+    for (int i = 0; i < nAgreement.size() / sizeof(int); i++)
     {
-        nSelected ^= *p;
+        nSelected += nAgreement[i];
     }
 
-    map<CDestination, size_t> mapSelectBallot;
-    //size_t nMaxWeight = std::min(nMoneySupply, DELEGATE_PROOF_OF_STATE_ENROLL_MAXIMUM_TOTAL_AMOUNT) / DELEGATE_PROOF_OF_STAKE_UNIT_AMOUNT;
-    size_t nEnrollWeight = 0;
+    map<CDestination, uint64> mapSelectBallot;
+    uint64 nEnrollWeight = 0;
     uint256 nTotalEnrollTrust;
     for (auto& amount : vecAmount)
     {
@@ -903,7 +902,6 @@ void CCoreProtocol::GetDelegatedBallot(const uint256& nAgreement, const size_t& 
                 nMinAmount = DELEGATE_PROOF_OF_STAKE_ENROLL_MAXIMUM_AMOUNT;
             }
             size_t nDestWeight = (nMinAmount / DELEGATE_PROOF_OF_STAKE_UNIT_AMOUNT).Get64();
-            //size_t nDestWeight = (size_t)(min(amount.second, DELEGATE_PROOF_OF_STAKE_ENROLL_MAXIMUM_AMOUNT) / DELEGATE_PROOF_OF_STAKE_UNIT_AMOUNT);
             mapSelectBallot[amount.first] = nDestWeight;
             nEnrollWeight += nDestWeight;
             nTotalEnrollTrust += nMinAmount;
@@ -924,30 +922,15 @@ void CCoreProtocol::GetDelegatedBallot(const uint256& nAgreement, const size_t& 
     StdTrace("CoreProtocol", "Get delegated ballot: trust height: %d, ballot dest count is %llu, enroll trust: %llu",
              nBlockHeight, mapSelectBallot.size(), nEnrollTrust);
 
-    /*size_t nWeightWork = ((nMaxWeight - nEnrollWeight) * (nMaxWeight - nEnrollWeight) * (nMaxWeight - nEnrollWeight))
-                         / (nMaxWeight * nMaxWeight);
-    // new DPoS & PoW mint rate
-    if (nBlockHeight >= CHANGE_MINT_RATE_HEIGHT)
+    uint64 n = (nSelected * DELEGATE_PROOF_OF_STAKE_MAXIMUM_TIMES) % nEnrollWeight;
+    for (auto it = mapSelectBallot.begin(); it != mapSelectBallot.end(); ++it)
     {
-        nWeightWork /= 10;
-    }*/
-    //size_t nWeightWork = 0;
-    //StdTrace("CoreProtocol", "Get delegated ballot: weight height: %d, nRandomDelegate: %llu, nRandomWork: %llu, nWeightDelegate: %llu, nWeightWork: %llu",
-    //         nBlockHeight, nSelected, (nWeightWork * 256 / (nWeightWork + nEnrollWeight)), nEnrollWeight, nWeightWork);
-
-    //if (nSelected >= nWeightWork * 256 / (nWeightWork + nEnrollWeight))
-    {
-        size_t total = nEnrollWeight;
-        size_t n = (nSelected * DELEGATE_PROOF_OF_STAKE_MAXIMUM_TIMES) % total;
-        for (auto it = mapSelectBallot.begin(); it != mapSelectBallot.end(); ++it)
+        if (n < it->second)
         {
-            if (n < it->second)
-            {
-                vBallot.push_back(it->first);
-                break;
-            }
-            n -= it->second;
+            vBallot.push_back(it->first);
+            break;
         }
+        n -= it->second;
     }
 
     StdTrace("CoreProtocol", "Get delegated ballot: consensus: %s, height: %d, ballot dest: %s",
