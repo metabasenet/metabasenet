@@ -2770,7 +2770,7 @@ bool CBlockChain::CalcInviteRelationReward(const uint256& hashFork, const uint25
     }
 
     uint256 nTotalPower;
-    const uint64 nBase = 10000;
+    const uint64 nBase = 200;
     for (auto& kv : mapCalcDest)
     {
         CInvitePower& invitePower = kv.second;
