@@ -943,7 +943,7 @@ bool CService::RetrieveInviteParent(const uint256& hashFork, const CDestination&
     return pBlockChain->RetrieveInviteParent(hashFork, hashLastBlock, destSub, destParent);
 }
 
-bool CService::ListDefiInviteRelation(const uint256& hashFork, std::map<CDestination, std::set<CDestination>>& mapDefiInvite)
+bool CService::ListDefiInviteRelation(const uint256& hashFork, const CDestination& destParent, std::map<CDestination, std::set<CDestination>>& mapDefiInvite)
 {
     uint256 hashLastBlock;
     if (!pBlockChain->RetrieveForkLast(hashFork, hashLastBlock))
@@ -960,7 +960,10 @@ bool CService::ListDefiInviteRelation(const uint256& hashFork, std::map<CDestina
     }
     for (const auto& kv : mapInviteContext)
     {
-        mapDefiInvite[kv.second].insert(kv.first);
+        if (destParent.IsNull() || destParent == kv.second)
+        {
+            mapDefiInvite[kv.second].insert(kv.first);
+        }
     }
     return true;
 }

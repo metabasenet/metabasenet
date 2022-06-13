@@ -3338,13 +3338,13 @@
     "getdefirelation": {
         "type": "command",
         "name": "GetDefiRelation",
-        "desc": "Get defi invite address relation.",
+        "desc": "Get defi invite parent address relation.",
         "request": {
             "type": "object",
             "content": {
                 "address": {
                     "type": "string",
-                    "desc": "invited address"
+                    "desc": "sub address"
                 },
                 "fork": {
                     "type": "string",
@@ -3383,6 +3383,12 @@
         "request": {
             "type": "object",
             "content": {
+                "parentaddress": {
+                    "type": "string",
+                    "desc": "parent address",
+                    "required": false,
+                    "opt": "p"
+                },
                 "fork": {
                     "type": "string",
                     "desc": "fork hash",
@@ -3404,8 +3410,14 @@
                             "desc": "parent address"
                         },
                         "subaddress": {
-                            "type": "string",
-                            "desc": "sub address"
+                            "type": "array",
+                            "name": "subaddress",
+                            "content": {
+                                "address": {
+                                    "type": "string",
+                                    "desc": "sub address"
+                                }
+                            }
                         }
                     }
                 }

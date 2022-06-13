@@ -407,7 +407,7 @@ public:
     virtual bool GetContractCode(const uint256& hashFork, const uint256& hashCode, bytes& btCode) = 0;
     virtual bool GetDestTemplateData(const uint256& hashFork, const CDestination& dest, bytes& btTemplateData) = 0;
     virtual bool RetrieveInviteParent(const uint256& hashFork, const CDestination& destSub, CDestination& destParent) = 0;
-    virtual bool ListDefiInviteRelation(const uint256& hashFork, std::map<CDestination, std::set<CDestination>>& mapDefiInvite) = 0;
+    virtual bool ListDefiInviteRelation(const uint256& hashFork, const CDestination& destParent, std::map<CDestination, std::set<CDestination>>& mapDefiInvite) = 0;
 
     /* Mint */
     virtual bool GetWork(std::vector<unsigned char>& vchWorkData, int& nPrevBlockHeight,

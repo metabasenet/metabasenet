@@ -3371,6 +3371,16 @@ CRPCResultPtr CRPCMod::RPCListDefiRelation(CRPCParamPtr param)
 {
     auto spParam = CastParamPtr<CListDefiRelationParam>(param);
 
+    CDestination addressParent;
+    if (spParam->strParentaddress.IsValid())
+    {
+        CDestination dest(spParam->strParentaddress);
+        if (!dest.IsNull())
+        {
+            addressParent = dest;
+        }
+    }
+
     uint256 hashFork;
     if (!GetForkHashOfDef(spParam->strFork, hashFork))
     {
@@ -3382,7 +3392,7 @@ CRPCResultPtr CRPCMod::RPCListDefiRelation(CRPCParamPtr param)
     }
 
     std::map<CDestination, std::set<CDestination>> mapDefiInvite;
-    if (!pService->ListDefiInviteRelation(hashFork, mapDefiInvite))
+    if (!pService->ListDefiInviteRelation(hashFork, addressParent, mapDefiInvite))
     {
         throw CRPCException(RPC_INTERNAL_ERROR, "Get fail");
     }
@@ -3391,17 +3401,17 @@ CRPCResultPtr CRPCMod::RPCListDefiRelation(CRPCParamPtr param)
     auto spResult = MakeCListDefiRelationResultPtr();
     for (const auto& kv : mapDefiInvite)
     {
+        CListDefiRelationResult::CRelationdata relData;
+        relData.strParentaddress = kv.first.ToString();
         for (const auto& vd : kv.second)
         {
-            CListDefiRelationResult::CRelationdata relData;
-            relData.strParentaddress = kv.first.ToString();
-            relData.strSubaddress = vd.ToString();
-            spResult->vecRelationdata.push_back(relData);
+            relData.vecSubaddress.push_back(vd.ToString());
             if (++nItemCount >= 1024)
             {
                 break;
             }
         }
+        spResult->vecRelationdata.push_back(relData);
         if (nItemCount >= 1024)
         {
             break;
