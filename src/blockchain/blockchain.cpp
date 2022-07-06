@@ -2694,72 +2694,48 @@ bool CBlockChain::CalcInviteRelationReward(const uint256& hashFork, const uint25
         return false;
     }
 
-    class CInvitePower
-    {
-    public:
-        CInvitePower()
-          : nMaxBalance(0), nPower(0) {}
-
-    public:
-        std::map<CDestination, uint64> mapDestBalance;
-        uint64 nMaxBalance;
-        CDestination destMax;
-        uint64 nPower;
-    };
-
-    std::map<CDestination, CInvitePower> mapCalcDest;
+    uint256 nTotalPower;
+    const uint64 nBaseBegin = 50;
+    const uint64 nBaseEnd = 200;
+    std::map<CDestination, uint64> mapCalcDest;
     for (const auto& kv : mapInviteContext)
     {
-        uint64 nBalance = 0;
+        uint64 nBalanceSub = 0;
+        uint64 nBalanceParent = 0;
         auto it = mapBlockState.find(kv.first);
         if (it != mapBlockState.end())
         {
-            nBalance = (it->second.GetBalance() / COIN).Get64();
+            nBalanceSub = (it->second.GetBalance() / COIN).Get64();
         }
-        CInvitePower& invitePower = mapCalcDest[kv.second];
-        invitePower.mapDestBalance[kv.first] = nBalance;
-        if (nBalance > invitePower.nMaxBalance)
+        auto mt = mapBlockState.find(kv.second);
+        if (mt != mapBlockState.end())
         {
-            invitePower.nMaxBalance = nBalance;
-            invitePower.destMax = kv.first;
+            nBalanceParent = (mt->second.GetBalance() / COIN).Get64();
         }
-    }
-
-    uint256 nTotalPower;
-    const uint64 nBase = 200;
-    for (auto& kv : mapCalcDest)
-    {
-        CInvitePower& invitePower = kv.second;
-        for (auto& vd : invitePower.mapDestBalance)
+        uint64 nBalance = std::min(nBalanceSub, nBalanceParent);
+        if (nBalance > 0)
         {
-            const uint64& nBalance = vd.second;
-            if (vd.first == invitePower.destMax)
+            uint64 nPower = 0;
+            if (nBalance >= nBaseBegin && nBalance <= nBaseEnd)
             {
-                invitePower.nPower += (uint64)(llround(pow(nBalance, 1.0 / 3)));
+                nPower = (nBalance * 3 / 2);
             }
             else
             {
-                if (nBalance > nBase)
-                {
-                    invitePower.nPower += (nBase * 10);
-                    invitePower.nPower += (nBalance - nBase);
-                }
-                else
-                {
-                    invitePower.nPower += (nBalance * 10);
-                }
+                nPower = nBalance;
             }
+            mapCalcDest[kv.second] += nPower;
+            nTotalPower += nPower;
         }
-        nTotalPower += invitePower.nPower;
     }
 
     uint256 nStatReward;
     CDestination destFirst;
     for (auto& kv : mapCalcDest)
     {
-        if (kv.second.nPower > 0)
+        if (kv.second > 0)
         {
-            uint256 nReward = nTotalReward * uint256(kv.second.nPower) / nTotalPower;
+            uint256 nReward = nTotalReward * uint256(kv.second) / nTotalPower;
             mapInviteReward[kv.first] = nReward;
             nStatReward += nReward;
             if (destFirst.IsNull())
