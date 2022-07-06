@@ -1863,55 +1863,6 @@ bool CBlockChain::GetCreateForkLockedAmount(const CDestination& dest, const uint
     return true;
 }
 
-bool CBlockChain::VerifyAddressVoteRedeem(const CDestination& dest, const uint256& hashPrevBlock)
-{
-    CVoteContext ctxtVote;
-    if (!cntrBlock.RetrieveDestVoteContext(hashPrevBlock, dest, ctxtVote))
-    {
-        StdLog("BlockChain", "Verify Vote Redeem: Retrieve dest vote context fail, dest: %s", dest.ToString().c_str());
-        return false;
-    }
-    if ((CBlock::GetBlockHeightByHash(hashPrevBlock) + 1) < (ctxtVote.nLastVoteHeight + VOTE_REDEEM_HEIGHT))
-    {
-        StdDebug("BlockChain", "Verify Vote Redeem: Vote locked, last vote height: %d, dest: %s",
-                 ctxtVote.nLastVoteHeight, dest.ToString().c_str());
-        return false;
-    }
-    return true;
-}
-
-bool CBlockChain::GetVoteRewardLockedAmount(const uint256& hashFork, const uint256& hashPrevBlock, const CDestination& dest, uint256& nLockedAmount)
-{
-    const uint32 nPrevHeight = CBlock::GetBlockHeightByHash(hashPrevBlock);
-    const uint32 nVoteRewardLockDays = VOTE_REWARD_LOCK_DAYS;
-    std::vector<std::pair<uint32, uint256>> vVoteReward;
-    if (!cntrBlock.ListVoteReward(hashFork, hashPrevBlock, dest, nVoteRewardLockDays, vVoteReward))
-    {
-        StdLog("BlockChain", "Get Vote Reward Locked Amount: List reward lock fail, dest: %s, fork: %s", dest.ToString().c_str(), hashFork.GetHex().c_str());
-        return false;
-    }
-    nLockedAmount = 0;
-    if (!vVoteReward.empty())
-    {
-        for (const auto& vd : vVoteReward)
-        {
-            const uint32& nRewardHeight = vd.first;
-            const uint256& nRewardAmount = vd.second;
-            uint32 nElapsedDays = (nPrevHeight + 1 - nRewardHeight) / VOTE_REWARD_LOCK_DAY_HEIGHT;
-            if (nElapsedDays == 0)
-            {
-                nLockedAmount += nRewardAmount;
-            }
-            else if (nElapsedDays < nVoteRewardLockDays)
-            {
-                uint32 nLockDays = nVoteRewardLockDays - nElapsedDays;
-                nLockedAmount += (nRewardAmount * uint256(nLockDays) / uint256(nVoteRewardLockDays));
-            }
-        }
-    }
-    return true;
-}
-
 bool CBlockChain::VerifyForkName(const uint256& hashFork, const std::string& strForkName, const uint256& hashBlock)
 {
     CForkContext ctxt;
@@ -1942,6 +1893,11 @@ bool CBlockChain::RetrieveInviteParent(const uint256& hashFork, const uint256& h
 bool CBlockChain::ListInviteRelation(const uint256& hashFork, const uint256& hashBlock, std::map<CDestination, CDestination>& mapInviteContext)
 {
     return cntrBlock.ListInviteRelation(hashFork, hashBlock, mapInviteContext);
+}
+
+bool CBlockChain::RetrieveDestVoteRedeemContext(const uint256& hashBlock, const CDestination& destRedeem, CVoteRedeemContext& ctxtVoteRedeem)
+{
+    return cntrBlock.RetrieveDestVoteRedeemContext(hashBlock, destRedeem, ctxtVoteRedeem);
 }
 
 bool CBlockChain::CalcBlockVoteRewardTx(const uint256& hashPrev, const uint16 nBlockType, const int nBlockHeight, const uint32 nBlockTime, vector<CTransaction>& vVoteRewardTx)

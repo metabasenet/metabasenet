@@ -430,7 +430,7 @@ Errno CCoreProtocol::VerifyForkRedeemTx(const CTransaction& tx, const uint256& h
     }
     if (tx.to == tx.from)
     {
-        return DEBUG(ERR_TRANSACTION_INVALID, "It is not allowed to change from self to self");
+        return DEBUG(ERR_TRANSACTION_INVALID, "It not is allowed to change from self to self");
     }
 
     uint256 nLockedAmount;
@@ -442,7 +442,7 @@ Errno CCoreProtocol::VerifyForkRedeemTx(const CTransaction& tx, const uint256& h
     // locked coin template: nValueIn >= tx.nAmount + tx.GetTxFee() + nLockedAmount
     if (state.nBalance < tx.nAmount + tx.GetTxFee() + nLockedAmount)
     {
-        return DEBUG(ERR_TRANSACTION_IS_LOCKED, "balance is not enough to locked coin, balance: %s, use: %s",
+        return DEBUG(ERR_TRANSACTION_IS_LOCKED, "balance not is enough to locked coin, balance: %s, use: %s",
                      CoinToTokenBigFloat(state.nBalance).c_str(), CoinToTokenBigFloat(tx.nAmount + tx.GetTxFee() + nLockedAmount).c_str());
     }
     return OK;
@@ -628,6 +628,27 @@ Errno CCoreProtocol::VerifyTransaction(const CTransaction& tx, const uint256& ha
         nToTemplateType = tid.GetType();
     }
 
+    if (nToTemplateType == TEMPLATE_FORK
+        || nToTemplateType == TEMPLATE_VOTE
+        || nToTemplateType == TEMPLATE_REDEEM)
+    {
+        if (tx.hashFork != GetGenesisBlockHash())
+        {
+            StdLog("CoreProtocol", "Template address tx is not on the main chain, to: %s, txid: %s, fork: %s",
+                   tx.to.ToString().c_str(), tx.GetHash().GetHex().c_str(), tx.hashFork.ToString().c_str());
+            return ERR_TRANSACTION_INVALID;
+        }
+    }
+    if (nFromTemplateType == TEMPLATE_DELEGATE || nFromTemplateType == TEMPLATE_VOTE)
+    {
+        if (nToTemplateType != TEMPLATE_DELEGATE && nToTemplateType != TEMPLATE_VOTE && nToTemplateType != TEMPLATE_REDEEM)
+        {
+            StdLog("CoreProtocol", "Template address tx is not on the main chain, to: %s, txid: %s, fork: %s",
+                   tx.to.ToString().c_str(), tx.GetHash().GetHex().c_str(), tx.hashFork.ToString().c_str());
+            return ERR_TRANSACTION_INVALID;
+        }
+    }
+
     if (nToTemplateType == TEMPLATE_VOTE)
     {
         err = VerifyVoteTx(tx, hashPrevBlock);
@@ -636,20 +657,13 @@ Errno CCoreProtocol::VerifyTransaction(const CTransaction& tx, const uint256& ha
             return DEBUG(err, "invalid vote tx");
         }
     }
-    if ((nToTemplateType != TEMPLATE_DELEGATE && nToTemplateType != TEMPLATE_VOTE)
-        && (nFromTemplateType == TEMPLATE_DELEGATE || nFromTemplateType == TEMPLATE_VOTE))
+    if (nFromTemplateType == TEMPLATE_REDEEM)
     {
-        err = VerifyVoteRedeemTx(tx, hashPrevBlock);
+        err = VerifyVoteRedeemTx(tx, stateFrom, hashPrevBlock);
         if (err != OK)
         {
             return DEBUG(err, "invalid redeem tx");
         }
-    }
-
-    err = VerifyVoteRewardLockTx(tx, hashPrevBlock, stateFrom);
-    if (err != OK)
-    {
-        return DEBUG(err, "invalid vote reward redeem tx");
     }
 
     if (nFromTemplateType == TEMPLATE_FORK)
@@ -1039,63 +1053,38 @@ Errno CCoreProtocol::VerifyCertTx(const CTransaction& tx)
 
 Errno CCoreProtocol::VerifyVoteTx(const CTransaction& tx, const uint256& hashPrev)
 {
-    uint256 txid = tx.GetHash();
-
-    // VOTE transaction must be on the main chain
-    if (tx.hashFork != GetGenesisBlockHash())
-    {
-        StdLog("CoreProtocol", "Verify Vote Tx: From or to vote template address tx is not on the main chain, txid: %s, fork: %s",
-               txid.GetHex().c_str(), tx.hashFork.ToString().c_str());
-        return ERR_TRANSACTION_INVALID;
-    }
-
     if (tx.to == tx.from)
     {
-        StdLog("CoreProtocol", "Verify Vote Tx: From and to addresses cannot be the same, txid: %s", txid.GetHex().c_str());
+        StdLog("CoreProtocol", "Verify Vote Tx: From and to addresses cannot be the same, txid: %s", tx.GetHash().GetHex().c_str());
         return ERR_TRANSACTION_INVALID;
     }
-
     if (tx.nAmount == 0)
     {
-        StdLog("CoreProtocol", "Verify Vote Tx: Transfer quantity is 0, nAmount: 0, txid: %s", txid.GetHex().c_str());
+        StdLog("CoreProtocol", "Verify Vote Tx: Transfer quantity is 0, nAmount: 0, txid: %s", tx.GetHash().GetHex().c_str());
         return ERR_TRANSACTION_INVALID;
     }
     return OK;
 }
 
-Errno CCoreProtocol::VerifyVoteRedeemTx(const CTransaction& tx, const uint256& hashPrev)
+Errno CCoreProtocol::VerifyVoteRedeemTx(const CTransaction& tx, const CDestState& stateFrom, const uint256& hashPrev)
 {
-    uint256 txid = tx.GetHash();
-    if (tx.hashFork != GetGenesisBlockHash())
+    CVoteRedeemContext ctxtVoteRedeem;
+    if (!pBlockChain->RetrieveDestVoteRedeemContext(hashPrev, tx.from, ctxtVoteRedeem))
     {
-        StdLog("CoreProtocol", "Verify Vote Redeem Tx: tx fork error, txid: %s, fork: %s",
-               txid.GetHex().c_str(), tx.hashFork.ToString().c_str());
+        StdLog("CoreProtocol", "Verify vote redeem tx: Retrieve dest vote redeem context fail, from: %s", tx.from.ToString().c_str());
         return ERR_TRANSACTION_INVALID;
     }
-    if (!pBlockChain->VerifyAddressVoteRedeem(tx.from, hashPrev))
-    {
-        StdDebug("CoreProtocol", "Verify Vote Redeem Tx: Vote locked, txid: %s, from: %s",
-                 txid.GetHex().c_str(), tx.from.ToString().c_str());
-        return ERR_TRANSACTION_IS_LOCKED;
-    }
-    return OK;
-}
+    uint256 nUnitRedeem = ctxtVoteRedeem.nRedeemAmount / 100;
+    int nHeightDiff = CBlock::GetBlockHeightByHash(hashPrev) - ctxtVoteRedeem.nLastRedeemHeight;
+    uint256 nLockedAmount = nUnitRedeem * (100 - nHeightDiff / DAY_HEIGHT);
 
-Errno CCoreProtocol::VerifyVoteRewardLockTx(const CTransaction& tx, const uint256& hashPrev, const CDestState& state)
-{
-    uint256 nLockedAmount;
-    if (!pBlockChain->GetVoteRewardLockedAmount(tx.hashFork, hashPrev, tx.from, nLockedAmount))
+    if (stateFrom.nBalance < tx.nAmount + tx.GetTxFee() + nLockedAmount)
     {
-        StdLog("CoreProtocol", "Verify vote reward lock tx: Get reward locked amount failed, txid: %s, from: %s",
-               tx.GetHash().GetHex().c_str(), tx.from.ToString().c_str());
-        return ERR_TRANSACTION_IS_LOCKED;
-    }
-    if (nLockedAmount > 0 && state.GetBalance() < nLockedAmount + tx.nAmount + tx.GetTxFee())
-    {
-        StdLog("CoreProtocol", "Verify vote reward lock tx: Balance locked, balance: %s, lock amount: %s, txid: %s, from: %s",
-               CoinToTokenBigFloat(state.GetBalance()).c_str(), CoinToTokenBigFloat(nLockedAmount).c_str(),
-               tx.GetHash().GetHex().c_str(), tx.from.ToString().c_str());
-        return ERR_TRANSACTION_IS_LOCKED;
+        StdLog("CoreProtocol", "Verify vote redeem tx: Balance not is enough to locked coin, balance: %s, use: %s, redeem start height: %d, from: %s",
+               CoinToTokenBigFloat(stateFrom.nBalance).c_str(),
+               CoinToTokenBigFloat(tx.nAmount + tx.GetTxFee() + nLockedAmount).c_str(),
+               ctxtVoteRedeem.nLastRedeemHeight, tx.from.ToString().c_str());
+        return ERR_TRANSACTION_INVALID;
     }
     return OK;
 }

@@ -580,18 +580,14 @@ bool CService::GetBalance(const uint256& hashFork, const uint256& hashLastBlock,
                 balance.nLocked += nLockedAmount;
             }
         }
-        else if (nDestTemplateType == TEMPLATE_DELEGATE || nDestTemplateType == TEMPLATE_VOTE)
+        else if (nDestTemplateType == TEMPLATE_REDEEM)
         {
-            if (!pBlockChain->VerifyAddressVoteRedeem(dest, hashLastBlock))
+            CVoteRedeemContext ctxtVoteRedeem;
+            if (pBlockChain->RetrieveDestVoteRedeemContext(hashLastBlock, dest, ctxtVoteRedeem))
             {
-                balance.nLocked += balance.nAvailable;
-            }
-        }
-        if (balance.nAvailable > balance.nLocked)
-        {
-            uint256 nLockedAmount;
-            if (pBlockChain->GetVoteRewardLockedAmount(hashFork, hashLastBlock, dest, nLockedAmount))
-            {
+                uint256 nUnitRedeem = ctxtVoteRedeem.nRedeemAmount / 100;
+                int nHeightDiff = CBlock::GetBlockHeightByHash(hashLastBlock) - ctxtVoteRedeem.nLastRedeemHeight;
+                uint256 nLockedAmount = nUnitRedeem * (100 - nHeightDiff / DAY_HEIGHT);
                 balance.nLocked += nLockedAmount;
             }
         }

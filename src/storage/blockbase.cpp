@@ -10,6 +10,7 @@
 #include "bloomfilter/bloomfilter.h"
 #include "delegatecomm.h"
 #include "template/delegate.h"
+#include "template/redeem.h"
 #include "template/template.h"
 #include "template/vote.h"
 #include "util.h"
@@ -1134,13 +1135,6 @@ bool CBlockBase::SaveBlock(const uint256& hashFork, const uint256& hashBlock, co
             break;
         }
 
-        if (!UpdateBlockVoteReward(hashFork, hashBlock, block, blockRoot.hashVoteRewardRoot))
-        {
-            StdError("BlockBase", "Save block: Update block vote reward failed, block: %s", hashBlock.ToString().c_str());
-            fRet = false;
-            break;
-        }
-
         if (!UpdateBlockInvite(hashFork, hashBlock, block, blockRoot.hashInviteRoot))
         {
             StdError("BlockBase", "Save block: Update block invite failed, block: %s", hashBlock.ToString().c_str());
@@ -1178,6 +1172,13 @@ bool CBlockBase::SaveBlock(const uint256& hashFork, const uint256& hashBlock, co
             if (!UpdateVote(hashFork, hashBlock, block, blockRoot.hashVoteRoot))
             {
                 StdError("BlockBase", "Save block: Update vote failed, block: %s", hashBlock.ToString().c_str());
+                fRet = false;
+                break;
+            }
+
+            if (!UpdateVoteRedeem(hashFork, hashBlock, block, blockRoot.hashVoteRedeemRoot))
+            {
+                StdError("BlockBase", "Save block: Update vote redeem failed, block: %s", hashBlock.ToString().c_str());
                 fRet = false;
                 break;
             }
@@ -2133,6 +2134,11 @@ bool CBlockBase::WalkThroughDayVote(const uint256& hashBeginBlock, const uint256
     return dbBlock.WalkThroughDayVote(hashBeginBlock, hashTailBlock, walker);
 }
 
+bool CBlockBase::RetrieveDestVoteRedeemContext(const uint256& hashBlock, const CDestination& destRedeem, CVoteRedeemContext& ctxtVoteRedeem)
+{
+    return dbBlock.RetrieveDestVoteRedeemContext(hashBlock, destRedeem, ctxtVoteRedeem);
+}
+
 bool CBlockBase::RetrieveAllDelegateVote(const uint256& hashBlock, std::map<CDestination, std::map<CDestination, CVoteContext>>& mapDelegateVote)
 {
     return dbBlock.RetrieveAllDelegateVote(hashBlock, mapDelegateVote);
@@ -3045,42 +3051,6 @@ bool CBlockBase::UpdateBlockCode(const uint256& hashFork, const uint256& hashBlo
     return true;
 }
 
-bool CBlockBase::UpdateBlockVoteReward(const uint256& hashFork, const uint256& hashBlock, const CBlockEx& block, uint256& hashNewRoot)
-{
-    std::map<CDestination, uint256> mapVoteReward;
-    for (const auto& tx : block.vtx)
-    {
-        if (tx.nType == CTransaction::TX_DEFI_REWARD)
-        {
-            uint256 nVoteReward;
-            try
-            {
-                bytes btData;
-                if (tx.GetTxData(CTransaction::DF_VOTEREWARD, btData))
-                {
-                    hcode::CBufStream ss(btData);
-                    ss >> nVoteReward;
-                }
-            }
-            catch (std::exception& e)
-            {
-                hcode::StdError(__PRETTY_FUNCTION__, e.what());
-            }
-            if (nVoteReward > 0)
-            {
-                mapVoteReward.insert(std::make_pair(tx.to, nVoteReward));
-            }
-        }
-    }
-
-    if (!dbBlock.AddVoteReward(hashFork, block.hashPrev, hashBlock, block.GetBlockHeight(), mapVoteReward, hashNewRoot))
-    {
-        StdLog("BlockBase", "Update block vote reward: Add vote reward fail, block: %s", hashBlock.GetHex().c_str());
-        return false;
-    }
-    return true;
-}
-
 bool CBlockBase::UpdateBlockInvite(const uint256& hashFork, const uint256& hashBlock, const CBlockEx& block, uint256& hashNewRoot)
 {
     std::map<CDestination, CDestination> mapInviteContext;
@@ -3653,6 +3623,77 @@ bool CBlockBase::UpdateVote(const uint256& hashFork, const uint256& hashBlock, c
     return true;
 }
 
+bool CBlockBase::UpdateVoteRedeem(const uint256& hashFork, const uint256& hashBlock, const CBlockEx& block, uint256& hashVoteRedeemRoot)
+{
+    std::map<CDestination, CVoteRedeemContext> mapBlockVoteRedeem;
+    for (size_t i = 0; i < block.vtx.size(); i++)
+    {
+        const CTransaction& tx = block.vtx[i];
+        if (tx.to.IsTemplate() && tx.to.GetTemplateId().GetType() == TEMPLATE_REDEEM)
+        {
+            auto it = mapBlockVoteRedeem.find(tx.to);
+            if (it == mapBlockVoteRedeem.end())
+            {
+                CVoteRedeemContext ctxtVoteRedeem;
+                if (!dbBlock.RetrieveDestVoteRedeemContext(block.hashPrev, tx.to, ctxtVoteRedeem))
+                {
+                    CTemplatePtr ptr = nullptr;
+                    CAddressContext ctxtAddress;
+                    if (!dbBlock.RetrieveAddressContext(hashFork, block.hashPrev, tx.to.data, ctxtAddress))
+                    {
+                        bytes btTempData;
+                        if (!tx.GetTxData(CTransaction::DF_TEMPLATEDATA, btTempData))
+                        {
+                            StdError("BlockBase", "Update vote redeem: Retrieve address context failed and tx data error, to: %s, hashPrev: %s",
+                                     tx.to.ToString().c_str(), block.hashPrev.ToString().c_str());
+                            return false;
+                        }
+                        ptr = CTemplate::CreateTemplatePtr(TEMPLATE_REDEEM, btTempData);
+                    }
+                    else
+                    {
+                        CTemplateAddressContext ctxtTemplate;
+                        if (!ctxtAddress.GetTemplateAddressContext(ctxtTemplate))
+                        {
+                            StdError("BlockBase", "Update vote redeem: Get template address context failed, block: %s", hashBlock.ToString().c_str());
+                            return false;
+                        }
+                        ptr = CTemplate::CreateTemplatePtr(TEMPLATE_REDEEM, ctxtTemplate.btData);
+                    }
+                    if (ptr == nullptr)
+                    {
+                        StdError("BlockBase", "Update vote redeem: Create template failed, block: %s", hashBlock.ToString().c_str());
+                        return false;
+                    }
+                    auto objRedeem = boost::dynamic_pointer_cast<CTemplateRedeem>(ptr);
+                    ctxtVoteRedeem.destOwner = objRedeem->destOwner;
+                }
+                it = mapBlockVoteRedeem.insert(make_pair(tx.to, ctxtVoteRedeem)).first;
+            }
+            it->second.nLastRedeemHeight = block.GetBlockHeight();
+        }
+    }
+
+    for (auto& kv : mapBlockVoteRedeem)
+    {
+        CDestState state;
+        if (!dbBlock.RetrieveDestState(hashGenesisBlock, block.hashStateRoot, kv.first, state))
+        {
+            StdError("BlockBase", "Update vote redeem: Retrieve dest state failed, dest: %s, block: %s",
+                     kv.first.ToString().c_str(), hashBlock.ToString().c_str());
+            return false;
+        }
+        kv.second.nRedeemAmount = state.nBalance;
+    }
+
+    if (!dbBlock.AddBlockVoteRedeem(block.hashPrev, hashBlock, mapBlockVoteRedeem, hashVoteRedeemRoot))
+    {
+        StdError("BlockBase", "Update vote redeem: Add block vote redeem failed, block: %s", hashBlock.ToString().c_str());
+        return false;
+    }
+    return true;
+}
+
 bool CBlockBase::IsValidBlock(CBlockIndex* pForkLast, const uint256& hashBlock)
 {
     if (hashBlock != 0)
@@ -4116,11 +4157,6 @@ bool CBlockBase::ListDestState(const uint256& hashFork, const uint256& hashBlock
 bool CBlockBase::ListAddressTxInfo(const uint256& hashFork, const uint256& hashBlock, const CDestination& dest, const uint64 nBeginTxIndex, const uint64 nGetTxCount, const bool fReverse, std::vector<CDestTxInfo>& vAddressTxInfo)
 {
     return dbBlock.ListAddressTxInfo(hashFork, hashBlock, dest, nBeginTxIndex, nGetTxCount, fReverse, vAddressTxInfo);
-}
-
-bool CBlockBase::ListVoteReward(const uint256& hashFork, const uint256& hashBlock, const CDestination& dest, const uint32 nGetCount, std::vector<std::pair<uint32, uint256>>& vVoteReward)
-{
-    return dbBlock.ListVoteReward(hashFork, hashBlock, dest, nGetCount, vVoteReward);
 }
 
 bool CBlockBase::RetrieveInviteParent(const uint256& hashFork, const uint256& hashBlock, const CDestination& destSub, CDestination& destParent)

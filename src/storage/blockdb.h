@@ -19,7 +19,7 @@
 #include "txindexdb.h"
 #include "verifydb.h"
 #include "votedb.h"
-#include "voterewarddb.h"
+#include "voteredeemdb.h"
 #include "wasmdb.h"
 
 namespace metabasenet
@@ -67,6 +67,8 @@ public:
     bool RetrieveAllDelegateVote(const uint256& hashBlock, std::map<CDestination, std::map<CDestination, CVoteContext>>& mapDelegateVote);
     bool RetrieveDestVoteContext(const uint256& hashBlock, const CDestination& destVote, CVoteContext& ctxtVote);
     bool WalkThroughDayVote(const uint256& hashBeginBlock, const uint256& hashTailBlock, CDayVoteWalker& walker);
+    bool AddBlockVoteRedeem(const uint256& hashPrev, const uint256& hashBlock, const std::map<CDestination, CVoteRedeemContext>& mapBlockVoteRedeem, uint256& hashVoteRedeemRoot);
+    bool RetrieveDestVoteRedeemContext(const uint256& hashBlock, const CDestination& destVoteRedeem, CVoteRedeemContext& ctxtVoteRedeem);
     bool AddBlockState(const uint256& hashFork, const uint256& hashPrevRoot, uint256& hashBlockRoot, const std::map<CDestination, CDestState>& mapBlockState);
     bool CreateCacheStateTrie(const uint256& hashFork, const uint256& hashPrevRoot, uint256& hashBlockRoot, const std::map<CDestination, CDestState>& mapBlockState);
     bool RetrieveDestState(const uint256& hashFork, const uint256& hashBlockRoot, const CDestination& dest, CDestState& state);
@@ -92,9 +94,6 @@ public:
     bool RetrieveAddressTxInfo(const uint256& hashFork, const uint256& hashBlock, const CDestination& dest, const uint64 nTxIndex, CDestTxInfo& ctxtAddressTxInfo);
     bool ListAddressTxInfo(const uint256& hashFork, const uint256& hashBlock, const CDestination& dest, const uint64 nBeginTxIndex, const uint64 nGetTxCount, const bool fReverse, std::vector<CDestTxInfo>& vAddressTxInfo);
 
-    bool AddVoteReward(const uint256& hashFork, const uint256& hashPrevBlock, const uint256& hashBlock, const uint32 nBlockHeight, const std::map<CDestination, uint256>& mapVoteReward, uint256& hashNewRoot);
-    bool ListVoteReward(const uint256& hashFork, const uint256& hashBlock, const CDestination& dest, const uint32 nGetCount, std::vector<std::pair<uint32, uint256>>& vVoteReward);
-
     bool AddInviteRelation(const uint256& hashFork, const uint256& hashPrevBlock, const uint256& hashBlock, const std::map<CDestination, CDestination>& mapInviteContext, uint256& hashNewRoot);
     bool RetrieveInviteParent(const uint256& hashFork, const uint256& hashBlock, const CDestination& destSub, CDestination& destParent);
     bool ListInviteRelation(const uint256& hashFork, const uint256& hashBlock, std::map<CDestination, CDestination>& mapInviteContext);
@@ -113,10 +112,10 @@ protected:
     CTxIndexDB dbTxIndex;
     CDelegateDB dbDelegate;
     CVoteDB dbVote;
+    CVoteRedeemDB dbVoteRedeem;
     CStateDB dbState;
     CAddressDB dbAddress;
     CCodeDB dbCode;
-    CVoteRewardDB dbVoteReward;
     CInviteDB dbInvite;
     CVerifyDB dbVerify;
     CWasmDB dbWasm;

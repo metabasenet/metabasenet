@@ -12,6 +12,7 @@
 #include "delegate.h"
 #include "fork.h"
 #include "proof.h"
+#include "redeem.h"
 #include "rpc/auto_protocol.h"
 #include "template.h"
 #include "templateid.h"
@@ -44,6 +45,7 @@ static const CTypeInfoSet setTypeInfo = {
     { TEMPLATE_PROOF, new CTemplateProof, "mint" },
     { TEMPLATE_DELEGATE, new CTemplateDelegate, "delegate" },
     { TEMPLATE_VOTE, new CTemplateVote, "vote" },
+    { TEMPLATE_REDEEM, new CTemplateRedeem, "redeem" },
 };
 
 static const CTypeInfo* GetTypeInfoByType(uint16 nTypeIn)

@@ -1,37 +1,37 @@
-#------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
 # CMake file for MetabaseNet
 #
 # Copyright (c) 2021-2022 The MetabaseNet developers
 # Distributed under the MIT/X11 software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
-#------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
 
 set(sources
-    timeseries.cpp      timeseries.h
-    blockdb.cpp         blockdb.h
-    blockbase.cpp       blockbase.h
-    blockindexdb.cpp    blockindexdb.h
-    walletdb.cpp        walletdb.h
-    txpooldata.cpp      txpooldata.h
-    delegatedb.cpp      delegatedb.h
-    forkdb.cpp          forkdb.h
-    invitedb.cpp        invitedb.h
-    purger.cpp          purger.h
-    leveldbeng.cpp      leveldbeng.h
-    txindexdb.cpp       txindexdb.h
-    ctsdb.cpp           ctsdb.h
+    timeseries.cpp timeseries.h
+    blockdb.cpp blockdb.h
+    blockbase.cpp blockbase.h
+    blockindexdb.cpp blockindexdb.h
+    walletdb.cpp walletdb.h
+    txpooldata.cpp txpooldata.h
+    delegatedb.cpp delegatedb.h
+    forkdb.cpp forkdb.h
+    invitedb.cpp invitedb.h
+    purger.cpp purger.h
+    leveldbeng.cpp leveldbeng.h
+    txindexdb.cpp txindexdb.h
+    ctsdb.cpp ctsdb.h
     delegatevotesave.cpp delegatevotesave.h
-    triedb.cpp          triedb.h
-    votedb.cpp          votedb.h
-    voterewarddb.cpp    voterewarddb.h
-    statedb.cpp         statedb.h
-    addressdb.cpp       addressdb.h
+    triedb.cpp triedb.h
+    votedb.cpp votedb.h
+    voteredeemdb.cpp voteredeemdb.h
+    statedb.cpp statedb.h
+    addressdb.cpp addressdb.h
     addresstxinfodb.cpp addresstxinfodb.h
-    codedb.cpp          codedb.h
-    verifydb.cpp        verifydb.h
-    wasmdb.cpp          wasmdb.h
-    wasmhost.cpp        wasmhost.h
-    wasmrun.cpp         wasmrun.h
+    codedb.cpp codedb.h
+    verifydb.cpp verifydb.h
+    wasmdb.cpp wasmdb.h
+    wasmhost.cpp wasmhost.h
+    wasmrun.cpp wasmrun.h
     wasmbase.h
 )
 
@@ -54,7 +54,7 @@ target_link_libraries(storage
     hcode
     crypto
     common
-    leveldb    
+    leveldb
     snappy
     delegate
     mpvss

@@ -701,7 +701,7 @@ public:
     uint256 hashCodeRoot;
     uint256 hashDelegateRoot;
     uint256 hashVoteRoot;
-    uint256 hashVoteRewardRoot;
+    uint256 hashVoteRedeemRoot;
     uint256 hashInviteRoot;
 
 protected:
@@ -715,7 +715,7 @@ protected:
         s.Serialize(hashCodeRoot, opt);
         s.Serialize(hashDelegateRoot, opt);
         s.Serialize(hashVoteRoot, opt);
-        s.Serialize(hashVoteRewardRoot, opt);
+        s.Serialize(hashVoteRedeemRoot, opt);
         s.Serialize(hashInviteRoot, opt);
     }
 };
@@ -824,6 +824,29 @@ protected:
         s.Serialize(nRewardMode, opt);
         s.Serialize(nVoteAmount, opt);
         s.Serialize(nLastVoteHeight, opt);
+    }
+};
+
+class CVoteRedeemContext
+{
+    friend class hcode::CStream;
+
+public:
+    CVoteRedeemContext()
+      : nLastRedeemHeight(0) {}
+
+public:
+    CDestination destOwner;
+    uint256 nRedeemAmount;
+    uint32 nLastRedeemHeight;
+
+protected:
+    template <typename O>
+    void Serialize(hcode::CStream& s, O& opt)
+    {
+        s.Serialize(destOwner, opt);
+        s.Serialize(nRedeemAmount, opt);
+        s.Serialize(nLastRedeemHeight, opt);
     }
 };
 

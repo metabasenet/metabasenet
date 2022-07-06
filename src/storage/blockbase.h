@@ -249,6 +249,7 @@ public:
     bool GetVotes(const uint256& hashGenesis, const CDestination& destDelegate, uint256& nVotes);
     bool RetrieveDestVoteContext(const uint256& hashBlock, const CDestination& destVote, CVoteContext& ctxtVote);
     bool WalkThroughDayVote(const uint256& hashBeginBlock, const uint256& hashTailBlock, CDayVoteWalker& walker);
+    bool RetrieveDestVoteRedeemContext(const uint256& hashBlock, const CDestination& destRedeem, CVoteRedeemContext& ctxtVoteRedeem);
     bool GetDelegateList(const uint256& hashGenesis, uint32 nCount, std::multimap<uint256, CDestination>& mapVotes);
     bool RetrieveAllDelegateVote(const uint256& hashBlock, std::map<CDestination, std::map<CDestination, CVoteContext>>& mapDelegateVote);
     bool GetDelegateMintRewardRatio(const uint256& hashBlock, const CDestination& destDelegate, uint32& nRewardRation);
@@ -279,7 +280,6 @@ public:
     bool UpdateBlockAddress(const uint256& hashFork, const uint256& hashBlock, const CBlock& block, const std::map<uint256, CAddressContext>& mapAddressContextIn, uint256& hashNewRoot);
     bool UpdateBlockCode(const uint256& hashFork, const uint256& hashBlock, const CBlock& block, const uint32 nFile, const uint32 nBlockOffset,
                          const std::map<uint256, CWasmRunCodeContext>& mapWasmRunCodeContextIn, uint256& hashCodeRoot);
-    bool UpdateBlockVoteReward(const uint256& hashFork, const uint256& hashBlock, const CBlockEx& block, uint256& hashNewRoot);
     bool UpdateBlockInvite(const uint256& hashFork, const uint256& hashBlock, const CBlockEx& block, uint256& hashNewRoot);
     bool RetrieveWasmState(const uint256& hashFork, const uint256& hashWasmRoot, const uint256& key, bytes& value);
     bool AddBlockWasmState(const uint256& hashFork, const uint256& hashPrevRoot, uint256& hashWasmRoot, const std::map<uint256, bytes>& mapWasmState);
@@ -301,7 +301,6 @@ public:
     bool RetrieveAddressTxInfo(const uint256& hashFork, const uint256& hashBlock, const CDestination& dest, const uint64 nTxIndex, CDestTxInfo& ctxtAddressTxInfo);
     bool ListDestState(const uint256& hashFork, const uint256& hashBlock, std::map<CDestination, CDestState>& mapBlockState);
     bool ListAddressTxInfo(const uint256& hashFork, const uint256& hashBlock, const CDestination& dest, const uint64 nBeginTxIndex, const uint64 nGetTxCount, const bool fReverse, std::vector<CDestTxInfo>& vAddressTxInfo);
-    bool ListVoteReward(const uint256& hashFork, const uint256& hashBlock, const CDestination& dest, const uint32 nGetCount, std::vector<std::pair<uint32, uint256>>& vVoteReward);
     bool RetrieveInviteParent(const uint256& hashFork, const uint256& hashBlock, const CDestination& destSub, CDestination& destParent);
     bool ListInviteRelation(const uint256& hashFork, const uint256& hashBlock, std::map<CDestination, CDestination>& mapInviteContext);
 
@@ -320,6 +319,7 @@ protected:
     bool UpdateDelegate(const uint256& hashBlock, const CBlockEx& block, const uint32 nFile, const uint32 nOffset,
                         const uint256& nMinEnrollAmount, uint256& hashDelegateRoot);
     bool UpdateVote(const uint256& hashFork, const uint256& hashBlock, const CBlockEx& block, uint256& hashVoteRoot);
+    bool UpdateVoteRedeem(const uint256& hashFork, const uint256& hashBlock, const CBlockEx& block, uint256& hashVoteRedeemRoot);
     bool IsValidBlock(CBlockIndex* pForkLast, const uint256& hashBlock);
     bool VerifyValidBlock(CBlockIndex* pIndexGenesisLast, const CBlockIndex* pIndex);
     CBlockIndex* GetLongChainLastBlock(const uint256& hashFork, int nStartHeight, CBlockIndex* pIndexGenesisLast, const std::set<uint256>& setInvalidHash);

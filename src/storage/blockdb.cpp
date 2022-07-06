@@ -53,6 +53,10 @@ bool CBlockDB::Initialize(const boost::filesystem::path& pathData, const uint256
     {
         return false;
     }
+    if (!dbVoteRedeem.Initialize(pathData))
+    {
+        return false;
+    }
     if (!dbState.Initialize(pathData))
     {
         return false;
@@ -66,10 +70,6 @@ bool CBlockDB::Initialize(const boost::filesystem::path& pathData, const uint256
         return false;
     }
     if (!dbWasm.Initialize(pathData))
-    {
-        return false;
-    }
-    if (!dbVoteReward.Initialize(pathData))
     {
         return false;
     }
@@ -90,12 +90,12 @@ bool CBlockDB::Initialize(const boost::filesystem::path& pathData, const uint256
 void CBlockDB::Deinitialize()
 {
     dbInvite.Deinitialize();
-    dbVoteReward.Deinitialize();
     dbWasm.Deinitialize();
     dbCode.Deinitialize();
     dbAddress.Deinitialize();
     dbState.Deinitialize();
     dbVote.Deinitialize();
+    dbVoteRedeem.Deinitialize();
     dbDelegate.Deinitialize();
     dbTxIndex.Deinitialize();
     dbBlockIndex.Deinitialize();
@@ -110,12 +110,12 @@ void CBlockDB::Deinitialize()
 void CBlockDB::RemoveAll()
 {
     dbInvite.Clear();
-    dbVoteReward.Clear();
     dbWasm.Clear();
     dbCode.Clear();
     dbAddress.Clear();
     dbState.Clear();
     dbVote.Clear();
+    dbVoteRedeem.Clear();
     dbDelegate.Clear();
     dbTxIndex.Clear();
     dbBlockIndex.Clear();
@@ -193,11 +193,6 @@ bool CBlockDB::AddNewFork(const uint256& hashFork)
         RemoveFork(hashFork);
         return false;
     }
-    if (!dbVoteReward.AddNewFork(hashFork))
-    {
-        RemoveFork(hashFork);
-        return false;
-    }
     if (!dbInvite.AddNewFork(hashFork))
     {
         RemoveFork(hashFork);
@@ -236,10 +231,6 @@ bool CBlockDB::LoadFork(const uint256& hashFork)
     {
         return false;
     }
-    if (!dbVoteReward.LoadFork(hashFork))
-    {
-        return false;
-    }
     if (!dbInvite.LoadFork(hashFork))
     {
         return false;
@@ -261,7 +252,6 @@ bool CBlockDB::RemoveFork(const uint256& hashFork)
     dbAddress.RemoveFork(hashFork);
     dbCode.RemoveFork(hashFork);
     dbWasm.RemoveFork(hashFork);
-    dbVoteReward.RemoveFork(hashFork);
     dbInvite.RemoveFork(hashFork);
     if (fCfgFullDb)
     {
@@ -382,6 +372,16 @@ bool CBlockDB::WalkThroughDayVote(const uint256& hashBeginBlock, const uint256& 
     return dbVote.WalkThroughDayVote(hashBeginBlock, hashTailBlock, walker);
 }
 
+bool CBlockDB::AddBlockVoteRedeem(const uint256& hashPrev, const uint256& hashBlock, const std::map<CDestination, CVoteRedeemContext>& mapBlockVoteRedeem, uint256& hashVoteRedeemRoot)
+{
+    return dbVoteRedeem.AddBlockVoteRedeem(hashPrev, hashBlock, mapBlockVoteRedeem, hashVoteRedeemRoot);
+}
+
+bool CBlockDB::RetrieveDestVoteRedeemContext(const uint256& hashBlock, const CDestination& destVoteRedeem, CVoteRedeemContext& ctxtVoteRedeem)
+{
+    return dbVoteRedeem.RetrieveDestVoteRedeemContext(hashBlock, destVoteRedeem, ctxtVoteRedeem);
+}
+
 bool CBlockDB::AddBlockState(const uint256& hashFork, const uint256& hashPrevRoot, uint256& hashBlockRoot, const std::map<CDestination, CDestState>& mapBlockState)
 {
     return dbState.AddBlockState(hashFork, hashPrevRoot, hashBlockRoot, mapBlockState);
@@ -497,16 +497,6 @@ bool CBlockDB::ListAddressTxInfo(const uint256& hashFork, const uint256& hashBlo
     return false;
 }
 
-bool CBlockDB::AddVoteReward(const uint256& hashFork, const uint256& hashPrevBlock, const uint256& hashBlock, const uint32 nBlockHeight, const std::map<CDestination, uint256>& mapVoteReward, uint256& hashNewRoot)
-{
-    return dbVoteReward.AddVoteReward(hashFork, hashPrevBlock, hashBlock, nBlockHeight, mapVoteReward, hashNewRoot);
-}
-
-bool CBlockDB::ListVoteReward(const uint256& hashFork, const uint256& hashBlock, const CDestination& dest, const uint32 nGetCount, std::vector<std::pair<uint32, uint256>>& vVoteReward)
-{
-    return dbVoteReward.ListVoteReward(hashFork, hashBlock, dest, nGetCount, vVoteReward);
-}
-
 bool CBlockDB::AddInviteRelation(const uint256& hashFork, const uint256& hashPrevBlock, const uint256& hashBlock, const std::map<CDestination, CDestination>& mapInviteContext, uint256& hashNewRoot)
 {
     return dbInvite.AddInviteRelation(hashFork, hashPrevBlock, hashBlock, mapInviteContext, hashNewRoot);
@@ -542,6 +532,11 @@ bool CBlockDB::VerifyBlockRoot(const bool fPrimary, const uint256& hashFork, con
             StdError("CBlockDB", "Verify block root: Verify vote fail, block: %s", hashBlock.GetHex().c_str());
             return false;
         }
+        if (!dbVoteRedeem.VerifyVoteRedeem(hashPrevBlock, hashBlock, localBlockRoot.hashVoteRedeemRoot, fVerifyAllNode))
+        {
+            StdError("CBlockDB", "Verify block root: Verify vote redeem fail, block: %s", hashBlock.GetHex().c_str());
+            return false;
+        }
     }
     if (!dbState.VerifyState(hashFork, hashLocalStateRoot, fVerifyAllNode))
     {
@@ -562,11 +557,6 @@ bool CBlockDB::VerifyBlockRoot(const bool fPrimary, const uint256& hashFork, con
     if (!dbTxIndex.VerifyTxIndex(hashFork, hashPrevBlock, hashBlock, localBlockRoot.hashTxIndexRoot, fVerifyAllNode))
     {
         StdError("CBlockDB", "Verify block root: Verify txindex fail, block: %s", hashBlock.GetHex().c_str());
-        return false;
-    }
-    if (!dbVoteReward.VerifyVoteReward(hashFork, hashPrevBlock, hashBlock, localBlockRoot.hashVoteRewardRoot, fVerifyAllNode))
-    {
-        StdError("CBlockDB", "Verify block root: Verify reward lock fail, block: %s", hashBlock.GetHex().c_str());
         return false;
     }
     if (!dbInvite.VerifyInviteContext(hashFork, hashPrevBlock, hashBlock, localBlockRoot.hashInviteRoot, fVerifyAllNode))
@@ -614,10 +604,6 @@ bool CBlockDB::LoadAllFork()
             return false;
         }
         if (!dbWasm.LoadFork(kv.first))
-        {
-            return false;
-        }
-        if (!dbVoteReward.LoadFork(kv.first))
         {
             return false;
         }

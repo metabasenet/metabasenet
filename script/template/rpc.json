@@ -45,6 +45,17 @@
                     }
                 }
             },
+            "redeem": {
+                "type": "object",
+                "desc": "a redeem template",
+                "condition": "type=redeem",
+                "content": {
+                    "owner": {
+                        "type": "string",
+                        "desc": "owner address"
+                    }
+                }
+            },
             "fork": {
                 "type": "object",
                 "desc": "a new fork template",
@@ -135,6 +146,17 @@
                     "rewardmode": {
                         "type": "int",
                         "desc": "reward mode, 0: reward vote address, 1: reward owner address"
+                    }
+                }
+            },
+            "redeem": {
+                "type": "object",
+                "desc": "a redeem template",
+                "condition": "type=redeem",
+                "content": {
+                    "owner": {
+                        "type": "string",
+                        "desc": "owner address"
                     }
                 }
             },
