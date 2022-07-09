@@ -46,7 +46,6 @@ protected:
     Errno ValidateVacantBlock(const CBlock& block);
     Errno VerifyCertTx(const CTransaction& tx);
     Errno VerifyVoteTx(const CTransaction& tx, const uint256& hashPrev);
-    Errno VerifyVoteRedeemTx(const CTransaction& tx, const CDestState& stateFrom, const uint256& hashPrev);
     Errno VerifyDefiRelationTx(const uint256& hashPrev, const CTransaction& tx);
 
 protected:

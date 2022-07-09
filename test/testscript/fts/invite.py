@@ -52,3 +52,8 @@ if __name__ == "__main__":
     else:
         print('error func: {}'.format(func))
         
+# python invite.py invite <parentaddress> <subaddress> <amount>
+# python invite.py invite 1549pyzf8dhx7r4x40k5j80f12btkpqfprjp134bcgcrjn963nzsx57xb 1j6x8vdkkbnxe8qwjggfan9c8m8zhmez7gm3pznsqxgch3eyrwxby8eda 10
+
+# python invite.py newinvite 1549pyzf8dhx7r4x40k5j80f12btkpqfprjp134bcgcrjn963nzsx57xb 10
+

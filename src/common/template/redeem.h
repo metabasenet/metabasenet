@@ -11,7 +11,7 @@
 class CTemplateRedeem : virtual public CTemplate
 {
 public:
-    CTemplateRedeem(const CDestination& destOwnerIn = CDestination());
+    CTemplateRedeem(const CDestination& destOwnerIn = CDestination(), const uint64 nNonceIn = 0);
     virtual CTemplateRedeem* clone() const;
     virtual void GetTemplateData(metabasenet::rpc::CTemplateResponse& obj) const;
 
@@ -26,6 +26,7 @@ protected:
 
 public:
     CDestination destOwner;
+    uint64 nNonce;
 };
 
 #endif // COMMON_TEMPLATE_REDEEM_H

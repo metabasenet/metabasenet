@@ -53,6 +53,10 @@
                     "owner": {
                         "type": "string",
                         "desc": "owner address"
+                    },
+                    "nonce": {
+                        "type": "uint",
+                        "desc": "nonce"
                     }
                 }
             },
@@ -157,6 +161,10 @@
                     "owner": {
                         "type": "string",
                         "desc": "owner address"
+                    },
+                    "nonce": {
+                        "type": "uint",
+                        "desc": "nonce"
                     }
                 }
             },

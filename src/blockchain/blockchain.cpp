@@ -501,6 +501,12 @@ Errno CBlockChain::AddNewBlock(const CBlock& block, CBlockChainUpdate& update)
         return err;
     }
 
+    if (block.IsPrimary() && !VerifyVoteRedeemTx(block))
+    {
+        StdError("BlockChain", "Add new block: Verify vote redeem tx fail, block: %s", hashBlock.ToString().c_str());
+        return ERR_TRANSACTION_INVALID;
+    }
+
     uint256 nChainTrust;
     if (!pCoreProtocol->GetBlockTrust(block, nChainTrust, pIndexPrev, agreement, pIndexRef, nEnrollTrust))
     {
@@ -976,6 +982,12 @@ Errno CBlockChain::VerifyPowBlock(const CBlock& block, bool& fLongChain)
     {
         StdError("BlockChain", "Verify pow block: Verify block tx fail, block: %s", hashBlock.ToString().c_str());
         return err;
+    }
+
+    if (block.IsPrimary() && !VerifyVoteRedeemTx(block))
+    {
+        StdError("BlockChain", "Verify pow block: Verify vote redeem tx fail, block: %s", hashBlock.ToString().c_str());
+        return ERR_TRANSACTION_INVALID;
     }
 
     // Get block trust
@@ -2157,6 +2169,64 @@ bool CBlockChain::VerifyCreateContractTx(const uint256& hashFork, const uint256&
     return cntrBlock.VerifyCreateContractTx(hashFork, hashBlock, tx);
 }
 
+bool CBlockChain::GetVoteRedeemLockedAmount(const CDestination& dest, const uint256& hashPrev, uint256& nLockedAmount)
+{
+    CVoteRedeemContext ctxtVoteRedeem;
+    if (!RetrieveDestVoteRedeemContext(hashPrev, dest, ctxtVoteRedeem))
+    {
+        StdLog("BlockChain", "Get vote redeem locked: Retrieve dest vote redeem context fail, dest: %s, prev: %s",
+               dest.ToString().c_str(), hashPrev.GetHex().c_str());
+        return false;
+    }
+
+    const int nVoteRedeemLockDays = VOTE_REDEEM_LOCK_DAYS;
+    uint256 nUnitRedeem = ctxtVoteRedeem.nRedeemAmount / nVoteRedeemLockDays;
+    int nHeightDiff = CBlock::GetBlockHeightByHash(hashPrev) - ctxtVoteRedeem.nLastRedeemHeight;
+    int nUnlockDays = 0;
+    if (nHeightDiff > 0)
+    {
+        nUnlockDays = nHeightDiff / DAY_HEIGHT;
+    }
+    if (nUnlockDays < nVoteRedeemLockDays)
+    {
+        nLockedAmount = nUnitRedeem * (nVoteRedeemLockDays - nUnlockDays);
+    }
+    else
+    {
+        nLockedAmount = 0;
+    }
+    return true;
+}
+
+bool CBlockChain::GetVoteRedeemBalance(const CDestination& dest, const uint256& hashPrev, uint256& nRedeemBalance)
+{
+    CDestState statePrev;
+    if (!RetrieveDestState(pCoreProtocol->GetGenesisBlockHash(), hashPrev, dest, statePrev))
+    {
+        StdLog("BlockChain", "Get vote redeem balance: Retrieve dest prev state fail, dest: %s, prev: %s",
+               dest.ToString().c_str(), hashPrev.GetHex().c_str());
+        return false;
+    }
+
+    uint256 nLockedAmount;
+    if (!GetVoteRedeemLockedAmount(dest, hashPrev, nLockedAmount))
+    {
+        StdLog("BlockChain", "Get vote redeem balance: Get redeem locked amount fail, dest: %s, prev: %s",
+               dest.ToString().c_str(), hashPrev.GetHex().c_str());
+        return false;
+    }
+
+    if (statePrev.nBalance > nLockedAmount)
+    {
+        nRedeemBalance = statePrev.nBalance - nLockedAmount;
+    }
+    else
+    {
+        nRedeemBalance = 0;
+    }
+    return true;
+}
+
 bool CBlockChain::VerifyVoteRewardTx(const CBlock& block, size_t& nRewardTxCount)
 {
     vector<CTransaction> vVoteRewardTx;
@@ -2185,6 +2255,40 @@ bool CBlockChain::VerifyVoteRewardTx(const CBlock& block, size_t& nRewardTxCount
         }
     }
     nRewardTxCount = vVoteRewardTx.size();
+    return true;
+}
+
+bool CBlockChain::VerifyVoteRedeemTx(const CBlock& block)
+{
+    std::map<CDestination, uint256> mapRedeemBalance;
+    for (const CTransaction& tx : block.vtx)
+    {
+        if (tx.from.IsTemplate() && tx.from.GetTemplateId().GetType() == TEMPLATE_REDEEM)
+        {
+            auto it = mapRedeemBalance.find(tx.from);
+            if (it == mapRedeemBalance.end())
+            {
+                uint256 nRedeemAmount;
+                if (!GetVoteRedeemBalance(tx.from, block.hashPrev, nRedeemAmount))
+                {
+                    StdLog("BlockChain", "Verify vote redeem tx: Retrieve dest prev state fail, from: %s, txid: %s",
+                           tx.from.ToString().c_str(), tx.GetHash().GetHex().c_str());
+                    return false;
+                }
+                it = mapRedeemBalance.insert(make_pair(tx.from, nRedeemAmount)).first;
+            }
+            uint256& nRedeemBalance = it->second;
+
+            if (tx.nAmount + tx.GetTxFee() > nRedeemBalance)
+            {
+                StdLog("BlockChain", "Verify vote redeem tx: Balance is not enough to locked coin, from: %s, txid: %s",
+                       tx.from.ToString().c_str(), tx.GetHash().GetHex().c_str());
+                return false;
+            }
+
+            nRedeemBalance -= (tx.nAmount + tx.GetTxFee());
+        }
+    }
     return true;
 }
 

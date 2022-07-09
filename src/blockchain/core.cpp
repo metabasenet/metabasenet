@@ -430,7 +430,7 @@ Errno CCoreProtocol::VerifyForkRedeemTx(const CTransaction& tx, const uint256& h
     }
     if (tx.to == tx.from)
     {
-        return DEBUG(ERR_TRANSACTION_INVALID, "It not is allowed to change from self to self");
+        return DEBUG(ERR_TRANSACTION_INVALID, "It is not allowed to change from self to self");
     }
 
     uint256 nLockedAmount;
@@ -442,7 +442,7 @@ Errno CCoreProtocol::VerifyForkRedeemTx(const CTransaction& tx, const uint256& h
     // locked coin template: nValueIn >= tx.nAmount + tx.GetTxFee() + nLockedAmount
     if (state.nBalance < tx.nAmount + tx.GetTxFee() + nLockedAmount)
     {
-        return DEBUG(ERR_TRANSACTION_IS_LOCKED, "balance not is enough to locked coin, balance: %s, use: %s",
+        return DEBUG(ERR_TRANSACTION_IS_LOCKED, "balance is not enough to locked coin, balance: %s, use: %s",
                      CoinToTokenBigFloat(state.nBalance).c_str(), CoinToTokenBigFloat(tx.nAmount + tx.GetTxFee() + nLockedAmount).c_str());
     }
     return OK;
@@ -655,14 +655,6 @@ Errno CCoreProtocol::VerifyTransaction(const CTransaction& tx, const uint256& ha
         if (err != OK)
         {
             return DEBUG(err, "invalid vote tx");
-        }
-    }
-    if (nFromTemplateType == TEMPLATE_REDEEM)
-    {
-        err = VerifyVoteRedeemTx(tx, stateFrom, hashPrevBlock);
-        if (err != OK)
-        {
-            return DEBUG(err, "invalid redeem tx");
         }
     }
 
@@ -1061,29 +1053,6 @@ Errno CCoreProtocol::VerifyVoteTx(const CTransaction& tx, const uint256& hashPre
     if (tx.nAmount == 0)
     {
         StdLog("CoreProtocol", "Verify Vote Tx: Transfer quantity is 0, nAmount: 0, txid: %s", tx.GetHash().GetHex().c_str());
-        return ERR_TRANSACTION_INVALID;
-    }
-    return OK;
-}
-
-Errno CCoreProtocol::VerifyVoteRedeemTx(const CTransaction& tx, const CDestState& stateFrom, const uint256& hashPrev)
-{
-    CVoteRedeemContext ctxtVoteRedeem;
-    if (!pBlockChain->RetrieveDestVoteRedeemContext(hashPrev, tx.from, ctxtVoteRedeem))
-    {
-        StdLog("CoreProtocol", "Verify vote redeem tx: Retrieve dest vote redeem context fail, from: %s", tx.from.ToString().c_str());
-        return ERR_TRANSACTION_INVALID;
-    }
-    uint256 nUnitRedeem = ctxtVoteRedeem.nRedeemAmount / 100;
-    int nHeightDiff = CBlock::GetBlockHeightByHash(hashPrev) - ctxtVoteRedeem.nLastRedeemHeight;
-    uint256 nLockedAmount = nUnitRedeem * (100 - nHeightDiff / DAY_HEIGHT);
-
-    if (stateFrom.nBalance < tx.nAmount + tx.GetTxFee() + nLockedAmount)
-    {
-        StdLog("CoreProtocol", "Verify vote redeem tx: Balance not is enough to locked coin, balance: %s, use: %s, redeem start height: %d, from: %s",
-               CoinToTokenBigFloat(stateFrom.nBalance).c_str(),
-               CoinToTokenBigFloat(tx.nAmount + tx.GetTxFee() + nLockedAmount).c_str(),
-               ctxtVoteRedeem.nLastRedeemHeight, tx.from.ToString().c_str());
         return ERR_TRANSACTION_INVALID;
     }
     return OK;

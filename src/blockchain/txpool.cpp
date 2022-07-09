@@ -44,11 +44,18 @@ bool CForkTxPool::AddPooledTx(const uint256& txid, const CTransaction& tx, const
 
     if (!tx.from.IsNull())
     {
-        mapDestTx[tx.from].insert(txid);
+        auto& destTx = mapDestTx[tx.from];
+        destTx.setTxid.insert(txid);
+        destTx.nUnconfirmedOut += (tx.nAmount + tx.GetTxFee());
     }
-    if (!tx.to.IsNull() && tx.from != tx.to)
+    if (!tx.to.IsNull())
     {
-        mapDestTx[tx.to].insert(txid);
+        auto& destTx = mapDestTx[tx.to];
+        if (tx.from != tx.to)
+        {
+            destTx.setTxid.insert(txid);
+        }
+        destTx.nUnconfirmedIn += tx.nAmount;
     }
     return true;
 }
@@ -58,38 +65,52 @@ bool CForkTxPool::RemovePooledTx(const uint256& txid, const CTransaction& tx, co
     auto it = mapTx.find(txid);
     if (it != mapTx.end())
     {
-        auto removeDestTx = [&](const CDestination& dest, const uint256& txidc) -> bool
-        {
-            auto mt = mapDestTx.find(dest);
-            if (mt == mapDestTx.end())
-            {
-                return false;
-            }
-            mt->second.erase(txidc);
-            if (mt->second.empty())
-            {
-                mapDestTx.erase(dest);
-                mapDestState.erase(dest);
-            }
-            return true;
-        };
-
         if (!tx.from.IsNull())
         {
-            if (!removeDestTx(tx.from, txid))
+            auto mt = mapDestTx.find(tx.from);
+            if (mt == mapDestTx.end())
             {
-                StdError("CForkTxPool", "Remove Pooled Tx: Remove dest tx error, from: %s, txid: %s",
+                StdError("CForkTxPool", "Remove Pooled Tx: Remove tx error, from: %s, txid: %s",
                          tx.from.ToString().c_str(), txid.GetHex().c_str());
-                return false;
+            }
+            else
+            {
+                mt->second.setTxid.erase(txid);
+                if (mt->second.setTxid.empty())
+                {
+                    mapDestTx.erase(tx.from);
+                    mapDestState.erase(tx.from);
+                }
+                else
+                {
+                    mt->second.nUnconfirmedOut -= (tx.nAmount + tx.GetTxFee());
+                    if (tx.to == tx.from)
+                    {
+                        mt->second.nUnconfirmedIn -= tx.nAmount;
+                    }
+                }
             }
         }
         if (!tx.to.IsNull() && tx.to != tx.from)
         {
-            if (!removeDestTx(tx.to, txid))
+            auto mt = mapDestTx.find(tx.to);
+            if (mt == mapDestTx.end())
             {
-                StdError("CForkTxPool", "Remove Pooled Tx: Remove dest tx error, to: %s, txid: %s",
+                StdError("CForkTxPool", "Remove Pooled Tx: Remove tx error, to: %s, txid: %s",
                          tx.to.ToString().c_str(), txid.GetHex().c_str());
-                return false;
+            }
+            else
+            {
+                mt->second.setTxid.erase(txid);
+                if (mt->second.setTxid.empty())
+                {
+                    mapDestTx.erase(tx.to);
+                    mapDestState.erase(tx.to);
+                }
+                else
+                {
+                    mt->second.nUnconfirmedIn -= tx.nAmount;
+                }
             }
         }
 
@@ -116,7 +137,7 @@ bool CForkTxPool::RemovePooledTx(const uint256& txid, const CTransaction& tx, co
             auto mt = mapDestTx.find(tx.from);
             if (mt != mapDestTx.end())
             {
-                for (const uint256& txidn : mt->second)
+                for (const uint256& txidn : mt->second.setTxid)
                 {
                     auto nt = mapTx.find(txidn);
                     if (nt != mapTx.end())
@@ -138,10 +159,12 @@ bool CForkTxPool::RemovePooledTx(const uint256& txid, const CTransaction& tx, co
                 {
                     StdLog("CForkTxPool", "Remove Pooled Tx: Remove invalid tx fail, from: %s, txid: %s",
                            destFrom.ToString().c_str(), txids.GetHex().c_str());
-                    return false;
                 }
-                StdLog("CForkTxPool", "Remove Pooled Tx: Remove invalid tx success, nonce: %ld, count: %ld, from: %s, txid: %s",
-                       nTxNonce, vDelTx.size(), destFrom.ToString().c_str(), txids.GetHex().c_str());
+                else
+                {
+                    StdLog("CForkTxPool", "Remove Pooled Tx: Remove invalid tx success, nonce: %ld, count: %ld, from: %s, txid: %s",
+                           nTxNonce, vDelTx.size(), destFrom.ToString().c_str(), txids.GetHex().c_str());
+                }
             }
         }
     }
@@ -206,6 +229,12 @@ Errno CForkTxPool::AddTx(const uint256& txid, const CTransaction& tx)
     {
         StdLog("CForkTxPool", "Add Tx: Verify transaction fail, txid: %s", txid.GetHex().c_str());
         return err;
+    }
+
+    if (hashFork == pCoreProtocol->GetGenesisBlockHash() && !VerifyVoteRedeemPooledTx(txid, tx))
+    {
+        StdLog("CForkTxPool", "Add Tx: Verify vote redeem fail, txid: %s", txid.GetHex().c_str());
+        return ERR_TRANSACTION_INVALID;
     }
 
     if (!AddPooledTx(txid, tx, nTxSequenceNumber++))
@@ -286,7 +315,7 @@ uint64 CForkTxPool::GetCertTxNextNonce(const CDestination& dest)
     auto mt = mapDestTx.find(dest);
     if (mt != mapDestTx.end())
     {
-        for (const uint256& txid : mt->second)
+        for (const uint256& txid : mt->second.setTxid)
         {
             auto nt = mapTx.find(txid);
             if (nt != mapTx.end())
@@ -329,6 +358,7 @@ bool CForkTxPool::FetchArrangeBlockTx(const uint256& hashPrev, const int64 nBloc
         return false;
     }
 
+    map<CDestination, uint256> mapVoteRedeemBalance;
     set<CDestination> setDisable;
     size_t nTotalSize = 0;
     CPooledTxLinkSetBySequenceNumber& idxTx = setTxLinkIndex.get<1>();
@@ -360,6 +390,32 @@ bool CForkTxPool::FetchArrangeBlockTx(const uint256& hashPrev, const int64 nBloc
                 it = mapVoteCert.insert(make_pair(tx.from, CONSENSUS_ENROLL_INTERVAL * 2)).first;
             }
             it->second--;
+        }
+        if (tx.from.IsTemplate() && tx.from.GetTemplateId().GetType() == TEMPLATE_REDEEM)
+        {
+            auto it = mapVoteRedeemBalance.find(tx.from);
+            if (it == mapVoteRedeemBalance.end())
+            {
+                uint256 nRedeemAmount;
+                if (!pBlockChain->GetVoteRedeemBalance(tx.from, hashLastBlock, nRedeemAmount))
+                {
+                    StdLog("BlockChain", "Fetch arrange block tx: Get vote redeem balance fail, from: %s, txid: %s",
+                           tx.from.ToString().c_str(), tx.GetHash().GetHex().c_str());
+                    setDisable.insert(tx.from);
+                    continue;
+                }
+                it = mapVoteRedeemBalance.insert(make_pair(tx.from, nRedeemAmount)).first;
+            }
+            uint256& nRedeemBalance = it->second;
+            if (tx.nAmount + tx.GetTxFee() > nRedeemBalance)
+            {
+                StdLog("BlockChain", "Fetch arrange block tx: Balance is not enough to locked coin, redeem balance: %s, from: %s, txid: %s",
+                       CoinToTokenBigFloat(nRedeemBalance).c_str(),
+                       tx.from.ToString().c_str(), tx.GetHash().GetHex().c_str());
+                setDisable.insert(tx.from);
+                continue;
+            }
+            nRedeemBalance -= (tx.nAmount + tx.GetTxFee());
         }
         if (nTotalSize + kv.ptx->nSerializeSize > nMaxSize)
         {
@@ -490,28 +546,16 @@ void CForkTxPool::GetDestBalance(const CDestination& dest, uint64& nTxNonce, uin
     nTxNonce = state.nTxNonce;
     nAvail = state.nBalance;
 
-    nUnconfirmedIn = 0;
-    nUnconfirmedOut = 0;
-
     auto mt = mapDestTx.find(dest);
     if (mt != mapDestTx.end())
     {
-        for (const uint256& txid : mt->second)
-        {
-            auto nt = mapTx.find(txid);
-            if (nt != mapTx.end())
-            {
-                const CPooledTx& tx = nt->second;
-                if (tx.from == dest)
-                {
-                    nUnconfirmedOut += (tx.nAmount + tx.GetTxFee());
-                }
-                if (tx.to == dest)
-                {
-                    nUnconfirmedIn += tx.nAmount;
-                }
-            }
-        }
+        nUnconfirmedIn = mt->second.nUnconfirmedIn;
+        nUnconfirmedOut = mt->second.nUnconfirmedOut;
+    }
+    else
+    {
+        nUnconfirmedIn = 0;
+        nUnconfirmedOut = 0;
     }
 }
 
@@ -547,7 +591,7 @@ bool CForkTxPool::GetAddressContext(const CDestination& dest, CAddressContext& c
         auto mt = mapDestTx.find(dest);
         if (mt != mapDestTx.end())
         {
-            for (const uint256& txid : mt->second)
+            for (const uint256& txid : mt->second.setTxid)
             {
                 auto nt = mapTx.find(txid);
                 if (nt != mapTx.end())
@@ -648,6 +692,36 @@ bool CForkTxPool::AddSynchronizeTx(const uint256& hashBranchBlock, const uint256
     if (isNewDest(tx.to))
     {
         getDestState(tx.to).nBalance += tx.nAmount;
+    }
+    return true;
+}
+
+bool CForkTxPool::VerifyVoteRedeemPooledTx(const uint256& txid, const CTransaction& tx)
+{
+    if (tx.from.IsTemplate() && tx.from.GetTemplateId().GetType() == TEMPLATE_REDEEM)
+    {
+        auto it = mapDestTx.find(tx.from);
+        if (it == mapDestTx.end())
+        {
+            it = mapDestTx.insert(make_pair(tx.from, CDestTx())).first;
+        }
+
+        uint256 nRedeemBalance;
+        if (!pBlockChain->GetVoteRedeemBalance(tx.from, hashLastBlock, nRedeemBalance))
+        {
+            StdLog("CForkTxPool", "Verify vote redeem pool tx: Retrieve dest prev state fail, from: %s, txid: %s",
+                   tx.from.ToString().c_str(), tx.GetHash().GetHex().c_str());
+            return false;
+        }
+
+        if (tx.nAmount + tx.GetTxFee() + it->second.nUnconfirmedOut > nRedeemBalance)
+        {
+            StdLog("CForkTxPool", "Verify vote redeem pool tx: Redeem locked, use: %s, redeem balance: %s, from: %s, txid: %s",
+                   CoinToTokenBigFloat(tx.nAmount + tx.GetTxFee() + it->second.nUnconfirmedOut).c_str(),
+                   CoinToTokenBigFloat(nRedeemBalance).c_str(),
+                   tx.from.ToString().c_str(), tx.GetHash().GetHex().c_str());
+            return false;
+        }
     }
     return true;
 }

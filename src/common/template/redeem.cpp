@@ -17,8 +17,8 @@ using namespace metabasenet::crypto;
 //////////////////////////////
 // CTemplateRedeem
 
-CTemplateRedeem::CTemplateRedeem(const CDestination& destOwnerIn)
-  : CTemplate(TEMPLATE_REDEEM), destOwner(destOwnerIn)
+CTemplateRedeem::CTemplateRedeem(const CDestination& destOwnerIn, const uint64 nNonceIn)
+  : CTemplate(TEMPLATE_REDEEM), destOwner(destOwnerIn), nNonce(nNonceIn)
 {
 }
 
@@ -30,6 +30,7 @@ CTemplateRedeem* CTemplateRedeem::clone() const
 void CTemplateRedeem::GetTemplateData(metabasenet::rpc::CTemplateResponse& obj) const
 {
     obj.redeem.strOwner = destOwner.ToString();
+    obj.redeem.nNonce = nNonce;
 }
 
 bool CTemplateRedeem::ValidateParam() const
@@ -46,7 +47,7 @@ bool CTemplateRedeem::SetTemplateData(const std::vector<uint8>& vchDataIn)
     CBufStream is(vchDataIn);
     try
     {
-        is >> destOwner;
+        is >> destOwner >> nNonce;
     }
     catch (const std::exception& e)
     {
@@ -72,6 +73,8 @@ bool CTemplateRedeem::SetTemplateData(const metabasenet::rpc::CTemplateRequest& 
         return false;
     }
 
+    nNonce = obj.redeem.nNonce;
+
     return true;
 }
 
@@ -79,7 +82,7 @@ void CTemplateRedeem::BuildTemplateData()
 {
     vchData.clear();
     CBufStream os;
-    os << destOwner;
+    os << destOwner << nNonce;
     os.GetData(vchData);
 }
 

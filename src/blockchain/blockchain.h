@@ -104,6 +104,8 @@ public:
     bool CallContract(const uint256& hashFork, const CDestination& from, const CDestination& to, const uint256& nAmount, const uint256& nGasPrice, const uint256& nGas, const bytes& btContractParam, int& nStatus, bytes& btResult) override;
     bool VerifyContractAddress(const uint256& hashFork, const uint256& hashBlock, const CDestination& destContract) override;
     bool VerifyCreateContractTx(const uint256& hashFork, const uint256& hashBlock, const CTransaction& tx) override;
+    bool GetVoteRedeemLockedAmount(const CDestination& dest, const uint256& hashPrev, uint256& nLockedAmount) override;
+    bool GetVoteRedeemBalance(const CDestination& dest, const uint256& hashPrev, uint256& nRedeemBalance) override;
 
 protected:
     bool HandleInitialize() override;
@@ -124,6 +126,7 @@ protected:
     void InitCheckPoints(const uint256& hashFork, const std::map<int, uint256>& mapCheckPointsIn);
 
     bool VerifyVoteRewardTx(const CBlock& block, std::size_t& nRewardTxCount);
+    bool VerifyVoteRedeemTx(const CBlock& block);
     Errno VerifyBlockTx(const uint256& hashFork, const uint256& hashBlock, const CBlock& block, const uint256& nReward,
                         const std::size_t nIgnoreVerifyTx, const std::map<uint256, CAddressContext>& mapBlockAddress);
 

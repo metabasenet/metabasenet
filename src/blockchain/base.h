@@ -181,6 +181,8 @@ public:
     virtual bool CallContract(const uint256& hashFork, const CDestination& from, const CDestination& to, const uint256& nAmount, const uint256& nGasPrice, const uint256& nGas, const bytes& btContractParam, int& nStatus, bytes& btResult) = 0;
     virtual bool VerifyContractAddress(const uint256& hashFork, const uint256& hashBlock, const CDestination& destContract) = 0;
     virtual bool VerifyCreateContractTx(const uint256& hashFork, const uint256& hashBlock, const CTransaction& tx) = 0;
+    virtual bool GetVoteRedeemLockedAmount(const CDestination& dest, const uint256& hashPrev, uint256& nLockedAmount) = 0;
+    virtual bool GetVoteRedeemBalance(const CDestination& dest, const uint256& hashPrev, uint256& nRedeemBalance) = 0;
 
     const CBasicConfig* Config()
     {

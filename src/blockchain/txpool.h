@@ -67,6 +67,17 @@ typedef CPooledTxLinkSet::nth_index<0>::type CPooledTxLinkSetByTxHash;
 typedef CPooledTxLinkSet::nth_index<1>::type CPooledTxLinkSetBySequenceNumber;
 typedef CPooledTxLinkSet::nth_index<2>::type CPooledTxLinkSetByTxType;
 
+class CDestTx
+{
+public:
+    CDestTx() {}
+
+public:
+    std::set<uint256> setTxid;
+    uint256 nUnconfirmedIn;
+    uint256 nUnconfirmedOut;
+};
+
 class CForkTxPool
 {
 public:
@@ -104,6 +115,7 @@ protected:
     void SetDestState(const CDestination& dest, const CDestState& state);
     int64 GetMinTxSequenceNumber();
     bool AddSynchronizeTx(const uint256& hashBranchBlock, const uint256& txid, const CTransaction& tx, const int64 nTxSeq, std::set<CDestination>& setNewDest);
+    bool VerifyVoteRedeemPooledTx(const uint256& txid, const CTransaction& tx);
 
 protected:
     ICoreProtocol* pCoreProtocol;
@@ -113,7 +125,7 @@ protected:
     int64 nTxSequenceNumber;
     CPooledTxLinkSet setTxLinkIndex;
     std::map<uint256, CPooledTx> mapTx;
-    std::map<CDestination, std::set<uint256>> mapDestTx;
+    std::map<CDestination, CDestTx> mapDestTx;
     std::map<CDestination, CDestState> mapDestState;
 
     uint256 hashLastBlock;
