@@ -3612,7 +3612,14 @@ bool CBlockBase::UpdateVote(const uint256& hashFork, const uint256& hashBlock, c
                      kv.first.ToString().c_str(), hashBlock.ToString().c_str());
             return false;
         }
-        kv.second.nVoteAmount = state.nBalance;
+        if (state.nBalance < DELEGATE_PROOF_OF_STAKE_MIN_VOTE_AMOUNT)
+        {
+            kv.second.nVoteAmount = 0;
+        }
+        else
+        {
+            kv.second.nVoteAmount = state.nBalance;
+        }
     }
 
     if (!dbBlock.AddBlockVote(block.hashPrev, hashBlock, mapBlockVote, hashVoteRoot))

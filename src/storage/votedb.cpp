@@ -47,8 +47,10 @@ bool CListAllVoteTrieDBWalker::Walk(const bytes& btKey, const bytes& btValue, co
             CVoteContext ctxtVote;
             ssKey >> destVote;
             ssValue >> ctxtVote;
-
-            mapDelegateVote[ctxtVote.destDelegate][destVote] = ctxtVote;
+            if (ctxtVote.nVoteAmount > 0)
+            {
+                mapDelegateVote[ctxtVote.destDelegate][destVote] = ctxtVote;
+            }
         }
     }
     catch (std::exception& e)

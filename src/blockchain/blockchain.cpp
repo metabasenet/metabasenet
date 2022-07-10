@@ -2738,28 +2738,33 @@ bool CBlockChain::CalcDistributeVoteReward(const uint256& hashCalcEndBlock, uint
                     }
                     const auto& mapDestVote = mt->second.first;
                     const uint256& nDelegateTotalVoteAmount = mt->second.second;
-
-                    // distribute reward
-                    uint256 nDistributeTotalReward = 0;
-                    for (const auto& kv : mapDestVote)
+                    if (nDelegateTotalVoteAmount > 0)
                     {
-                        uint256 nDestReward = nBlockReward * kv.second.nVoteAmount / nDelegateTotalVoteAmount;
-                        auto& voteReward = mapVoteReward[kv.first];
-                        const CVoteContext& ctxtVote = kv.second;
-                        if (ctxtVote.nRewardMode == CVoteContext::REWARD_MODE_VOTE)
+                        // distribute reward
+                        uint256 nDistributeTotalReward = 0;
+                        for (const auto& kv : mapDestVote)
                         {
-                            voteReward.first = kv.first;
+                            if (kv.second.nVoteAmount > 0)
+                            {
+                                uint256 nDestReward = nBlockReward * kv.second.nVoteAmount / nDelegateTotalVoteAmount;
+                                auto& voteReward = mapVoteReward[kv.first];
+                                const CVoteContext& ctxtVote = kv.second;
+                                if (ctxtVote.nRewardMode == CVoteContext::REWARD_MODE_VOTE)
+                                {
+                                    voteReward.first = kv.first;
+                                }
+                                else
+                                {
+                                    voteReward.first = ctxtVote.destOwner;
+                                }
+                                voteReward.second += nDestReward;
+                                nDistributeTotalReward += nDestReward;
+                            }
                         }
-                        else
+                        if (mapDestVote.size() > 0 && nBlockReward > nDistributeTotalReward)
                         {
-                            voteReward.first = ctxtVote.destOwner;
+                            mapVoteReward[mapDestVote.begin()->first].second += (nBlockReward - nDistributeTotalReward);
                         }
-                        voteReward.second += nDestReward;
-                        nDistributeTotalReward += nDestReward;
-                    }
-                    if (mapDestVote.size() > 0 && nBlockReward > nDistributeTotalReward)
-                    {
-                        mapVoteReward[mapDestVote.begin()->first].second += (nBlockReward - nDistributeTotalReward);
                     }
                 }
             }
