@@ -97,18 +97,14 @@ enum ConsensusMethod
 ///////////////////////////////////
 // FUNCTOIN
 static const std::map<uint256, std::map<int, uint256>> mapCheckPointsList_Mainnet = {
-    { uint256("00000000312731792b03593ba4a4fa476f8db31b8a02ee45a2c5a7acf9112bbf"), //Genesis
-      { { 0, uint256("00000000312731792b03593ba4a4fa476f8db31b8a02ee45a2c5a7acf9112bbf") } } }
+    { uint256("00000000ed7baa7cd66a44d0c6f98efa3c3e8972bf30ef7fc3b50f043ebe5b30"), //Genesis
+      { { 0, uint256("00000000ed7baa7cd66a44d0c6f98efa3c3e8972bf30ef7fc3b50f043ebe5b30") } } }
 };
 static const std::map<uint256, std::map<int, uint256>> mapCheckPointsList_Testnet = {
-    { uint256("00000000a8b00ba26899af9bab3c44898976102504972b71bd7298d99420719b"), //Genesis
-      { { 0, uint256("00000000a8b00ba26899af9bab3c44898976102504972b71bd7298d99420719b") } } }
+    { uint256("0000000063cbeaaf583fb862b5c3711fc519f704063954587c5c25c1c4059b6b"), //Genesis
+      { { 0, uint256("0000000063cbeaaf583fb862b5c3711fc519f704063954587c5c25c1c4059b6b") } } }
 };
 #define mapCheckPointsList GET_PARAM(mapCheckPointsList_Mainnet, mapCheckPointsList_Testnet)
-
-static const std::map<std::string, int> mapCodeGrantAddress = {
-    { { "1549pyzf8dhx7r4x40k5j80f12btkpqfprjp134bcgcrjn963nzsx57xb", 0 } }
-};
 
 ///////////////////////////////////
 std::string CoinToTokenBigFloat(const uint256& nCoin);
