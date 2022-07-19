@@ -639,9 +639,9 @@ Errno CCoreProtocol::VerifyTransaction(const CTransaction& tx, const uint256& ha
             return ERR_TRANSACTION_INVALID;
         }
     }
-    if (nFromTemplateType == TEMPLATE_DELEGATE || nFromTemplateType == TEMPLATE_VOTE)
+    if (/*nFromTemplateType == TEMPLATE_DELEGATE ||*/ nFromTemplateType == TEMPLATE_VOTE)
     {
-        if (nToTemplateType != TEMPLATE_DELEGATE && nToTemplateType != TEMPLATE_VOTE && nToTemplateType != TEMPLATE_REDEEM)
+        if (/*nToTemplateType != TEMPLATE_DELEGATE &&*/ nToTemplateType != TEMPLATE_VOTE && nToTemplateType != TEMPLATE_REDEEM)
         {
             StdLog("CoreProtocol", "Template address tx is not on the main chain, to: %s, txid: %s, fork: %s",
                    tx.to.ToString().c_str(), tx.GetHash().GetHex().c_str(), tx.hashFork.ToString().c_str());
