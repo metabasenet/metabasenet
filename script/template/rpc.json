@@ -3385,18 +3385,31 @@
             }
         },
         "response": {
-            "type": "string",
-            "name": "parent",
-            "desc": "invite parent address"
+            "type": "object",
+            "name": "invite",
+            "content": {
+                "parent": {
+                    "type": "string",
+                    "desc": "invite parent address"
+                },
+                "reward": {
+                    "type": "string",
+                    "desc": "reward vote address"
+                },
+                "amount": {
+                    "type": "string",
+                    "desc": "vote amount"
+                }
+            }
         },
         "example": [
             {
-                "request": "metabasenet-cli getdefirelation 1549pyzf8dhx7r4x40k5j80f12btkpqfprjp134bcgcrjn963nzsx57xb",
-                "response": "{\"parent\":\"1j6x8vdkkbnxe8qwjggfan9c8m8zhmez7gm3pznsqxgch3eyrwxby8eda\"}"
+                "request": "metabasenet-cli getdefirelation 1j6x8vdkkbnxe8qwjggfan9c8m8zhmez7gm3pznsqxgch3eyrwxby8eda",
+                "response": "{\"parent\":\"1549pyzf8dhx7r4x40k5j80f12btkpqfprjp134bcgcrjn963nzsx57xb\",\"reward\":\"20w081db9yjg08bbndanqveb4e8kscv750565d1mm5qbjgbas39j43gk2\",\"amount\":\"20018.844640687241167611\"}"
             },
             {
-                "request": "curl -d '{\"id\":1,\"method\":\"getdefirelation\",\"jsonrpc\":\"2.0\",\"params\":{\"address\":\"1549pyzf8dhx7r4x40k5j80f12btkpqfprjp134bcgcrjn963nzsx57xb\"}}' http://127.0.0.1:6602",
-                "response": "{\"id\":1,\"jsonrpc\":\"2.0\",\"result\":{\"parent\":\"1j6x8vdkkbnxe8qwjggfan9c8m8zhmez7gm3pznsqxgch3eyrwxby8eda\"}}\n"
+                "request": "curl -d '{\"id\":1,\"method\":\"getdefirelation\",\"jsonrpc\":\"2.0\",\"params\":{\"address\":\"1j6x8vdkkbnxe8qwjggfan9c8m8zhmez7gm3pznsqxgch3eyrwxby8eda\"}}' http://127.0.0.1:6602",
+                "response": "{\"id\":1,\"jsonrpc\":\"2.0\",\"result\":{\"parent\":\"1549pyzf8dhx7r4x40k5j80f12btkpqfprjp134bcgcrjn963nzsx57xb\",\"reward\":\"20w081db9yjg08bbndanqveb4e8kscv750565d1mm5qbjgbas39j43gk2\",\"amount\":\"20018.844640687241167611\"}}\n"
             }
         ],
         "error": [
@@ -3439,13 +3452,31 @@
                             "type": "string",
                             "desc": "parent address"
                         },
-                        "subaddress": {
+                        "parentreward": {
+                            "type": "string",
+                            "desc": "parent reward vote address"
+                        },
+                        "parentamount": {
+                            "type": "string",
+                            "desc": "parent vote amount"
+                        },
+                        "subinvite": {
                             "type": "array",
-                            "name": "subaddress",
+                            "name": "subinvite",
                             "content": {
-                                "address": {
-                                    "type": "string",
-                                    "desc": "sub address"
+                                "subinvitedata": {
+                                    "type": "object",
+                                    "desc": "sub invite data",
+                                    "content": {
+                                        "subaddress": {
+                                            "type": "string",
+                                            "desc": "sub address"
+                                        },
+                                        "subamount": {
+                                            "type": "string",
+                                            "desc": "sub vote amount"
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -3456,11 +3487,11 @@
         "example": [
             {
                 "request": "metabasenet-cli listdefirelation",
-                "response": "[{\"parentaddress\" : \"1d6013pgw8sh95mbsrrxsn4zxvw35xd8s20a6d4jpbf24wjg1bc8cb36v\",\"subaddress\" : \"1fq3y1n8zvgp6v550dv1p7hfwg1bkc4x4k8snzzb5x3kb64qvh4c9cr4n\"}]"
+                "response": "[{\"parentaddress\":\"000000000000000000000000000000000000000000000000000000000\",\"parentreward\":\"000000000000000000000000000000000000000000000000000000000\",\"parentamount\":\"0.0\",\"subinvite\":[{\"subaddress\":\"1549pyzf8dhx7r4x40k5j80f12btkpqfprjp134bcgcrjn963nzsx57xb\",\"subamount\":\"827.076180267815287119\"}]},{\"parentaddress\":\"1j6x8vdkkbnxe8qwjggfan9c8m8zhmez7gm3pznsqxgch3eyrwxby8eda\",\"parentreward\":\"20w081db9yjg08bbndanqveb4e8kscv750565d1mm5qbjgbas39j43gk2\",\"parentamount\":\"20028.223819732184712881\",\"subinvite\":[{\"subaddress\":\"1jsr9f24cjg844p6xzeap6ey0br5zd4t2wks2k96ey546azy9efaxyfpj\",\"subamount\":\"1200.0\"}]},{\"parentaddress\":\"1549pyzf8dhx7r4x40k5j80f12btkpqfprjp134bcgcrjn963nzsx57xb\",\"parentreward\":\"20w04y9an52cmx9m8k3t7w1qe4w0ah01523vh2xwpy2e80m54zey0c1cg\",\"parentamount\":\"827.076180267815287119\",\"subinvite\":[{\"subaddress\":\"1j6x8vdkkbnxe8qwjggfan9c8m8zhmez7gm3pznsqxgch3eyrwxby8eda\",\"subamount\":\"20028.223819732184712881\"}]}]"
             },
             {
                 "request": "curl -d '{\"id\":1,\"method\":\"listdefirelation\",\"jsonrpc\":\"2.0\",\"params\":{}}' http://127.0.0.1:6602",
-                "response": "{\"id\":1,\"jsonrpc\":\"2.0\",\"result\":[{\"parentaddress\" : \"1d6013pgw8sh95mbsrrxsn4zxvw35xd8s20a6d4jpbf24wjg1bc8cb36v\",\"subaddress\" : \"1fq3y1n8zvgp6v550dv1p7hfwg1bkc4x4k8snzzb5x3kb64qvh4c9cr4n\"}]}"
+                "response": "{\"id\":1,\"jsonrpc\":\"2.0\",\"result\":[{\"parentaddress\":\"000000000000000000000000000000000000000000000000000000000\",\"parentreward\":\"000000000000000000000000000000000000000000000000000000000\",\"parentamount\":\"0.0\",\"subinvite\":[{\"subaddress\":\"1549pyzf8dhx7r4x40k5j80f12btkpqfprjp134bcgcrjn963nzsx57xb\",\"subamount\":\"827.076180267815287119\"}]},{\"parentaddress\":\"1j6x8vdkkbnxe8qwjggfan9c8m8zhmez7gm3pznsqxgch3eyrwxby8eda\",\"parentreward\":\"20w081db9yjg08bbndanqveb4e8kscv750565d1mm5qbjgbas39j43gk2\",\"parentamount\":\"20028.223819732184712881\",\"subinvite\":[{\"subaddress\":\"1jsr9f24cjg844p6xzeap6ey0br5zd4t2wks2k96ey546azy9efaxyfpj\",\"subamount\":\"1200.0\"}]},{\"parentaddress\":\"1549pyzf8dhx7r4x40k5j80f12btkpqfprjp134bcgcrjn963nzsx57xb\",\"parentreward\":\"20w04y9an52cmx9m8k3t7w1qe4w0ah01523vh2xwpy2e80m54zey0c1cg\",\"parentamount\":\"827.076180267815287119\",\"subinvite\":[{\"subaddress\":\"1j6x8vdkkbnxe8qwjggfan9c8m8zhmez7gm3pznsqxgch3eyrwxby8eda\",\"subamount\":\"20028.223819732184712881\"}]}]}"
             }
         ],
         "error": [

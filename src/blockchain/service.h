@@ -89,8 +89,8 @@ public:
     bool GetContractSource(const uint256& hashFork, const uint256& hashSource, bytes& btSource) override;
     bool GetContractCode(const uint256& hashFork, const uint256& hashCode, bytes& btCode) override;
     bool GetDestTemplateData(const uint256& hashFork, const CDestination& dest, bytes& btTemplateData) override;
-    bool RetrieveInviteParent(const uint256& hashFork, const CDestination& destSub, CDestination& destParent) override;
-    bool ListDefiInviteRelation(const uint256& hashFork, const CDestination& destParent, std::map<CDestination, std::set<CDestination>>& mapDefiInvite) override;
+    bool RetrieveInviteParent(const uint256& hashFork, const CDestination& destSub, CInviteContext& ctxInvite) override;
+    bool ListDefiInviteRelation(const uint256& hashFork, const CDestination& destParent, std::map<CDestination, CParentInviteContext>& mapDefiInvite) override;
 
     /* Mint */
     bool GetWork(std::vector<unsigned char>& vchWorkData, int& nPrevBlockHeight,

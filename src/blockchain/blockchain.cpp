@@ -1897,12 +1897,12 @@ bool CBlockChain::VerifyForkName(const uint256& hashFork, const std::string& str
     return true;
 }
 
-bool CBlockChain::RetrieveInviteParent(const uint256& hashFork, const uint256& hashBlock, const CDestination& destSub, CDestination& destParent)
+bool CBlockChain::RetrieveInviteParent(const uint256& hashFork, const uint256& hashBlock, const CDestination& destSub, CInviteContext& ctxInvite)
 {
-    return cntrBlock.RetrieveInviteParent(hashFork, hashBlock, destSub, destParent);
+    return cntrBlock.RetrieveInviteParent(hashFork, hashBlock, destSub, ctxInvite);
 }
 
-bool CBlockChain::ListInviteRelation(const uint256& hashFork, const uint256& hashBlock, std::map<CDestination, CDestination>& mapInviteContext)
+bool CBlockChain::ListInviteRelation(const uint256& hashFork, const uint256& hashBlock, std::map<CDestination, CInviteContext>& mapInviteContext)
 {
     return cntrBlock.ListInviteRelation(hashFork, hashBlock, mapInviteContext);
 }
@@ -2787,7 +2787,7 @@ bool CBlockChain::CalcDistributeVoteReward(const uint256& hashCalcEndBlock, uint
 
 bool CBlockChain::CalcInviteRelationReward(const uint256& hashFork, const uint256& hashCalcEndBlock, const uint256& nTotalReward, std::map<CDestination, uint256>& mapInviteReward)
 {
-    std::map<CDestination, CDestination> mapInviteContext; // key: sub, value: parent
+    std::map<CDestination, CInviteContext> mapInviteContext; // key: sub, value: parent
     if (!cntrBlock.ListInviteRelation(hashFork, hashCalcEndBlock, mapInviteContext))
     {
         StdLog("BlockChain", "Calculate block invite reward: List invite relation fail, hashFork: %s, hashCalcEndBlock: %s",
@@ -2795,32 +2795,30 @@ bool CBlockChain::CalcInviteRelationReward(const uint256& hashFork, const uint25
         return false;
     }
 
-    std::map<CDestination, CDestState> mapBlockState;
-    if (!cntrBlock.ListDestState(hashFork, hashCalcEndBlock, mapBlockState))
-    {
-        StdLog("BlockChain", "Calculate block invite reward: List dest state fail, hashFork: %s, hashCalcEndBlock: %s",
-               hashFork.GetHex().c_str(), hashCalcEndBlock.GetHex().c_str());
-        return false;
-    }
-
     uint256 nTotalPower;
     const uint64 nBaseBegin = 50;
     const uint64 nBaseEnd = 200;
-    std::map<CDestination, uint64> mapCalcDest;
+    std::map<CDestination, std::pair<uint64, CDestination>> mapCalcDest; // key: parent, value: power, reward address
     for (const auto& kv : mapInviteContext)
     {
-        uint64 nBalanceSub = 0;
-        uint64 nBalanceParent = 0;
-        auto it = mapBlockState.find(kv.first);
-        if (it != mapBlockState.end())
+        const CInviteContext& ctxSubInvite = kv.second;
+        if (ctxSubInvite.destParent.IsNull())
         {
-            nBalanceSub = (it->second.GetBalance() / COIN).Get64();
+            continue;
         }
-        auto mt = mapBlockState.find(kv.second);
-        if (mt != mapBlockState.end())
+        auto it = mapInviteContext.find(ctxSubInvite.destParent);
+        if (it == mapInviteContext.end())
         {
-            nBalanceParent = (mt->second.GetBalance() / COIN).Get64();
+            continue;
         }
+        const CInviteContext& ctxParentInvite = it->second;
+        if (ctxParentInvite.destReward.IsNull())
+        {
+            continue;
+        }
+
+        uint64 nBalanceSub = (ctxSubInvite.nVoteAmount / COIN).Get64();
+        uint64 nBalanceParent = (ctxParentInvite.nVoteAmount / COIN).Get64();
         uint64 nBalance = std::min(nBalanceSub, nBalanceParent);
         if (nBalance > 0)
         {
@@ -2833,7 +2831,12 @@ bool CBlockChain::CalcInviteRelationReward(const uint256& hashFork, const uint25
             {
                 nPower = nBalance;
             }
-            mapCalcDest[kv.second] += nPower;
+            auto mt = mapCalcDest.find(ctxSubInvite.destParent);
+            if (mt == mapCalcDest.end())
+            {
+                mt = mapCalcDest.insert(std::make_pair(ctxSubInvite.destParent, std::make_pair(0, ctxParentInvite.destReward))).first;
+            }
+            mt->second.first += nPower;
             nTotalPower += nPower;
         }
     }
@@ -2842,20 +2845,20 @@ bool CBlockChain::CalcInviteRelationReward(const uint256& hashFork, const uint25
     CDestination destFirst;
     for (auto& kv : mapCalcDest)
     {
-        if (kv.second > 0)
+        if (kv.second.first > 0)
         {
-            uint256 nReward = nTotalReward * uint256(kv.second) / nTotalPower;
-            mapInviteReward[kv.first] = nReward;
+            uint256 nReward = nTotalReward * uint256(kv.second.first) / nTotalPower;
+            mapInviteReward[kv.second.second] = nReward;
             nStatReward += nReward;
             if (destFirst.IsNull())
             {
-                destFirst = kv.first;
+                destFirst = kv.second.second;
             }
         }
     }
     if (destFirst.IsNull() && mapCalcDest.size() > 0 && nTotalReward > 0)
     {
-        destFirst = mapCalcDest.begin()->first;
+        destFirst = mapCalcDest.begin()->second.second;
     }
     if (nStatReward < nTotalReward && !destFirst.IsNull())
     {

@@ -242,6 +242,7 @@ public:
     bool GetForkIdByForkSn(const uint16 nForkSn, uint256& hashFork, const uint256& hashBlock = uint256());
     int GetForkCreatedHeight(const uint256& hashFork);
     bool GetForkStorageMaxHeight(const uint256& hashFork, uint32& nMaxHeight);
+    bool GetTxToAddressTemplateData(const uint256& hashFork, const uint256& hashPrevBlock, const CTransaction& tx, bytes& btTemplateData);
 
     bool GetForkBlockLocator(const uint256& hashFork, CBlockLocator& locator, uint256& hashDepth, int nIncStep);
     bool GetForkBlockInv(const uint256& hashFork, const CBlockLocator& locator, std::vector<uint256>& vBlockHash, size_t nMaxCount);
@@ -301,8 +302,8 @@ public:
     bool RetrieveAddressTxInfo(const uint256& hashFork, const uint256& hashBlock, const CDestination& dest, const uint64 nTxIndex, CDestTxInfo& ctxtAddressTxInfo);
     bool ListDestState(const uint256& hashFork, const uint256& hashBlock, std::map<CDestination, CDestState>& mapBlockState);
     bool ListAddressTxInfo(const uint256& hashFork, const uint256& hashBlock, const CDestination& dest, const uint64 nBeginTxIndex, const uint64 nGetTxCount, const bool fReverse, std::vector<CDestTxInfo>& vAddressTxInfo);
-    bool RetrieveInviteParent(const uint256& hashFork, const uint256& hashBlock, const CDestination& destSub, CDestination& destParent);
-    bool ListInviteRelation(const uint256& hashFork, const uint256& hashBlock, std::map<CDestination, CDestination>& mapInviteContext);
+    bool RetrieveInviteParent(const uint256& hashFork, const uint256& hashBlock, const CDestination& destSub, CInviteContext& ctxInvite);
+    bool ListInviteRelation(const uint256& hashFork, const uint256& hashBlock, std::map<CDestination, CInviteContext>& mapInviteContext);
 
 protected:
     CBlockIndex* GetIndex(const uint256& hash) const;

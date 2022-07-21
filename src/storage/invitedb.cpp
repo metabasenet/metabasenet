@@ -39,11 +39,11 @@ bool CListInviteTrieDBWalker::Walk(const bytes& btKey, const bytes& btValue, con
         if (strName == DB_INVITE_KEY_NAME_DEST)
         {
             CDestination destKey;
-            CDestination destValue;
+            CInviteContext ctxValue;
             hcode::CBufStream ssValue(btValue);
             ssKey >> destKey;
-            ssValue >> destValue;
-            mapInvite.insert(std::make_pair(destKey, destValue));
+            ssValue >> ctxValue;
+            mapInvite.insert(std::make_pair(destKey, ctxValue));
         }
     }
     catch (std::exception& e)
@@ -89,7 +89,7 @@ bool CForkInviteDB::RemoveAll()
     return true;
 }
 
-bool CForkInviteDB::AddInviteRelation(const uint256& hashPrevBlock, const uint256& hashBlock, const std::map<CDestination, CDestination>& mapInviteContext, uint256& hashNewRoot)
+bool CForkInviteDB::AddInviteRelation(const uint256& hashPrevBlock, const uint256& hashBlock, const std::map<CDestination, CInviteContext>& mapInviteContext, uint256& hashNewRoot)
 {
     uint256 hashPrevRoot;
     if (hashBlock != hashFork)
@@ -134,7 +134,7 @@ bool CForkInviteDB::AddInviteRelation(const uint256& hashPrevBlock, const uint25
     return true;
 }
 
-bool CForkInviteDB::RetrieveInviteParent(const uint256& hashBlock, const CDestination& destSub, CDestination& destParent)
+bool CForkInviteDB::RetrieveInviteParent(const uint256& hashBlock, const CDestination& destSub, CInviteContext& ctxInvite)
 {
     uint256 hashRoot;
     if (!ReadTrieRoot(hashBlock, hashRoot))
@@ -155,7 +155,7 @@ bool CForkInviteDB::RetrieveInviteParent(const uint256& hashBlock, const CDestin
     try
     {
         ssValue.Write((char*)(btValue.data()), btValue.size());
-        ssValue >> destParent;
+        ssValue >> ctxInvite;
     }
     catch (std::exception& e)
     {
@@ -165,7 +165,7 @@ bool CForkInviteDB::RetrieveInviteParent(const uint256& hashBlock, const CDestin
     return true;
 }
 
-bool CForkInviteDB::ListInviteRelation(const uint256& hashBlock, std::map<CDestination, CDestination>& mapInviteContext)
+bool CForkInviteDB::ListInviteRelation(const uint256& hashBlock, std::map<CDestination, CInviteContext>& mapInviteContext)
 {
     uint256 hashRoot;
     if (!ReadTrieRoot(hashBlock, hashRoot))
@@ -455,7 +455,7 @@ void CInviteDB::Clear()
     }
 }
 
-bool CInviteDB::AddInviteRelation(const uint256& hashFork, const uint256& hashPrevBlock, const uint256& hashBlock, const std::map<CDestination, CDestination>& mapInviteContext, uint256& hashNewRoot)
+bool CInviteDB::AddInviteRelation(const uint256& hashFork, const uint256& hashPrevBlock, const uint256& hashBlock, const std::map<CDestination, CInviteContext>& mapInviteContext, uint256& hashNewRoot)
 {
     CReadLock rlock(rwAccess);
 
@@ -467,19 +467,19 @@ bool CInviteDB::AddInviteRelation(const uint256& hashFork, const uint256& hashPr
     return false;
 }
 
-bool CInviteDB::RetrieveInviteParent(const uint256& hashFork, const uint256& hashBlock, const CDestination& destSub, CDestination& destParent)
+bool CInviteDB::RetrieveInviteParent(const uint256& hashFork, const uint256& hashBlock, const CDestination& destSub, CInviteContext& ctxInvite)
 {
     CReadLock rlock(rwAccess);
 
     auto it = mapInviteDB.find(hashFork);
     if (it != mapInviteDB.end())
     {
-        return it->second->RetrieveInviteParent(hashBlock, destSub, destParent);
+        return it->second->RetrieveInviteParent(hashBlock, destSub, ctxInvite);
     }
     return false;
 }
 
-bool CInviteDB::ListInviteRelation(const uint256& hashFork, const uint256& hashBlock, std::map<CDestination, CDestination>& mapInviteContext)
+bool CInviteDB::ListInviteRelation(const uint256& hashFork, const uint256& hashBlock, std::map<CDestination, CInviteContext>& mapInviteContext)
 {
     CReadLock rlock(rwAccess);
 

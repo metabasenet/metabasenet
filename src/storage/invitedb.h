@@ -7,6 +7,7 @@
 
 #include <map>
 
+#include "block.h"
 #include "destination.h"
 #include "hcode.h"
 #include "transaction.h"
@@ -21,13 +22,13 @@ namespace storage
 class CListInviteTrieDBWalker : public CTrieDBWalker
 {
 public:
-    CListInviteTrieDBWalker(std::map<CDestination, CDestination>& mapInviteIn)
+    CListInviteTrieDBWalker(std::map<CDestination, CInviteContext>& mapInviteIn)
       : mapInvite(mapInviteIn) {}
 
     bool Walk(const bytes& btKey, const bytes& btValue, const uint32 nDepth, bool& fWalkOver) override;
 
 public:
-    std::map<CDestination, CDestination>& mapInvite; // key: sub, value: parent
+    std::map<CDestination, CInviteContext>& mapInvite; // key: sub, value: parent
 };
 
 class CForkInviteDB
@@ -40,9 +41,9 @@ public:
     void Deinitialize();
     bool RemoveAll();
 
-    bool AddInviteRelation(const uint256& hashPrevBlock, const uint256& hashBlock, const std::map<CDestination, CDestination>& mapInviteContext, uint256& hashNewRoot);
-    bool RetrieveInviteParent(const uint256& hashBlock, const CDestination& destSub, CDestination& destParent);
-    bool ListInviteRelation(const uint256& hashBlock, std::map<CDestination, CDestination>& mapInviteContext);
+    bool AddInviteRelation(const uint256& hashPrevBlock, const uint256& hashBlock, const std::map<CDestination, CInviteContext>& mapInviteContext, uint256& hashNewRoot);
+    bool RetrieveInviteParent(const uint256& hashBlock, const CDestination& destSub, CInviteContext& ctxInvite);
+    bool ListInviteRelation(const uint256& hashBlock, std::map<CDestination, CInviteContext>& mapInviteContext);
 
     bool CheckInviteContext(const std::vector<uint256>& vCheckBlock);
     bool CheckInviteContext(const uint256& hashLastBlock, const uint256& hashLastRoot);
@@ -74,9 +75,9 @@ public:
     bool AddNewFork(const uint256& hashFork);
     void Clear();
 
-    bool AddInviteRelation(const uint256& hashFork, const uint256& hashPrevBlock, const uint256& hashBlock, const std::map<CDestination, CDestination>& mapInviteContext, uint256& hashNewRoot);
-    bool RetrieveInviteParent(const uint256& hashFork, const uint256& hashBlock, const CDestination& destSub, CDestination& destParent);
-    bool ListInviteRelation(const uint256& hashFork, const uint256& hashBlock, std::map<CDestination, CDestination>& mapInviteContext);
+    bool AddInviteRelation(const uint256& hashFork, const uint256& hashPrevBlock, const uint256& hashBlock, const std::map<CDestination, CInviteContext>& mapInviteContext, uint256& hashNewRoot);
+    bool RetrieveInviteParent(const uint256& hashFork, const uint256& hashBlock, const CDestination& destSub, CInviteContext& ctxInvite);
+    bool ListInviteRelation(const uint256& hashFork, const uint256& hashBlock, std::map<CDestination, CInviteContext>& mapInviteContext);
 
     bool CheckInviteContext(const uint256& hashFork, const std::vector<uint256>& vCheckBlock);
     bool CheckInviteContext(const uint256& hashFork, const uint256& hashLastBlock, const uint256& hashLastRoot);

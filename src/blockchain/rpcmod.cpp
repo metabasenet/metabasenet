@@ -3358,13 +3358,18 @@ CRPCResultPtr CRPCMod::RPCGetDefiRelation(CRPCParamPtr param)
         throw CRPCException(RPC_INVALID_PARAMETER, "Unknown fork");
     }
 
-    CDestination destParent;
-    if (!pService->RetrieveInviteParent(hashFork, address, destParent))
+    CInviteContext ctxInvite;
+    if (!pService->RetrieveInviteParent(hashFork, address, ctxInvite))
     {
         throw CRPCException(RPC_INVALID_ADDRESS_OR_KEY, "Invalid invite address");
     }
 
-    return MakeCGetDefiRelationResultPtr(destParent.ToString());
+    auto spResult = MakeCGetDefiRelationResultPtr();
+    spResult->strParent = ctxInvite.destParent.ToString();
+    spResult->strReward = ctxInvite.destReward.ToString();
+    spResult->strAmount = CoinToTokenBigFloat(ctxInvite.nVoteAmount);
+
+    return spResult;
 }
 
 CRPCResultPtr CRPCMod::RPCListDefiRelation(CRPCParamPtr param)
@@ -3391,7 +3396,7 @@ CRPCResultPtr CRPCMod::RPCListDefiRelation(CRPCParamPtr param)
         throw CRPCException(RPC_INVALID_PARAMETER, "Unknown fork");
     }
 
-    std::map<CDestination, std::set<CDestination>> mapDefiInvite;
+    std::map<CDestination, CParentInviteContext> mapDefiInvite; // key: parent address, value: sub address, sub amount
     if (!pService->ListDefiInviteRelation(hashFork, addressParent, mapDefiInvite))
     {
         throw CRPCException(RPC_INTERNAL_ERROR, "Get fail");
@@ -3402,15 +3407,23 @@ CRPCResultPtr CRPCMod::RPCListDefiRelation(CRPCParamPtr param)
     for (const auto& kv : mapDefiInvite)
     {
         CListDefiRelationResult::CRelationdata relData;
-        relData.strParentaddress = kv.first.ToString();
-        for (const auto& vd : kv.second)
+        for (const auto& vd : kv.second.mapSubInvite)
         {
-            relData.vecSubaddress.push_back(vd.ToString());
+            CListDefiRelationResult::CRelationdata::CSubinvite subInvite;
+
+            subInvite.strSubaddress = vd.first.ToString();
+            subInvite.strSubamount = CoinToTokenBigFloat(vd.second);
+
+            relData.vecSubinvite.push_back(subInvite);
             if (++nItemCount >= 1024)
             {
                 break;
             }
         }
+        relData.strParentaddress = kv.first.ToString();
+        relData.strParentreward = kv.second.destReward.ToString();
+        relData.strParentamount = CoinToTokenBigFloat(kv.second.nVoteAmount);
+
         spResult->vecRelationdata.push_back(relData);
         if (nItemCount >= 1024)
         {

@@ -925,7 +925,7 @@ bool CService::GetDestTemplateData(const uint256& hashFork, const CDestination& 
     return true;
 }
 
-bool CService::RetrieveInviteParent(const uint256& hashFork, const CDestination& destSub, CDestination& destParent)
+bool CService::RetrieveInviteParent(const uint256& hashFork, const CDestination& destSub, CInviteContext& ctxInvite)
 {
     uint256 hashLastBlock;
     if (!pBlockChain->RetrieveForkLast(hashFork, hashLastBlock))
@@ -933,10 +933,10 @@ bool CService::RetrieveInviteParent(const uint256& hashFork, const CDestination&
         StdLog("CService", "Retrieve invite parent: Retrieve fork last fail, fork: %s", hashFork.GetHex().c_str());
         return false;
     }
-    return pBlockChain->RetrieveInviteParent(hashFork, hashLastBlock, destSub, destParent);
+    return pBlockChain->RetrieveInviteParent(hashFork, hashLastBlock, destSub, ctxInvite);
 }
 
-bool CService::ListDefiInviteRelation(const uint256& hashFork, const CDestination& destParent, std::map<CDestination, std::set<CDestination>>& mapDefiInvite)
+bool CService::ListDefiInviteRelation(const uint256& hashFork, const CDestination& destParent, std::map<CDestination, CParentInviteContext>& mapDefiInvite)
 {
     uint256 hashLastBlock;
     if (!pBlockChain->RetrieveForkLast(hashFork, hashLastBlock))
@@ -945,7 +945,7 @@ bool CService::ListDefiInviteRelation(const uint256& hashFork, const CDestinatio
         return false;
     }
 
-    std::map<CDestination, CDestination> mapInviteContext;
+    std::map<CDestination, CInviteContext> mapInviteContext;
     if (!pBlockChain->ListInviteRelation(hashFork, hashLastBlock, mapInviteContext))
     {
         StdLog("CService", "List defi invite relation: List invite relation fail, fork: %s", hashFork.GetHex().c_str());
@@ -953,9 +953,25 @@ bool CService::ListDefiInviteRelation(const uint256& hashFork, const CDestinatio
     }
     for (const auto& kv : mapInviteContext)
     {
-        if (destParent.IsNull() || destParent == kv.second)
+        if (destParent.IsNull() || destParent == kv.second.destParent)
         {
-            mapDefiInvite[kv.second].insert(kv.first);
+            auto it = mapDefiInvite.find(kv.second.destParent);
+            if (it == mapDefiInvite.end())
+            {
+                CDestination destReward;
+                uint256 nVoteAmount;
+                if (!kv.second.destParent.IsNull())
+                {
+                    auto mt = mapInviteContext.find(kv.second.destParent);
+                    if (mt != mapInviteContext.end())
+                    {
+                        destReward = mt->second.destReward;
+                        nVoteAmount = mt->second.nVoteAmount;
+                    }
+                }
+                it = mapDefiInvite.insert(std::make_pair(kv.second.destParent, CParentInviteContext(destReward, nVoteAmount))).first;
+            }
+            it->second.mapSubInvite.insert(std::make_pair(kv.first, kv.second.nVoteAmount));
         }
     }
     return true;

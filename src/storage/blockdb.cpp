@@ -497,17 +497,17 @@ bool CBlockDB::ListAddressTxInfo(const uint256& hashFork, const uint256& hashBlo
     return false;
 }
 
-bool CBlockDB::AddInviteRelation(const uint256& hashFork, const uint256& hashPrevBlock, const uint256& hashBlock, const std::map<CDestination, CDestination>& mapInviteContext, uint256& hashNewRoot)
+bool CBlockDB::AddInviteRelation(const uint256& hashFork, const uint256& hashPrevBlock, const uint256& hashBlock, const std::map<CDestination, CInviteContext>& mapInviteContext, uint256& hashNewRoot)
 {
     return dbInvite.AddInviteRelation(hashFork, hashPrevBlock, hashBlock, mapInviteContext, hashNewRoot);
 }
 
-bool CBlockDB::RetrieveInviteParent(const uint256& hashFork, const uint256& hashBlock, const CDestination& destSub, CDestination& destParent)
+bool CBlockDB::RetrieveInviteParent(const uint256& hashFork, const uint256& hashBlock, const CDestination& destSub, CInviteContext& ctxInvite)
 {
-    return dbInvite.RetrieveInviteParent(hashFork, hashBlock, destSub, destParent);
+    return dbInvite.RetrieveInviteParent(hashFork, hashBlock, destSub, ctxInvite);
 }
 
-bool CBlockDB::ListInviteRelation(const uint256& hashFork, const uint256& hashBlock, std::map<CDestination, CDestination>& mapInviteContext)
+bool CBlockDB::ListInviteRelation(const uint256& hashFork, const uint256& hashBlock, std::map<CDestination, CInviteContext>& mapInviteContext)
 {
     return dbInvite.ListInviteRelation(hashFork, hashBlock, mapInviteContext);
 }

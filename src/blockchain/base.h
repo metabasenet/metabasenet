@@ -140,8 +140,8 @@ public:
     virtual bool ListAddressTxInfo(const uint256& hashFork, const CDestination& dest, const uint64 nBeginTxIndex, const uint64 nGetTxCount, const bool fReverse, std::vector<CDestTxInfo>& vAddressTxInfo) = 0;
     virtual bool GetCreateForkLockedAmount(const CDestination& dest, const uint256& hashPrevBlock, const bytes& btAddressData, uint256& nLockedAmount) = 0;
     virtual bool VerifyForkName(const uint256& hashFork, const std::string& strForkName, const uint256& hashBlock = uint256()) = 0;
-    virtual bool RetrieveInviteParent(const uint256& hashFork, const uint256& hashBlock, const CDestination& destSub, CDestination& destParent) = 0;
-    virtual bool ListInviteRelation(const uint256& hashFork, const uint256& hashBlock, std::map<CDestination, CDestination>& mapInviteContext) = 0;
+    virtual bool RetrieveInviteParent(const uint256& hashFork, const uint256& hashBlock, const CDestination& destSub, CInviteContext& ctxInvite) = 0;
+    virtual bool ListInviteRelation(const uint256& hashFork, const uint256& hashBlock, std::map<CDestination, CInviteContext>& mapInviteContext) = 0;
     virtual bool RetrieveDestVoteRedeemContext(const uint256& hashBlock, const CDestination& destRedeem, CVoteRedeemContext& ctxtVoteRedeem) = 0;
 
     /////////////    CheckPoints    /////////////////////
@@ -407,8 +407,8 @@ public:
     virtual bool GetContractSource(const uint256& hashFork, const uint256& hashSource, bytes& btSource) = 0;
     virtual bool GetContractCode(const uint256& hashFork, const uint256& hashCode, bytes& btCode) = 0;
     virtual bool GetDestTemplateData(const uint256& hashFork, const CDestination& dest, bytes& btTemplateData) = 0;
-    virtual bool RetrieveInviteParent(const uint256& hashFork, const CDestination& destSub, CDestination& destParent) = 0;
-    virtual bool ListDefiInviteRelation(const uint256& hashFork, const CDestination& destParent, std::map<CDestination, std::set<CDestination>>& mapDefiInvite) = 0;
+    virtual bool RetrieveInviteParent(const uint256& hashFork, const CDestination& destSub, CInviteContext& ctxInvite) = 0;
+    virtual bool ListDefiInviteRelation(const uint256& hashFork, const CDestination& destParent, std::map<CDestination, CParentInviteContext>& mapDefiInvite) = 0;
 
     /* Mint */
     virtual bool GetWork(std::vector<unsigned char>& vchWorkData, int& nPrevBlockHeight,

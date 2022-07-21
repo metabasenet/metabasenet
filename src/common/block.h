@@ -850,6 +850,40 @@ protected:
     }
 };
 
+class CInviteContext
+{
+    friend class hcode::CStream;
+
+public:
+    CInviteContext() {}
+
+public:
+    CDestination destParent;
+    CDestination destReward;
+    uint256 nVoteAmount;
+
+protected:
+    template <typename O>
+    void Serialize(hcode::CStream& s, O& opt)
+    {
+        s.Serialize(destParent, opt);
+        s.Serialize(destReward, opt);
+        s.Serialize(nVoteAmount, opt);
+    }
+};
+
+class CParentInviteContext
+{
+public:
+    CParentInviteContext(const CDestination& destRewardIn, const uint256& nVoteAmountIn)
+      : destReward(destRewardIn), nVoteAmount(nVoteAmountIn) {}
+
+public:
+    CDestination destReward;
+    uint256 nVoteAmount;
+    std::map<CDestination, uint256> mapSubInvite;
+};
+
 class CReceiptMerkleTree
 {
 public:

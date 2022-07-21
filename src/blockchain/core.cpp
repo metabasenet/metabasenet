@@ -1060,45 +1060,51 @@ Errno CCoreProtocol::VerifyVoteTx(const CTransaction& tx, const uint256& hashPre
 
 Errno CCoreProtocol::VerifyDefiRelationTx(const uint256& hashPrev, const CTransaction& tx)
 {
+    if (tx.hashFork != GetGenesisBlockHash())
+    {
+        StdLog("CoreProtocol", "Verify defi relation tx: Tx is not on the main chain, fork: %s", tx.hashFork.ToString().c_str());
+        return ERR_TRANSACTION_INVALID;
+    }
+
     if (tx.from == tx.to)
     {
-        StdLog("CoreProtocol", "Verify defi relation Tx: DeFi relation tx from address must be not equal to to address, txid: %s", tx.GetHash().GetHex().c_str());
+        StdLog("CoreProtocol", "Verify defi relation tx: DeFi relation tx from address must be not equal to to address, txid: %s", tx.GetHash().GetHex().c_str());
         return ERR_TRANSACTION_INVALID;
     }
 
     if (!tx.from.IsPubKey() || !tx.to.IsPubKey())
     {
-        StdLog("CoreProtocol", "Verify defi relation Tx: DeFi tx to Address and from must be public key address, txid: %s", tx.GetHash().GetHex().c_str());
+        StdLog("CoreProtocol", "Verify defi relation tx: DeFi tx to Address and from must be public key address, txid: %s", tx.GetHash().GetHex().c_str());
         return ERR_TRANSACTION_INVALID;
     }
 
     bytes btDefiData;
     if (!tx.GetTxData(CTransaction::DF_COMMON, btDefiData))
     {
-        StdLog("CoreProtocol", "Verify defi relation Tx: Get data fail, txid: %s", tx.GetHash().GetHex().c_str());
+        StdLog("CoreProtocol", "Verify defi relation tx: Get data fail, txid: %s", tx.GetHash().GetHex().c_str());
         return ERR_TRANSACTION_INVALID;
     }
 
     // vchData: shared_pubkey + sub_sig + parent_sig
     if (btDefiData.size() != 160)
     {
-        StdLog("CoreProtocol", "Verify defi relation Tx: DeFi tx length of vchData is not 160, txid: %s", tx.GetHash().GetHex().c_str());
+        StdLog("CoreProtocol", "Verify defi relation tx: DeFi tx length of vchData is not 160, txid: %s", tx.GetHash().GetHex().c_str());
         return ERR_TRANSACTION_INVALID;
     }
     uint256 sharedPubKey(vector<uint8>(btDefiData.begin(), btDefiData.begin() + 32));
     vector<uint8> subSign(btDefiData.begin() + 32, btDefiData.begin() + 96);
     vector<uint8> parentSign(btDefiData.begin() + 96, btDefiData.end());
-    StdTrace("CoreProtocol", "VerifyDefiRelationTx sharedPubKey: %s, subSign: %s, parentSign: %s",
+    StdTrace("CoreProtocol", "Verify defi relation tx: sharedPubKey: %s, subSign: %s, parentSign: %s",
              sharedPubKey.ToString().c_str(), ToHexString(subSign).c_str(), ToHexString(parentSign).c_str());
 
     // sub_sign: sign blake2b(DeFiRelation + forkid + shared_pubkey) with sendto
     crypto::CPubKey subKey = tx.to.GetPubKey();
     string subSignStr = string("DeFiRelation") + tx.hashFork.ToString() + sharedPubKey.ToString();
     uint256 subSignHashStr = crypto::CryptoHash(subSignStr.data(), subSignStr.size());
-    StdTrace("CoreProtocol", "VerifyDefiRelationTx subSignStr: %s, subSignHashStr: %s", subSignStr.c_str(), ToHexString(subSignHashStr.begin(), subSignHashStr.size()).c_str());
+    StdTrace("CoreProtocol", "Verify defi relation tx: subSignStr: %s, subSignHashStr: %s", subSignStr.c_str(), ToHexString(subSignHashStr.begin(), subSignHashStr.size()).c_str());
     if (!crypto::CryptoVerify(subKey, subSignHashStr.begin(), subSignHashStr.size(), subSign))
     {
-        StdLog("CoreProtocol", "Verify defi relation Tx: DeFi tx sub signature in vchData is not currect, txid: %s", tx.GetHash().GetHex().c_str());
+        StdLog("CoreProtocol", "Verify defi relation tx: DeFi tx sub signature in vchData is not currect, txid: %s", tx.GetHash().GetHex().c_str());
         return ERR_TRANSACTION_INVALID;
     }
 
@@ -1106,17 +1112,17 @@ Errno CCoreProtocol::VerifyDefiRelationTx(const uint256& hashPrev, const CTransa
     crypto::CPubKey parentKey = tx.from.GetPubKey();
     string parentSignStr = string("DeFiRelation") + parentKey.ToString();
     uint256 parentSignHashStr = crypto::CryptoHash(parentSignStr.data(), parentSignStr.size());
-    StdTrace("CoreProtocol", "VerifyDefiRelationTx parentSignStr: %s, parentSignHashStr: %s", parentSignStr.c_str(), ToHexString(parentSignHashStr.begin(), parentSignHashStr.size()).c_str());
+    StdTrace("CoreProtocol", "Verify defi relation tx: parentSignStr: %s, parentSignHashStr: %s", parentSignStr.c_str(), ToHexString(parentSignHashStr.begin(), parentSignHashStr.size()).c_str());
     if (!crypto::CryptoVerify(sharedPubKey, parentSignHashStr.begin(), parentSignHashStr.size(), parentSign))
     {
-        StdLog("CoreProtocol", "Verify defi relation Tx: DeFi tx parent signature in vchData is not currect, txid: %s", tx.GetHash().GetHex().c_str());
+        StdLog("CoreProtocol", "Verify defi relation tx: DeFi tx parent signature in vchData is not currect, txid: %s", tx.GetHash().GetHex().c_str());
         return ERR_TRANSACTION_INVALID;
     }
 
-    CDestination destParent;
-    if (pBlockChain->RetrieveInviteParent(tx.hashFork, hashPrev, tx.to, destParent))
+    CInviteContext ctxInvite;
+    if (pBlockChain->RetrieveInviteParent(tx.hashFork, hashPrev, tx.to, ctxInvite) && !ctxInvite.destParent.IsNull())
     {
-        StdLog("CoreProtocol", "Verify defi relation Tx: To address has been invited, to: %s, txid: %s",
+        StdLog("CoreProtocol", "Verify defi relation tx: To address has been invited, to: %s, txid: %s",
                tx.to.ToString().c_str(), tx.GetHash().GetHex().c_str());
         return ERR_TRANSACTION_INVALID;
     }
