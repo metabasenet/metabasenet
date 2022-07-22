@@ -2023,6 +2023,12 @@ bool CBlockBase::GetTxToAddressTemplateData(const uint256& hashFork, const uint2
     }
     else
     {
+        if (!ctxtAddress.IsTemplate())
+        {
+            StdError("BlockBase", "Get address template data: Address not is template, to: %s, hashPrev: %s",
+                     tx.to.ToString().c_str(), hashPrevBlock.ToString().c_str());
+            return false;
+        }
         CTemplateAddressContext ctxtTemplate;
         if (!ctxtAddress.GetTemplateAddressContext(ctxtTemplate))
         {
@@ -3152,7 +3158,20 @@ bool CBlockBase::UpdateBlockInvite(const uint256& hashFork, const uint256& hashB
                              tx.from.ToString().c_str(), hashBlock.ToString().c_str());
                     return false;
                 }
-                CTemplatePtr ptr = CTemplate::CreateTemplatePtr(TEMPLATE_VOTE, ctxtAddress.btData);
+                if (!ctxtAddress.IsTemplate())
+                {
+                    StdError("BlockBase", "Update block invite: Address not is template, from: %s, block: %s",
+                             tx.from.ToString().c_str(), hashBlock.ToString().c_str());
+                    return false;
+                }
+                CTemplateAddressContext ctxtTemplate;
+                if (!ctxtAddress.GetTemplateAddressContext(ctxtTemplate))
+                {
+                    StdError("BlockBase", "Update block invite: Get template address context fail, from: %s, block: %s",
+                             tx.from.ToString().c_str(), hashBlock.ToString().c_str());
+                    return false;
+                }
+                CTemplatePtr ptr = CTemplate::CreateTemplatePtr(TEMPLATE_VOTE, ctxtTemplate.btData);
                 if (ptr == nullptr)
                 {
                     StdError("BlockBase", "Update block invite: Create template failed, from: %s, block: %s",
