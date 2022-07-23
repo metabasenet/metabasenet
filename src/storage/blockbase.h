@@ -242,7 +242,8 @@ public:
     bool GetForkIdByForkSn(const uint16 nForkSn, uint256& hashFork, const uint256& hashBlock = uint256());
     int GetForkCreatedHeight(const uint256& hashFork);
     bool GetForkStorageMaxHeight(const uint256& hashFork, uint32& nMaxHeight);
-    bool GetTxToAddressTemplateData(const uint256& hashFork, const uint256& hashPrevBlock, const CTransaction& tx, bytes& btTemplateData);
+    bool GetTxToAddressTemplateData(const uint256& hashFork, const uint256& hashPrevBlock, const CTransaction& tx, const std::map<uint256, CAddressContext>& mapBlockAddressContext, bytes& btTemplateData);
+    bool GetTxFromAddressTemplateData(const uint256& hashFork, const uint256& hashPrevBlock, const CTransaction& tx, const std::map<uint256, CAddressContext>& mapBlockAddressContext, bytes& btTemplateData);
 
     bool GetForkBlockLocator(const uint256& hashFork, CBlockLocator& locator, uint256& hashDepth, int nIncStep);
     bool GetForkBlockInv(const uint256& hashFork, const CBlockLocator& locator, std::vector<uint256>& vBlockHash, size_t nMaxCount);
@@ -278,10 +279,9 @@ public:
                                   const std::map<uint256, std::vector<CContractTransfer>>& mapContractTransferIn,
                                   const std::map<uint256, uint256>& mapBlockTxFeeUsedIn, const std::map<uint256, std::map<CDestination, uint256>>& mapBlockCodeDestFeeUsedIn,
                                   uint256& hashNewRoot);
-    bool UpdateBlockAddress(const uint256& hashFork, const uint256& hashBlock, const CBlock& block, const std::map<uint256, CAddressContext>& mapAddressContextIn, uint256& hashNewRoot);
+    bool UpdateBlockAddress(const uint256& hashFork, const uint256& hashBlock, const CBlock& block, std::map<uint256, CAddressContext>& mapAddressContext, uint256& hashNewRoot);
     bool UpdateBlockCode(const uint256& hashFork, const uint256& hashBlock, const CBlock& block, const uint32 nFile, const uint32 nBlockOffset,
                          const std::map<uint256, CWasmRunCodeContext>& mapWasmRunCodeContextIn, uint256& hashCodeRoot);
-    bool UpdateBlockInvite(const uint256& hashFork, const uint256& hashBlock, const CBlockEx& block, uint256& hashNewRoot);
     bool RetrieveWasmState(const uint256& hashFork, const uint256& hashWasmRoot, const uint256& key, bytes& value);
     bool AddBlockWasmState(const uint256& hashFork, const uint256& hashPrevRoot, uint256& hashWasmRoot, const std::map<uint256, bytes>& mapWasmState);
     bool RetrieveAddressContext(const uint256& hashFork, const uint256& hashBlock, const uint256& dest, CAddressContext& ctxtAddress);
@@ -319,8 +319,9 @@ protected:
     bool LoadForkProfile(const CBlockIndex* pIndexOrigin, CProfile& profile);
     bool UpdateDelegate(const uint256& hashBlock, const CBlockEx& block, const uint32 nFile, const uint32 nOffset,
                         const uint256& nMinEnrollAmount, uint256& hashDelegateRoot);
-    bool UpdateVote(const uint256& hashFork, const uint256& hashBlock, const CBlockEx& block, uint256& hashVoteRoot);
-    bool UpdateVoteRedeem(const uint256& hashFork, const uint256& hashBlock, const CBlockEx& block, uint256& hashVoteRedeemRoot);
+    bool UpdateVote(const uint256& hashFork, const uint256& hashBlock, const CBlockEx& block, const std::map<uint256, CAddressContext>& mapBlockAddressContext, uint256& hashVoteRoot);
+    bool UpdateVoteRedeem(const uint256& hashFork, const uint256& hashBlock, const CBlockEx& block, const std::map<uint256, CAddressContext>& mapBlockAddressContext, uint256& hashVoteRedeemRoot);
+    bool UpdateBlockInvite(const uint256& hashFork, const uint256& hashBlock, const CBlockEx& block, const std::map<uint256, CAddressContext>& mapBlockAddressContext, uint256& hashNewRoot);
     bool IsValidBlock(CBlockIndex* pForkLast, const uint256& hashBlock);
     bool VerifyValidBlock(CBlockIndex* pIndexGenesisLast, const CBlockIndex* pIndex);
     CBlockIndex* GetLongChainLastBlock(const uint256& hashFork, int nStartHeight, CBlockIndex* pIndexGenesisLast, const std::set<uint256>& setInvalidHash);

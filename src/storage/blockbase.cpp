@@ -1162,21 +1162,21 @@ bool CBlockBase::SaveBlock(const uint256& hashFork, const uint256& hashBlock, co
                 break;
             }
 
-            if (!UpdateVote(hashFork, hashBlock, block, blockRoot.hashVoteRoot))
+            if (!UpdateVote(hashFork, hashBlock, block, mapTempAddressContext, blockRoot.hashVoteRoot))
             {
                 StdError("BlockBase", "Save block: Update vote failed, block: %s", hashBlock.ToString().c_str());
                 fRet = false;
                 break;
             }
 
-            if (!UpdateVoteRedeem(hashFork, hashBlock, block, blockRoot.hashVoteRedeemRoot))
+            if (!UpdateVoteRedeem(hashFork, hashBlock, block, mapTempAddressContext, blockRoot.hashVoteRedeemRoot))
             {
                 StdError("BlockBase", "Save block: Update vote redeem failed, block: %s", hashBlock.ToString().c_str());
                 fRet = false;
                 break;
             }
 
-            if (!UpdateBlockInvite(hashFork, hashBlock, block, blockRoot.hashInviteRoot))
+            if (!UpdateBlockInvite(hashFork, hashBlock, block, mapTempAddressContext, blockRoot.hashInviteRoot))
             {
                 StdError("BlockBase", "Save block: Update block invite failed, block: %s", hashBlock.ToString().c_str());
                 fRet = false;
@@ -2009,35 +2009,90 @@ bool CBlockBase::GetForkStorageMaxHeight(const uint256& hashFork, uint32& nMaxHe
     return it->second.GetMaxHeight(nMaxHeight);
 }
 
-bool CBlockBase::GetTxToAddressTemplateData(const uint256& hashFork, const uint256& hashPrevBlock, const CTransaction& tx, bytes& btTemplateData)
+bool CBlockBase::GetTxToAddressTemplateData(const uint256& hashFork, const uint256& hashPrevBlock, const CTransaction& tx, const std::map<uint256, CAddressContext>& mapBlockAddressContext, bytes& btTemplateData)
 {
-    CAddressContext ctxtAddress;
-    if (!dbBlock.RetrieveAddressContext(hashFork, hashPrevBlock, tx.to.data, ctxtAddress))
+    auto mt = mapBlockAddressContext.find(tx.to.data);
+    if (mt != mapBlockAddressContext.end())
     {
-        if (!tx.GetTxData(CTransaction::DF_TEMPLATEDATA, btTemplateData))
+        if (!mt->second.IsTemplate())
         {
-            StdError("BlockBase", "Get address template data: Retrieve address context failed and tx data error, to: %s, hashPrev: %s",
-                     tx.to.ToString().c_str(), hashPrevBlock.ToString().c_str());
-            return false;
-        }
-    }
-    else
-    {
-        if (!ctxtAddress.IsTemplate())
-        {
-            StdError("BlockBase", "Get address template data: Address not is template, to: %s, hashPrev: %s",
+            StdError("BlockBase", "Get to address template data: Address not is template, to: %s, hashPrev: %s",
                      tx.to.ToString().c_str(), hashPrevBlock.ToString().c_str());
             return false;
         }
         CTemplateAddressContext ctxtTemplate;
-        if (!ctxtAddress.GetTemplateAddressContext(ctxtTemplate))
+        if (!mt->second.GetTemplateAddressContext(ctxtTemplate))
         {
-            StdError("BlockBase", "Get address template data: Get template address context failed, to: %s, hashPrev: %s",
+            StdError("BlockBase", "Get to address template data: Get template address context fail, to: %s, hashPrev: %s",
                      tx.to.ToString().c_str(), hashPrevBlock.ToString().c_str());
             return false;
         }
         btTemplateData = ctxtTemplate.btData;
     }
+    else
+    {
+        CAddressContext ctxtAddress;
+        if (!dbBlock.RetrieveAddressContext(hashFork, hashPrevBlock, tx.to.data, ctxtAddress))
+        {
+            if (!tx.GetTxData(CTransaction::DF_TEMPLATEDATA, btTemplateData))
+            {
+                StdError("BlockBase", "Get to address template data: Retrieve address context failed and tx data error, to: %s, hashPrev: %s",
+                         tx.to.ToString().c_str(), hashPrevBlock.ToString().c_str());
+                return false;
+            }
+        }
+        else
+        {
+            if (!ctxtAddress.IsTemplate())
+            {
+                StdError("BlockBase", "Get to address template data: Address not is template, to: %s, hashPrev: %s",
+                         tx.to.ToString().c_str(), hashPrevBlock.ToString().c_str());
+                return false;
+            }
+            CTemplateAddressContext ctxtTemplate;
+            if (!ctxtAddress.GetTemplateAddressContext(ctxtTemplate))
+            {
+                StdError("BlockBase", "Get to address template data: Get template address context failed, to: %s, hashPrev: %s",
+                         tx.to.ToString().c_str(), hashPrevBlock.ToString().c_str());
+                return false;
+            }
+            btTemplateData = ctxtTemplate.btData;
+        }
+    }
+    return true;
+}
+
+bool CBlockBase::GetTxFromAddressTemplateData(const uint256& hashFork, const uint256& hashPrevBlock, const CTransaction& tx, const std::map<uint256, CAddressContext>& mapBlockAddressContext, bytes& btTemplateData)
+{
+    CAddressContext ctxtAddress;
+    auto mt = mapBlockAddressContext.find(tx.from.data);
+    if (mt != mapBlockAddressContext.end())
+    {
+        ctxtAddress = mt->second;
+    }
+    else
+    {
+        if (!dbBlock.RetrieveAddressContext(hashFork, hashPrevBlock, tx.from.data, ctxtAddress))
+        {
+            StdError("BlockBase", "Get from address template data: Retrieve address context failed, from: %s, hashPrev: %s",
+                     tx.from.ToString().c_str(), hashPrevBlock.ToString().c_str());
+            return false;
+        }
+    }
+    if (!ctxtAddress.IsTemplate())
+    {
+        StdError("BlockBase", "Get from address template data: Address not is template, from: %s, hashPrev: %s",
+                 tx.from.ToString().c_str(), hashPrevBlock.ToString().c_str());
+        return false;
+    }
+    CTemplateAddressContext ctxtTemplate;
+    if (!ctxtAddress.GetTemplateAddressContext(ctxtTemplate))
+    {
+        StdError("BlockBase", "Get from address template data: Get template address context failed, from: %s, hashPrev: %s",
+                 tx.from.ToString().c_str(), hashPrevBlock.ToString().c_str());
+        return false;
+    }
+    btTemplateData = ctxtTemplate.btData;
     return true;
 }
 
@@ -2848,7 +2903,7 @@ bool CBlockBase::UpdateBlockAddressTxInfo(const uint256& hashFork, const uint256
     return true;
 }
 
-bool CBlockBase::UpdateBlockAddress(const uint256& hashFork, const uint256& hashBlock, const CBlock& block, const std::map<uint256, CAddressContext>& mapAddressContextIn, uint256& hashNewRoot)
+bool CBlockBase::UpdateBlockAddress(const uint256& hashFork, const uint256& hashBlock, const CBlock& block, std::map<uint256, CAddressContext>& mapAddressContext, uint256& hashNewRoot)
 {
     std::map<uint256, CAddressContext> mapAddress;
 
@@ -2944,8 +2999,8 @@ bool CBlockBase::UpdateBlockAddress(const uint256& hashFork, const uint256& hash
                     }
                     if (txcd.IsCreate() || txcd.IsSetup())
                     {
-                        auto mt = mapAddressContextIn.find(destTo.data);
-                        if (mt != mapAddressContextIn.end())
+                        auto mt = mapAddressContext.find(destTo.data);
+                        if (mt != mapAddressContext.end())
                         {
                             CContractAddressContext contractAddressContext;
                             if (mt->second.GetContractAddressContext(contractAddressContext))
@@ -2977,7 +3032,7 @@ bool CBlockBase::UpdateBlockAddress(const uint256& hashFork, const uint256& hash
         }
     }
 
-    for (const auto& kv : mapAddressContextIn)
+    for (const auto& kv : mapAddressContext)
     {
         if (mapAddress.find(kv.first) == mapAddress.end())
         {
@@ -2990,6 +3045,9 @@ bool CBlockBase::UpdateBlockAddress(const uint256& hashFork, const uint256& hash
         StdLog("BlockBase", "Update Block Address: Add address context fail, block: %s", hashBlock.GetHex().c_str());
         return false;
     }
+
+    mapAddressContext.clear();
+    mapAddressContext = mapAddress;
     return true;
 }
 
@@ -3078,172 +3136,6 @@ bool CBlockBase::UpdateBlockCode(const uint256& hashFork, const uint256& hashBlo
     if (!dbBlock.AddCodeContext(hashFork, block.hashPrev, hashBlock, mapSourceCode, mapWasmCreateCode, mapWasmRunCode, hashCodeRoot))
     {
         StdLog("BlockBase", "Update Block Code: Add code context fail, block: %s", hashBlock.GetHex().c_str());
-        return false;
-    }
-    return true;
-}
-
-bool CBlockBase::UpdateBlockInvite(const uint256& hashFork, const uint256& hashBlock, const CBlockEx& block, uint256& hashNewRoot)
-{
-    std::map<CDestination, CInviteContext> mapInviteContext;     // key: sub address, value: parent address, amount
-    std::map<CDestination, std::set<CDestination>> mapVoteOwner; // key: owner address, value: vote address list
-
-    for (const auto& tx : block.vtx)
-    {
-        if (tx.nType == CTransaction::TX_DEFI_RELATION)
-        {
-            auto it = mapInviteContext.find(tx.to);
-            if (it == mapInviteContext.end())
-            {
-                CInviteContext ctxInvite;
-                if (!dbBlock.RetrieveInviteParent(hashFork, block.hashPrev, tx.to, ctxInvite))
-                {
-                    ctxInvite.destParent.SetNull();
-                    ctxInvite.destReward.SetNull();
-                    ctxInvite.nVoteAmount = 0;
-                }
-                it = mapInviteContext.insert(std::make_pair(tx.to, ctxInvite)).first;
-            }
-            it->second.destParent = tx.from;
-        }
-        else
-        {
-            if (tx.to.IsTemplate() && tx.to.GetTemplateId().GetType() == TEMPLATE_VOTE)
-            {
-                bytes btTemplateData;
-                if (!GetTxToAddressTemplateData(hashFork, block.hashPrev, tx, btTemplateData))
-                {
-                    StdError("BlockBase", "Update block invite: Get address template data failed, to: %s, block: %s",
-                             tx.to.ToString().c_str(), hashBlock.ToString().c_str());
-                    return false;
-                }
-                CTemplatePtr ptr = CTemplate::CreateTemplatePtr(TEMPLATE_VOTE, btTemplateData);
-                if (ptr == nullptr)
-                {
-                    StdError("BlockBase", "Update block invite: Create template failed, to: %s, block: %s",
-                             tx.to.ToString().c_str(), hashBlock.ToString().c_str());
-                    return false;
-                }
-                auto objVote = boost::dynamic_pointer_cast<CTemplateVote>(ptr);
-
-                auto it = mapInviteContext.find(objVote->destOwner);
-                if (it == mapInviteContext.end())
-                {
-                    CInviteContext ctxInvite;
-                    if (!dbBlock.RetrieveInviteParent(hashFork, block.hashPrev, objVote->destOwner, ctxInvite))
-                    {
-                        ctxInvite.destParent.SetNull();
-                        ctxInvite.destReward.SetNull();
-                        ctxInvite.nVoteAmount = 0;
-                    }
-                    it = mapInviteContext.insert(std::make_pair(objVote->destOwner, ctxInvite)).first;
-                }
-                if (it->second.destReward.IsNull())
-                {
-                    it->second.destReward = tx.to;
-                }
-
-                auto& setVote = mapVoteOwner[objVote->destOwner];
-                if (setVote.find(tx.to) == setVote.end())
-                {
-                    setVote.insert(tx.to);
-                }
-            }
-            if (tx.from.IsTemplate() && tx.from.GetTemplateId().GetType() == TEMPLATE_VOTE)
-            {
-                CAddressContext ctxtAddress;
-                if (!dbBlock.RetrieveAddressContext(hashFork, block.hashPrev, tx.from.data, ctxtAddress))
-                {
-                    StdError("BlockBase", "Update block invite: Retrieve address context failed, from: %s, block: %s",
-                             tx.from.ToString().c_str(), hashBlock.ToString().c_str());
-                    return false;
-                }
-                if (!ctxtAddress.IsTemplate())
-                {
-                    StdError("BlockBase", "Update block invite: Address not is template, from: %s, block: %s",
-                             tx.from.ToString().c_str(), hashBlock.ToString().c_str());
-                    return false;
-                }
-                CTemplateAddressContext ctxtTemplate;
-                if (!ctxtAddress.GetTemplateAddressContext(ctxtTemplate))
-                {
-                    StdError("BlockBase", "Update block invite: Get template address context fail, from: %s, block: %s",
-                             tx.from.ToString().c_str(), hashBlock.ToString().c_str());
-                    return false;
-                }
-                CTemplatePtr ptr = CTemplate::CreateTemplatePtr(TEMPLATE_VOTE, ctxtTemplate.btData);
-                if (ptr == nullptr)
-                {
-                    StdError("BlockBase", "Update block invite: Create template failed, from: %s, block: %s",
-                             tx.from.ToString().c_str(), hashBlock.ToString().c_str());
-                    return false;
-                }
-                auto objVote = boost::dynamic_pointer_cast<CTemplateVote>(ptr);
-
-                auto& setVote = mapVoteOwner[objVote->destOwner];
-                if (setVote.find(tx.from) == setVote.end())
-                {
-                    setVote.insert(tx.from);
-                }
-            }
-        }
-    }
-
-    uint256 hashPrevStateRoot;
-    if (block.hashPrev != 0)
-    {
-        CBlockIndex* pPrevIndex = GetIndex(block.hashPrev);
-        if (pPrevIndex == nullptr)
-        {
-            StdLog("BlockBase", "Update block invite: Get prev index fail, prev block: %s, block: %s",
-                   block.hashPrev.GetHex().c_str(), hashBlock.GetHex().c_str());
-            return false;
-        }
-        hashPrevStateRoot = pPrevIndex->GetStateRoot();
-    }
-
-    for (auto& kv : mapVoteOwner)
-    {
-        auto it = mapInviteContext.find(kv.first);
-        if (it == mapInviteContext.end())
-        {
-            CInviteContext ctxInvite;
-            if (!dbBlock.RetrieveInviteParent(hashFork, block.hashPrev, kv.first, ctxInvite))
-            {
-                ctxInvite.destParent.SetNull();
-                ctxInvite.destReward.SetNull();
-                ctxInvite.nVoteAmount = 0;
-            }
-            it = mapInviteContext.insert(std::make_pair(kv.first, ctxInvite)).first;
-        }
-        for (auto& destVote : kv.second)
-        {
-            CDestState statePrev;
-            CDestState stateBlock;
-            if (hashPrevStateRoot != 0 && !dbBlock.RetrieveDestState(hashFork, hashPrevStateRoot, destVote, statePrev))
-            {
-                statePrev.nBalance = 0;
-            }
-            if (!dbBlock.RetrieveDestState(hashFork, block.hashStateRoot, destVote, stateBlock))
-            {
-                StdLog("BlockBase", "Update block invite: Retrieve block state fail, destVote: %s, block: %s",
-                       destVote.ToString().c_str(), hashBlock.GetHex().c_str());
-                return false;
-            }
-            if (stateBlock.nBalance > statePrev.nBalance)
-            {
-                it->second.nVoteAmount += (stateBlock.nBalance - statePrev.nBalance);
-            }
-            else if (stateBlock.nBalance < statePrev.nBalance)
-            {
-                it->second.nVoteAmount -= (statePrev.nBalance - stateBlock.nBalance);
-            }
-        }
-    }
-
-    if (!dbBlock.AddInviteRelation(hashFork, block.hashPrev, hashBlock, mapInviteContext, hashNewRoot))
-    {
-        StdLog("BlockBase", "Update block invite: Add invite context fail, block: %s", hashBlock.GetHex().c_str());
         return false;
     }
     return true;
@@ -3674,7 +3566,7 @@ bool CBlockBase::UpdateDelegate(const uint256& hashBlock, const CBlockEx& block,
     return true;
 }
 
-bool CBlockBase::UpdateVote(const uint256& hashFork, const uint256& hashBlock, const CBlockEx& block, uint256& hashVoteRoot)
+bool CBlockBase::UpdateVote(const uint256& hashFork, const uint256& hashBlock, const CBlockEx& block, const std::map<uint256, CAddressContext>& mapBlockAddressContext, uint256& hashVoteRoot)
 {
     std::map<CDestination, CVoteContext> mapBlockVote;
     for (size_t i = 0; i < block.vtx.size(); i++)
@@ -3704,29 +3596,14 @@ bool CBlockBase::UpdateVote(const uint256& hashFork, const uint256& hashBlock, c
                 {
                     if (nToTemplateType == TEMPLATE_VOTE)
                     {
-                        CTemplatePtr ptr = nullptr;
-                        CAddressContext ctxtAddress;
-                        if (!dbBlock.RetrieveAddressContext(hashFork, block.hashPrev, tx.to.data, ctxtAddress))
+                        bytes btTemplateData;
+                        if (!GetTxToAddressTemplateData(hashFork, block.hashPrev, tx, mapBlockAddressContext, btTemplateData))
                         {
-                            bytes btTempData;
-                            if (!tx.GetTxData(CTransaction::DF_TEMPLATEDATA, btTempData))
-                            {
-                                StdError("BlockBase", "Update vote: Retrieve address context failed and tx data error, to: %s, hashPrev: %s",
-                                         tx.to.ToString().c_str(), block.hashPrev.ToString().c_str());
-                                return false;
-                            }
-                            ptr = CTemplate::CreateTemplatePtr(TEMPLATE_VOTE, btTempData);
+                            StdError("BlockBase", "Update vote: Get address template data failed, to: %s, block: %s",
+                                    tx.to.ToString().c_str(), hashBlock.ToString().c_str());
+                            return false;
                         }
-                        else
-                        {
-                            CTemplateAddressContext ctxtTemplate;
-                            if (!ctxtAddress.GetTemplateAddressContext(ctxtTemplate))
-                            {
-                                StdError("BlockBase", "Update vote: Get template address context failed, block: %s", hashBlock.ToString().c_str());
-                                return false;
-                            }
-                            ptr = CTemplate::CreateTemplatePtr(TEMPLATE_VOTE, ctxtTemplate.btData);
-                        }
+                        CTemplatePtr ptr = CTemplate::CreateTemplatePtr(TEMPLATE_VOTE, btTemplateData);
                         if (ptr == nullptr)
                         {
                             StdError("BlockBase", "Update vote: Create template failed, block: %s", hashBlock.ToString().c_str());
@@ -3809,7 +3686,7 @@ bool CBlockBase::UpdateVote(const uint256& hashFork, const uint256& hashBlock, c
     return true;
 }
 
-bool CBlockBase::UpdateVoteRedeem(const uint256& hashFork, const uint256& hashBlock, const CBlockEx& block, uint256& hashVoteRedeemRoot)
+bool CBlockBase::UpdateVoteRedeem(const uint256& hashFork, const uint256& hashBlock, const CBlockEx& block, const std::map<uint256, CAddressContext>& mapBlockAddressContext, uint256& hashVoteRedeemRoot)
 {
     std::map<CDestination, CVoteRedeemContext> mapBlockVoteRedeem;
     for (size_t i = 0; i < block.vtx.size(); i++)
@@ -3823,29 +3700,14 @@ bool CBlockBase::UpdateVoteRedeem(const uint256& hashFork, const uint256& hashBl
                 CVoteRedeemContext ctxtVoteRedeem;
                 if (!dbBlock.RetrieveDestVoteRedeemContext(block.hashPrev, tx.to, ctxtVoteRedeem))
                 {
-                    CTemplatePtr ptr = nullptr;
-                    CAddressContext ctxtAddress;
-                    if (!dbBlock.RetrieveAddressContext(hashFork, block.hashPrev, tx.to.data, ctxtAddress))
+                    bytes btTemplateData;
+                    if (!GetTxToAddressTemplateData(hashFork, block.hashPrev, tx, mapBlockAddressContext, btTemplateData))
                     {
-                        bytes btTempData;
-                        if (!tx.GetTxData(CTransaction::DF_TEMPLATEDATA, btTempData))
-                        {
-                            StdError("BlockBase", "Update vote redeem: Retrieve address context failed and tx data error, to: %s, hashPrev: %s",
-                                     tx.to.ToString().c_str(), block.hashPrev.ToString().c_str());
-                            return false;
-                        }
-                        ptr = CTemplate::CreateTemplatePtr(TEMPLATE_REDEEM, btTempData);
+                        StdError("BlockBase", "Update vote redeem: Get address template data failed, to: %s, block: %s",
+                                tx.to.ToString().c_str(), hashBlock.ToString().c_str());
+                        return false;
                     }
-                    else
-                    {
-                        CTemplateAddressContext ctxtTemplate;
-                        if (!ctxtAddress.GetTemplateAddressContext(ctxtTemplate))
-                        {
-                            StdError("BlockBase", "Update vote redeem: Get template address context failed, block: %s", hashBlock.ToString().c_str());
-                            return false;
-                        }
-                        ptr = CTemplate::CreateTemplatePtr(TEMPLATE_REDEEM, ctxtTemplate.btData);
-                    }
+                    CTemplatePtr ptr = CTemplate::CreateTemplatePtr(TEMPLATE_REDEEM, btTemplateData);
                     if (ptr == nullptr)
                     {
                         StdError("BlockBase", "Update vote redeem: Create template failed, block: %s", hashBlock.ToString().c_str());
@@ -3875,6 +3737,159 @@ bool CBlockBase::UpdateVoteRedeem(const uint256& hashFork, const uint256& hashBl
     if (!dbBlock.AddBlockVoteRedeem(block.hashPrev, hashBlock, mapBlockVoteRedeem, hashVoteRedeemRoot))
     {
         StdError("BlockBase", "Update vote redeem: Add block vote redeem failed, block: %s", hashBlock.ToString().c_str());
+        return false;
+    }
+    return true;
+}
+
+bool CBlockBase::UpdateBlockInvite(const uint256& hashFork, const uint256& hashBlock, const CBlockEx& block, const std::map<uint256, CAddressContext>& mapBlockAddressContext, uint256& hashNewRoot)
+{
+    std::map<CDestination, CInviteContext> mapInviteContext;     // key: sub address, value: parent address, amount
+    std::map<CDestination, std::set<CDestination>> mapVoteOwner; // key: owner address, value: vote address list
+
+    for (const auto& tx : block.vtx)
+    {
+        if (tx.nType == CTransaction::TX_DEFI_RELATION)
+        {
+            auto it = mapInviteContext.find(tx.to);
+            if (it == mapInviteContext.end())
+            {
+                CInviteContext ctxInvite;
+                if (!dbBlock.RetrieveInviteParent(hashFork, block.hashPrev, tx.to, ctxInvite))
+                {
+                    ctxInvite.destParent.SetNull();
+                    ctxInvite.destReward.SetNull();
+                    ctxInvite.nVoteAmount = 0;
+                }
+                it = mapInviteContext.insert(std::make_pair(tx.to, ctxInvite)).first;
+            }
+            it->second.destParent = tx.from;
+        }
+        else
+        {
+            if (tx.to.IsTemplate() && tx.to.GetTemplateId().GetType() == TEMPLATE_VOTE)
+            {
+                bytes btTemplateData;
+                if (!GetTxToAddressTemplateData(hashFork, block.hashPrev, tx, mapBlockAddressContext, btTemplateData))
+                {
+                    StdError("BlockBase", "Update block invite: Get address template data failed, to: %s, block: %s",
+                             tx.to.ToString().c_str(), hashBlock.ToString().c_str());
+                    return false;
+                }
+                CTemplatePtr ptr = CTemplate::CreateTemplatePtr(TEMPLATE_VOTE, btTemplateData);
+                if (ptr == nullptr)
+                {
+                    StdError("BlockBase", "Update block invite: Create template failed, to: %s, block: %s",
+                             tx.to.ToString().c_str(), hashBlock.ToString().c_str());
+                    return false;
+                }
+                auto objVote = boost::dynamic_pointer_cast<CTemplateVote>(ptr);
+
+                auto it = mapInviteContext.find(objVote->destOwner);
+                if (it == mapInviteContext.end())
+                {
+                    CInviteContext ctxInvite;
+                    if (!dbBlock.RetrieveInviteParent(hashFork, block.hashPrev, objVote->destOwner, ctxInvite))
+                    {
+                        ctxInvite.destParent.SetNull();
+                        ctxInvite.destReward.SetNull();
+                        ctxInvite.nVoteAmount = 0;
+                    }
+                    it = mapInviteContext.insert(std::make_pair(objVote->destOwner, ctxInvite)).first;
+                }
+                if (it->second.destReward.IsNull())
+                {
+                    it->second.destReward = tx.to;
+                }
+
+                auto& setVote = mapVoteOwner[objVote->destOwner];
+                if (setVote.find(tx.to) == setVote.end())
+                {
+                    setVote.insert(tx.to);
+                }
+            }
+            if (tx.from.IsTemplate() && tx.from.GetTemplateId().GetType() == TEMPLATE_VOTE)
+            {
+                bytes btTemplateData;
+                if (!GetTxFromAddressTemplateData(hashFork, block.hashPrev, tx, mapBlockAddressContext, btTemplateData))
+                {
+                    StdError("BlockBase", "Update block invite: Get address template data failed, from: %s, block: %s",
+                             tx.from.ToString().c_str(), hashBlock.ToString().c_str());
+                    return false;
+                }
+                CTemplatePtr ptr = CTemplate::CreateTemplatePtr(TEMPLATE_VOTE, btTemplateData);
+                if (ptr == nullptr)
+                {
+                    StdError("BlockBase", "Update block invite: Create template failed, from: %s, block: %s",
+                             tx.from.ToString().c_str(), hashBlock.ToString().c_str());
+                    return false;
+                }
+                auto objVote = boost::dynamic_pointer_cast<CTemplateVote>(ptr);
+
+                auto& setVote = mapVoteOwner[objVote->destOwner];
+                if (setVote.find(tx.from) == setVote.end())
+                {
+                    setVote.insert(tx.from);
+                }
+            }
+        }
+    }
+
+    uint256 hashPrevStateRoot;
+    if (block.hashPrev != 0)
+    {
+        CBlockIndex* pPrevIndex = GetIndex(block.hashPrev);
+        if (pPrevIndex == nullptr)
+        {
+            StdLog("BlockBase", "Update block invite: Get prev index fail, prev block: %s, block: %s",
+                   block.hashPrev.GetHex().c_str(), hashBlock.GetHex().c_str());
+            return false;
+        }
+        hashPrevStateRoot = pPrevIndex->GetStateRoot();
+    }
+
+    for (auto& kv : mapVoteOwner)
+    {
+        auto it = mapInviteContext.find(kv.first);
+        if (it == mapInviteContext.end())
+        {
+            CInviteContext ctxInvite;
+            if (!dbBlock.RetrieveInviteParent(hashFork, block.hashPrev, kv.first, ctxInvite))
+            {
+                ctxInvite.destParent.SetNull();
+                ctxInvite.destReward.SetNull();
+                ctxInvite.nVoteAmount = 0;
+            }
+            it = mapInviteContext.insert(std::make_pair(kv.first, ctxInvite)).first;
+        }
+        for (auto& destVote : kv.second)
+        {
+            CDestState statePrev;
+            CDestState stateBlock;
+            if (hashPrevStateRoot != 0 && !dbBlock.RetrieveDestState(hashFork, hashPrevStateRoot, destVote, statePrev))
+            {
+                statePrev.nBalance = 0;
+            }
+            if (!dbBlock.RetrieveDestState(hashFork, block.hashStateRoot, destVote, stateBlock))
+            {
+                StdLog("BlockBase", "Update block invite: Retrieve block state fail, destVote: %s, block: %s",
+                       destVote.ToString().c_str(), hashBlock.GetHex().c_str());
+                return false;
+            }
+            if (stateBlock.nBalance > statePrev.nBalance)
+            {
+                it->second.nVoteAmount += (stateBlock.nBalance - statePrev.nBalance);
+            }
+            else if (stateBlock.nBalance < statePrev.nBalance)
+            {
+                it->second.nVoteAmount -= (statePrev.nBalance - stateBlock.nBalance);
+            }
+        }
+    }
+
+    if (!dbBlock.AddInviteRelation(hashFork, block.hashPrev, hashBlock, mapInviteContext, hashNewRoot))
+    {
+        StdLog("BlockBase", "Update block invite: Add invite context fail, block: %s", hashBlock.GetHex().c_str());
         return false;
     }
     return true;
