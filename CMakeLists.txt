@@ -128,8 +128,9 @@ find_package(Protobuf 3.0.0 REQUIRED)
 find_package(Readline 5.0 REQUIRED)
 
 if(OPENSSL_VERSION VERSION_EQUAL 1.1.0 OR
-    (OPENSSL_VERSION VERSION_GREATER 1.1.0 AND OPENSSL_VERSION VERSION_LESS 1.2.0))
-    add_definitions(-DUSE_SSL_110)
+    (OPENSSL_VERSION VERSION_GREATER 1.1.0 AND OPENSSL_VERSION VERSION_LESS 1.2.0) OR 
+    (OPENSSL_VERSION VERSION_GREATER 3.0.0))
+    add_definitions(-DUSE_SSL_HIGH)
 endif()
 
 # use _1 instead of boost::placeholders::_1

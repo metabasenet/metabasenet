@@ -394,7 +394,7 @@ bool CSSLClient::VerifyCertificate(const string& strVerifyHost, bool fPreverifie
     //X509* cert = X509_STORE_CTX_get_current_cert(ctx.native_handle());
     int cts_error;
 
-#ifdef USE_SSL_110
+#ifdef USE_SSL_HIGH
     cts_error = X509_STORE_CTX_get_error(cts);
 #else
     cts_error = cts->error;

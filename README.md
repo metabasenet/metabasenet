@@ -13,11 +13,11 @@ The version control of this project is based on semantic versioning, please refe
 https://semver.org/
 ```
 
-## Installation (Ubuntu16.04/18.04)
+## Installation (Ubuntu16.04/18.04/22.04)
 ```
 sudo apt install -y g++ libboost-all-dev openssl libreadline-dev pkg-config libncurses5-dev autoconf
 
-# ubuntu16.04
+# ubuntu16.04/22.04
 sudo apt install -y libssl-dev
 
 # ubuntu18.04
