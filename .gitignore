@@ -1,32 +1,28 @@
-# Prerequisites
-*.d
-
-# Compiled Object files
-*.slo
 *.lo
 *.o
-*.obj
-
-# Precompiled Headers
-*.gch
-*.pch
-
-# Compiled Dynamic libraries
-*.so
-*.dylib
-*.dll
-
-# Fortran module files
-*.mod
-*.smod
-
-# Compiled Static libraries
-*.lai
 *.la
 *.a
 *.lib
+*.so
+*.swp
+*~
+*.pyc
+.DS_Store
 
-# Executables
-*.exe
-*.out
-*.app
+build/
+build-release/
+build-debug/
+bin/
+.idea
+.vscode
+.ipch
+cmake-build-debug/
+cmake-build-release/
+
+metabasenet.exe
+metabasenet-*
+CMakeSettings.json
+
+G*
+
+.vs/
