@@ -19,11 +19,13 @@ class CReqContext
 {
 public:
     CReqContext() {}
-    CReqContext(const uint256& hashForkIn, const CChainId nReqChainIdIn, const uint16 nListenRpcPortIn, const std::string& strPeerIpIn, const uint16 nPeerPortIn)
-      : hashFork(hashForkIn), nReqChainId(nReqChainIdIn), nListenRpcPort(nListenRpcPortIn), strPeerIp(strPeerIpIn), nPeerPort(nPeerPortIn) {}
+    CReqContext(const uint64 nNonceIn, const uint256& hashForkIn, const uint8 nReqSourceTypeIn, const CChainId nReqChainIdIn, const uint16 nListenRpcPortIn, const std::string& strPeerIpIn, const uint16 nPeerPortIn)
+      : nNonce(nNonceIn), hashFork(hashForkIn), nReqSourceType(nReqSourceTypeIn), nReqChainId(nReqChainIdIn), nListenRpcPort(nListenRpcPortIn), strPeerIp(strPeerIpIn), nPeerPort(nPeerPortIn) {}
 
 public:
+    uint64 nNonce;
     uint256 hashFork;
+    uint8 nReqSourceType;
     CChainId nReqChainId;
     uint16 nListenRpcPort;
     std::string strPeerIp;
@@ -36,8 +38,10 @@ class CRPCMod : public mtbase::IIOModule, virtual public mtbase::CHttpEventListe
 {
 public:
     typedef rpc::CRPCResultPtr (CRPCMod::*RPCFunc)(const CReqContext& ctxReq, rpc::CRPCParamPtr param);
+
     CRPCMod();
     ~CRPCMod();
+
     bool HandleEvent(mtbase::CEventHttpReq& eventHttpReq) override;
     bool HandleEvent(mtbase::CEventHttpBroken& eventHttpBroken) override;
 
@@ -57,7 +61,7 @@ protected:
         return dynamic_cast<const CRPCServerConfig*>(IBase::Config());
     }
 
-    void JsonReply(uint64 nNonce, const std::string& result);
+    void JsonReply(const uint8 nReqSourceType, const CChainId nChainId, const uint64 nNonce, const std::string& result);
 
     int GetInt(const rpc::CRPCInt64& i, int valDefault);
     unsigned int GetUint(const rpc::CRPCUint64& i, unsigned int valDefault);
@@ -70,6 +74,7 @@ protected:
     uint256 GetRefBlock(const uint256& hashFork, const string& strRefBlock, const bool fDefZero = false);
     bool VerifyClientOrder(const CReqContext& ctxReq);
     CLogsFilter GetLogFilterFromJson(const uint256& hashFork, const std::string& strJsonValue);
+    bool GetVmExecResultInfo(const int nStatus, const bytes& btResult, string& strError);
 
 private:
     /* System */
@@ -125,6 +130,18 @@ private:
     rpc::CRPCResultPtr RPCCreateTransaction(const CReqContext& ctxReq, rpc::CRPCParamPtr param);
     rpc::CRPCResultPtr RPCSignTransaction(const CReqContext& ctxReq, rpc::CRPCParamPtr param);
     rpc::CRPCResultPtr RPCSignMessage(const CReqContext& ctxReq, rpc::CRPCParamPtr param);
+    rpc::CRPCResultPtr RPCAddUserCoin(const CReqContext& ctxReq, rpc::CRPCParamPtr param);
+    rpc::CRPCResultPtr RPCAddContractCoin(const CReqContext& ctxReq, rpc::CRPCParamPtr param);
+    rpc::CRPCResultPtr RPCGetCoinInfo(const CReqContext& ctxReq, rpc::CRPCParamPtr param);
+    rpc::CRPCResultPtr RPCListCoinInfo(const CReqContext& ctxReq, rpc::CRPCParamPtr param);
+    rpc::CRPCResultPtr RPCGetDexCoinPair(const CReqContext& ctxReq, rpc::CRPCParamPtr param);
+    rpc::CRPCResultPtr RPCListDexCoinPair(const CReqContext& ctxReq, rpc::CRPCParamPtr param);
+    rpc::CRPCResultPtr RPCSendDexOrderTx(const CReqContext& ctxReq, rpc::CRPCParamPtr param);
+    rpc::CRPCResultPtr RPCListDexOrder(const CReqContext& ctxReq, rpc::CRPCParamPtr param);
+    rpc::CRPCResultPtr RPCGetDexSymbolType(const CReqContext& ctxReq, rpc::CRPCParamPtr param);
+    rpc::CRPCResultPtr RPCListRealtimeDexOrder(const CReqContext& ctxReq, rpc::CRPCParamPtr param);
+    rpc::CRPCResultPtr RPCSendCrossTransferTx(const CReqContext& ctxReq, rpc::CRPCParamPtr param);
+    rpc::CRPCResultPtr RPCGetCrossTransferAmount(const CReqContext& ctxReq, rpc::CRPCParamPtr param);
     rpc::CRPCResultPtr RPCListAddress(const CReqContext& ctxReq, rpc::CRPCParamPtr param);
     rpc::CRPCResultPtr RPCExportWallet(const CReqContext& ctxReq, rpc::CRPCParamPtr param);
     rpc::CRPCResultPtr RPCImportWallet(const CReqContext& ctxReq, rpc::CRPCParamPtr param);
@@ -207,6 +224,8 @@ private:
     rpc::CRPCResultPtr RPCEthGetFilterChanges(const CReqContext& ctxReq, rpc::CRPCParamPtr param);
     rpc::CRPCResultPtr RPCEthGetFilterLogs(const CReqContext& ctxReq, rpc::CRPCParamPtr param);
     rpc::CRPCResultPtr RPCEthGetLogs(const CReqContext& ctxReq, rpc::CRPCParamPtr param);
+    rpc::CRPCResultPtr RPCEthSubscribe(const CReqContext& ctxReq, rpc::CRPCParamPtr param);
+    rpc::CRPCResultPtr RPCEthUnsubscribe(const CReqContext& ctxReq, rpc::CRPCParamPtr param);
 
 protected:
     mtbase::IIOProc* pHttpServer;
@@ -215,6 +234,8 @@ protected:
     IDataStat* pDataStat;
     IForkManager* pForkManager;
     IBlockMaker* pBlockMaker;
+    IWsService* pWsService;
+
     boost::mutex mutexDec;
 
 private:

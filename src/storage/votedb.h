@@ -157,7 +157,7 @@ protected:
     };
 
     mtbase::CRWAccess rwAccess;
-    std::map<uint256, CCacheCalcVoteRewardContext> mapCacheCalcVote; // key: day end block hash, value: a day of voting data
+    std::map<uint256, CCacheCalcVoteRewardContext, CustomBlockHashCompare> mapCacheCalcVote; // key: day end block hash, value: a day of voting data
     CTrieDB dbTrie;
 
     mtbase::CCache<uint256, std::map<int, std::map<CDestination, CDiskPos>>> cacheDelegate;

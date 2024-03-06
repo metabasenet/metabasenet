@@ -32,6 +32,7 @@
 #include <peernet/peernet.h>
 #include <rwlock.h>
 #include <stream/stream.h>
+#include <structure/merkletree.h>
 #include <structure/tree.h>
 #include <type.h>
 #include <util.h>

@@ -78,6 +78,7 @@ public:
         DF_FORKDATA = 0x14,
         DF_CERTTXDATA = 0x15,
         DF_ACTIVATECODE = 0x16,
+        DF_BLSPUBKEY = 0x17,
     };
 
 public:
@@ -414,6 +415,10 @@ public:
             return "redeem";
         case CT_TIMEVAULT:
             return "timevault";
+        case CT_CROSSCHAIN_TRANSFER:
+            return "crosschain-transfer";
+        case CT_CROSSCHAIN_DEX:
+            return "crosschain-dex";
         }
         return "non";
     }
@@ -424,7 +429,9 @@ public:
         CT_CONTRACT = 1,
         CT_VOTE = 2,
         CT_REDEEM = 3,
-        CT_TIMEVAULT = 4
+        CT_TIMEVAULT = 4,
+        CT_CROSSCHAIN_TRANSFER = 5,
+        CT_CROSSCHAIN_DEX = 6
     };
 
     uint8 nType;
@@ -1046,18 +1053,18 @@ public:
         return (GetFilterType(nFilterId) == FILTERID_HEADER_TX);
     }
 
-    uint256 CreateFilterId(const uint8 nFilterType, const uint256& hash);
+    uint256 CreateFilterId(const uint8 nFilterType, const uint64 nId, const uint256& hash);
     uint256 CreateLogsFilterId(const uint256& hash)
     {
-        return CreateFilterId(FILTERID_HEADER_LOGS, hash);
+        return CreateFilterId(FILTERID_HEADER_LOGS, nLogsFilterIdCreate++, hash);
     }
     uint256 CreateBlockFilterId(const uint256& hash)
     {
-        return CreateFilterId(FILTERID_HEADER_BLOCK, hash);
+        return CreateFilterId(FILTERID_HEADER_BLOCK, nBlockFilterIdCreate++, hash);
     }
     uint256 CreateTxFilterId(const uint256& hash)
     {
-        return CreateFilterId(FILTERID_HEADER_TX, hash);
+        return CreateFilterId(FILTERID_HEADER_TX, nTxFilterIdCreate++, hash);
     }
 
 protected:
@@ -1070,8 +1077,460 @@ public:
     {
         FILTERID_HEADER_LOGS = 1,
         FILTERID_HEADER_BLOCK = 2,
-        FILTERID_HEADER_TX = 3
+        FILTERID_HEADER_TX = 3,
     };
+};
+
+/////////////////////////////
+// WS SUBSCRIBE TYPE
+
+enum
+{
+    WSCS_SUBS_TYPE_NEW_BLOCK = 1,
+    WSCS_SUBS_TYPE_LOGS = 2,
+    WSCS_SUBS_TYPE_NEW_PENDING_TX = 3,
+    WSCS_SUBS_TYPE_SYNCING = 4,
+};
+
+class CDexCoinPairContext
+{
+public:
+    CDexCoinPairContext()
+      : nChainIdMin(0), nChainIdMax(0) {}
+    CDexCoinPairContext(const std::string& strCoinSymbolMinIn, const uint32 nChainIdMinIn,
+                        const std::string& strCoinSymbolMaxIn, const uint32 nChainIdMaxIn)
+      : strCoinSymbolMin(strCoinSymbolMinIn), nChainIdMin(nChainIdMinIn),
+        strCoinSymbolMax(strCoinSymbolMaxIn), nChainIdMax(nChainIdMaxIn) {}
+
+public:
+    std::string strCoinSymbolMin;
+    uint32 nChainIdMin;
+    std::string strCoinSymbolMax;
+    uint32 nChainIdMax;
+};
+
+class CDexOrderHeader
+{
+    friend class mtbase::CStream;
+
+public:
+    CDexOrderHeader(const CChainId nChainIdIn, const CDestination& destOrderIn, const std::string& strSymbolOwner, const std::string& strSymbolPeer, const uint64 nOrderNumberIn)
+      : nChainId(nChainIdIn), destOrder(destOrderIn), nOrderNumber(nOrderNumberIn)
+    {
+        nOwnerCoinFlag = GetOwnerCoinFlagStatic(strSymbolOwner, strSymbolPeer);
+        hashCoinPair = GetCoinPairHashStatic(strSymbolOwner, strSymbolPeer);
+    }
+    CDexOrderHeader(const CChainId nChainIdIn, const CDestination& destOrderIn, const uint256& hashCoinPairIn, const uint8 nOwnerCoinFlagIn, const uint64 nOrderNumberIn)
+      : nChainId(nChainIdIn), destOrder(destOrderIn), hashCoinPair(hashCoinPairIn), nOwnerCoinFlag(nOwnerCoinFlagIn), nOrderNumber(nOrderNumberIn)
+    {
+    }
+
+    CChainId GetChainId() const
+    {
+        return nChainId;
+    }
+    const CDestination& GetOrderAddress() const
+    {
+        return destOrder;
+    }
+    const uint256& GetCoinPairHash() const
+    {
+        return hashCoinPair;
+    }
+    uint8 GetOwnerCoinFlag() const
+    {
+        return nOwnerCoinFlag;
+    }
+    uint64 GetOrderNumber() const
+    {
+        return nOrderNumber;
+    }
+    uint256 GetDexOrderHash() const
+    {
+        return GetDexOrderHashStatic(nChainId, destOrder, hashCoinPair, nOwnerCoinFlag, nOrderNumber);
+    }
+
+    static inline uint256 GetCoinPairHashStatic(const std::string& strSymbol1, const std::string& strSymbol2)
+    {
+        mtbase::CBufStream ss;
+        if (strSymbol1 < strSymbol2)
+        {
+            ss << strSymbol1 << strSymbol2;
+        }
+        else
+        {
+            ss << strSymbol2 << strSymbol1;
+        }
+        return crypto::CryptoKeccakHash(ss.GetData(), ss.GetSize());
+    }
+    static inline uint8 GetOwnerCoinFlagStatic(const std::string& strSymbolOwner, const std::string& strSymbolPeer)
+    {
+        return (strSymbolOwner < strSymbolPeer ? 0 : 1);
+    }
+    static inline uint256 GetOrderRandomHashStatic(const uint256& hashBlockIn, const uint256& hashDexOrderIn)
+    {
+        mtbase::CBufStream ss;
+        ss << hashBlockIn << hashDexOrderIn;
+        return crypto::CryptoKeccakHash(ss.GetData(), ss.GetSize());
+    }
+    static inline uint256 GetDexOrderHashStatic(const CChainId nChainIdIn, const CDestination& destOrderIn, const uint256& hashCoinPairIn, const uint8 nOwnerCoinFlagIn, const uint64 nOrderNumberIn)
+    {
+        mtbase::CBufStream ss;
+        ss << nChainIdIn << destOrderIn << hashCoinPairIn << nOwnerCoinFlagIn << nOrderNumberIn;
+        return crypto::CryptoKeccakHash(ss.GetData(), ss.GetSize());
+    }
+    static inline std::string GetSellCoinSymbolStatic(const std::string& strSymbol1, const std::string& strSymbol2)
+    {
+        return std::min(strSymbol1, strSymbol2);
+    }
+    static inline std::string GetBuyCoinSymbolStatic(const std::string& strSymbol1, const std::string& strSymbol2)
+    {
+        return std::max(strSymbol1, strSymbol2);
+    }
+
+protected:
+    CChainId nChainId;
+    CDestination destOrder;
+    uint256 hashCoinPair;
+    uint8 nOwnerCoinFlag; // 0: min, 1: max
+    uint64 nOrderNumber;
+
+public:
+    friend inline bool operator==(const CDexOrderHeader& a, const CDexOrderHeader& b)
+    {
+        return (a.nChainId == b.nChainId && a.destOrder == b.destOrder && a.hashCoinPair == b.hashCoinPair && a.nOwnerCoinFlag == b.nOwnerCoinFlag && a.nOrderNumber == b.nOrderNumber);
+    }
+    friend inline bool operator!=(const CDexOrderHeader& a, const CDexOrderHeader& b)
+    {
+        return (!(a == b));
+    }
+    friend inline bool operator<(const CDexOrderHeader& a, const CDexOrderHeader& b)
+    {
+        if (a.nChainId < b.nChainId)
+        {
+            return true;
+        }
+        if (a.nChainId == b.nChainId)
+        {
+            if (a.destOrder < b.destOrder)
+            {
+                return true;
+            }
+            if (a.destOrder == b.destOrder)
+            {
+                if (a.hashCoinPair < b.hashCoinPair)
+                {
+                    return true;
+                }
+                if (a.hashCoinPair == b.hashCoinPair)
+                {
+                    if (a.nOwnerCoinFlag < b.nOwnerCoinFlag)
+                    {
+                        return true;
+                    }
+                    if (a.nOwnerCoinFlag == b.nOwnerCoinFlag && a.nOrderNumber < b.nOrderNumber)
+                    {
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
+    }
+
+protected:
+    template <typename O>
+    void Serialize(mtbase::CStream& s, O& opt)
+    {
+        s.Serialize(nChainId, opt);
+        s.Serialize(destOrder, opt);
+        s.Serialize(hashCoinPair, opt);
+        s.Serialize(nOwnerCoinFlag, opt);
+        s.Serialize(nOrderNumber, opt);
+    }
+};
+
+class CDexOrderBody
+{
+    friend class mtbase::CStream;
+
+public:
+    CDexOrderBody()
+      : nCoinAtChainIdPeer(0) {}
+    CDexOrderBody(const std::string& strCoinSymbolOwnerIn, const std::string& strCoinSymbolPeerIn, const CChainId nCoinAtChainIdPeerIn, const uint256& nOrderAmountIn, const uint256& nOrderPriceIn)
+      : strCoinSymbolOwner(strCoinSymbolOwnerIn), strCoinSymbolPeer(strCoinSymbolPeerIn), nCoinAtChainIdPeer(nCoinAtChainIdPeerIn), nOrderAmount(nOrderAmountIn), nOrderPrice(nOrderPriceIn) {}
+
+    void SetNull()
+    {
+        strCoinSymbolOwner.clear();
+        strCoinSymbolPeer.clear();
+        nCoinAtChainIdPeer = 0;
+        nOrderAmount = 0;
+        nOrderPrice = 0;
+    }
+    void Save(bytes& btData) const
+    {
+        mtbase::CBufStream ss;
+        ss << *this;
+        ss.GetData(btData);
+    }
+    bool Load(const bytes& btData)
+    {
+        mtbase::CBufStream ss(btData);
+        try
+        {
+            ss >> *this;
+        }
+        catch (const std::exception& e)
+        {
+            return false;
+        }
+        return true;
+    }
+    uint256 GetCoinPairHash() const
+    {
+        return CDexOrderHeader::GetCoinPairHashStatic(strCoinSymbolOwner, strCoinSymbolPeer);
+    }
+    uint8 GetOwnerCoinFlag() const
+    {
+        return CDexOrderHeader::GetOwnerCoinFlagStatic(strCoinSymbolOwner, strCoinSymbolPeer);
+    }
+    std::string GetSellCoinSymbol() const
+    {
+        return CDexOrderHeader::GetSellCoinSymbolStatic(strCoinSymbolOwner, strCoinSymbolPeer);
+    }
+    std::string GetBuyCoinSymbol() const
+    {
+        return CDexOrderHeader::GetBuyCoinSymbolStatic(strCoinSymbolOwner, strCoinSymbolPeer);
+    }
+    bool IsOwnerSell() const
+    {
+        return (CDexOrderHeader::GetSellCoinSymbolStatic(strCoinSymbolOwner, strCoinSymbolPeer) == strCoinSymbolOwner);
+    }
+    bool IsOwnerBuy() const
+    {
+        return (CDexOrderHeader::GetBuyCoinSymbolStatic(strCoinSymbolOwner, strCoinSymbolPeer) == strCoinSymbolOwner);
+    }
+
+public:
+    std::string strCoinSymbolOwner;
+    std::string strCoinSymbolPeer;
+    CChainId nCoinAtChainIdPeer;
+    uint256 nOrderAmount;
+    uint256 nOrderPrice;
+
+protected:
+    void Serialize(mtbase::CStream& s, mtbase::SaveType&) const
+    {
+        s << strCoinSymbolOwner << strCoinSymbolPeer << nCoinAtChainIdPeer << nOrderAmount.ToValidBigEndianData() << nOrderPrice.ToValidBigEndianData();
+    }
+    void Serialize(mtbase::CStream& s, mtbase::LoadType&)
+    {
+        bytes btOrderAmount;
+        bytes btOrderPrice;
+        s >> strCoinSymbolOwner >> strCoinSymbolPeer >> nCoinAtChainIdPeer >> btOrderAmount >> btOrderPrice;
+        nOrderAmount.FromValidBigEndianData(btOrderAmount);
+        nOrderPrice.FromValidBigEndianData(btOrderPrice);
+    }
+    void Serialize(mtbase::CStream& s, std::size_t& serSize) const
+    {
+        (void)s;
+        mtbase::CBufStream ss;
+        ss << strCoinSymbolOwner << strCoinSymbolPeer << nCoinAtChainIdPeer << nOrderAmount.ToValidBigEndianData() << nOrderPrice.ToValidBigEndianData();
+        serSize = ss.GetSize();
+    }
+};
+
+class CDexOrderSave
+{
+    friend class mtbase::CStream;
+
+public:
+    CDexOrderSave()
+      : nAtChainId(0) {}
+    CDexOrderSave(const CDexOrderBody& dexOrderIn, const CChainId nAtChainIdIn, const uint256& hashAtBlockIn)
+      : dexOrder(dexOrderIn), nAtChainId(nAtChainIdIn), hashAtBlock(hashAtBlockIn) {}
+
+public:
+    CDexOrderBody dexOrder;
+    CChainId nAtChainId;
+    uint256 hashAtBlock;
+
+protected:
+    template <typename O>
+    void Serialize(mtbase::CStream& s, O& opt)
+    {
+        s.Serialize(dexOrder, opt);
+        s.Serialize(nAtChainId, opt);
+        s.Serialize(hashAtBlock, opt);
+    }
+};
+
+class CCompDexOrderRecord
+{
+    friend class mtbase::CStream;
+
+public:
+    CCompDexOrderRecord(const CDestination& destPeerOrderIn, const uint256& nCompleteAmountIn, const uint256& nCompletePriceIn)
+      : destPeerOrder(destPeerOrderIn), nCompleteAmount(nCompleteAmountIn), nCompletePrice(nCompletePriceIn) {}
+
+    void SetNull()
+    {
+        destPeerOrder.SetNull();
+        nCompleteAmount = 0;
+        nCompletePrice = 0;
+    }
+    void Save(bytes& btData) const
+    {
+        mtbase::CBufStream ss;
+        ss << *this;
+        ss.GetData(btData);
+    }
+    bool Load(const bytes& btData)
+    {
+        mtbase::CBufStream ss(btData);
+        try
+        {
+            ss >> *this;
+        }
+        catch (const std::exception& e)
+        {
+            return false;
+        }
+        return true;
+    }
+
+public:
+    CDestination destPeerOrder;
+    uint256 nCompleteAmount;
+    uint256 nCompletePrice;
+
+protected:
+    void Serialize(mtbase::CStream& s, mtbase::SaveType&) const
+    {
+        s << destPeerOrder << nCompleteAmount.ToValidBigEndianData() << nCompletePrice.ToValidBigEndianData();
+    }
+    void Serialize(mtbase::CStream& s, mtbase::LoadType&)
+    {
+        bytes btCompleteAmount;
+        bytes btCompletePrice;
+        s >> destPeerOrder >> btCompleteAmount >> btCompletePrice;
+        nCompleteAmount.FromValidBigEndianData(btCompleteAmount);
+        nCompletePrice.FromValidBigEndianData(btCompletePrice);
+    }
+    void Serialize(mtbase::CStream& s, std::size_t& serSize) const
+    {
+        (void)s;
+        mtbase::CBufStream ss;
+        ss << destPeerOrder << nCompleteAmount.ToValidBigEndianData() << nCompletePrice.ToValidBigEndianData();
+        serSize = ss.GetSize();
+    }
+};
+
+class CDexOrderData
+{
+    friend class mtbase::CStream;
+
+public:
+    CDexOrderData()
+      : nOrderNumber(0), nCompleteCount(0) {}
+    CDexOrderData(const CDestination& destOrderIn, const uint64 nOrderNumberIn, const CDexOrderBody& dexOrderIn,
+                  const uint256& hashOrderAtBlockIn, const uint256& nCompleteAmountIn, const uint64 nCompleteCountIn)
+      : destOrder(destOrderIn), nOrderNumber(nOrderNumberIn), dexOrder(dexOrderIn), hashOrderAtBlock(hashOrderAtBlockIn),
+        nCompleteAmount(nCompleteAmountIn), nCompleteCount(nCompleteCountIn) {}
+
+public:
+    CDestination destOrder;
+    uint64 nOrderNumber;
+    CDexOrderBody dexOrder;
+    uint256 hashOrderAtBlock;
+    uint256 nCompleteAmount;
+    uint64 nCompleteCount;
+
+protected:
+    template <typename O>
+    void Serialize(mtbase::CStream& s, O& opt)
+    {
+        s.Serialize(destOrder, opt);
+        s.Serialize(nOrderNumber, opt);
+        s.Serialize(dexOrder, opt);
+        s.Serialize(hashOrderAtBlock, opt);
+        s.Serialize(nCompleteAmount, opt);
+        s.Serialize(nCompleteCount, opt);
+    }
+};
+typedef std::shared_ptr<CDexOrderData> SHP_DEX_ORDER_DATA;
+#define MAKE_SHARED_DEX_ORDER_DATA std::make_shared<CDexOrderData>
+
+class CMatchOrderRecord
+{
+public:
+    CMatchOrderRecord() {}
+
+public:
+    CDestination destSellOrder;
+    uint64 nSellOrderNumber;
+    uint256 nSellCompleteAmount;
+    uint256 nSellCompletePrice;
+    CChainId nSellOrderAtChainId;
+
+    CDestination destBuyOrder;
+    uint64 nBuyOrderNumber;
+    uint256 nBuyCompleteAmount;
+    uint256 nBuyCompletePrice;
+    CChainId nBuyOrderAtChainId;
+
+    uint256 nCompletePrice;
+};
+
+class CMatchOrderResult
+{
+public:
+    CMatchOrderResult() {}
+
+public:
+    std::string strCoinSymbolSell;
+    std::string strCoinSymbolBuy;
+    uint256 nSellPriceAnchor;
+
+    std::vector<CMatchOrderRecord> vMatchOrderRecord;
+};
+
+class CMsOrder
+{
+public:
+    CMsOrder()
+      : nOrderNumber(0), nAtHeight(0), nAtSlot(0) {}
+
+public:
+    uint256 nPrice;
+    uint256 nOrderAmount;
+    uint256 nDealAmount;
+    CDestination destOrder;
+    uint64 nOrderNumber;
+    uint256 nOriOrderAmount;
+    uint32 nAtHeight;
+    uint16 nAtSlot;
+};
+
+class CRealtimeDexOrder
+{
+public:
+    CRealtimeDexOrder()
+      : nSellChainId(0), nBuyChainId(0), nMaxMatchHeight(0), nMaxMatchSlot(0) {}
+
+public:
+    std::string strCoinSymbolSell;
+    std::string strCoinSymbolBuy;
+    uint256 nSellPriceAnchor;
+    uint256 nPrevCompletePrice;
+    CChainId nSellChainId;
+    CChainId nBuyChainId;
+    uint32 nMaxMatchHeight;
+    uint16 nMaxMatchSlot;
+
+    std::vector<CMsOrder> vSell;
+    std::vector<CMsOrder> vBuy;
 };
 
 } // namespace metabasenet

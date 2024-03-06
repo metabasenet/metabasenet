@@ -10,8 +10,6 @@
 using namespace std;
 using namespace mtbase;
 using namespace metabasenet::crypto;
-//using namespace dev;
-//using namespace dev::eth;
 
 namespace metabasenet
 {
@@ -25,11 +23,13 @@ void CBlock::SetNull()
     nType = 0;
     nTimeStamp = 0;
     nNumber = 0;
+    nHeight = 0;
     nSlot = 0;
     hashPrev = 0;
     hashMerkleRoot = 0;
     hashStateRoot = 0;
     hashReceiptsRoot = 0;
+    hashCrosschainMerkleRoot = 0;
     nGasLimit = 0;
     nGasUsed = 0;
     mapProof.clear();
@@ -38,6 +38,7 @@ void CBlock::SetNull()
 
     btBloomData.clear();
     vtx.clear();
+    mapProve.clear();
 }
 
 bool CBlock::IsNull() const
@@ -87,15 +88,18 @@ bool CBlock::IsProofEmpty() const
 
 uint256 CBlock::GetHash() const
 {
-    mtbase::CBufStream ss;
-    ss << nVersion << nType << nTimeStamp << nNumber << nSlot << hashPrev << hashMerkleRoot << hashStateRoot << hashReceiptsRoot << nGasLimit << nGasUsed << mapProof << txMint;
-    return uint256(GetChainId(), GetBlockHeight(), nSlot, crypto::CryptoHash(ss.GetData(), ss.GetSize()));
+    // mtbase::CBufStream ss;
+    // ss << nVersion << nType << nTimeStamp << nNumber << nHeight << nSlot << hashPrev << hashMerkleRoot << hashStateRoot << hashReceiptsRoot << hashCrosschainMerkleRoot << nGasLimit << nGasUsed << mapProof << txMint;
+    // return uint256(GetChainId(), GetBlockHeight(), nSlot, crypto::CryptoHash(ss.GetData(), ss.GetSize()));
+
+    return uint256(GetChainId(), GetBlockHeight(), nSlot, CalcMerkleTreeRoot());
 }
 
 std::size_t CBlock::GetTxSerializedOffset() const
 {
     bytes btMerkleRoot;
     bytes btReceiptsRoot;
+    bytes btCrosschainMerkleRoot;
     bytes btGasLimit = nGasLimit.ToValidBigEndianData();
     bytes btGasUsed = nGasUsed.ToValidBigEndianData();
     if (!hashMerkleRoot.IsNull())
@@ -106,15 +110,19 @@ std::size_t CBlock::GetTxSerializedOffset() const
     {
         btReceiptsRoot = hashReceiptsRoot.GetBytes();
     }
+    if (!hashCrosschainMerkleRoot.IsNull())
+    {
+        btCrosschainMerkleRoot = hashCrosschainMerkleRoot.GetBytes();
+    }
     mtbase::CBufStream ss;
-    ss << nVersion << nType << CVarInt(nTimeStamp) << CVarInt(nNumber) << nSlot << hashPrev << btMerkleRoot << hashStateRoot << btReceiptsRoot << btBloomData << btGasLimit << btGasUsed << mapProof;
+    ss << nVersion << nType << CVarInt(nTimeStamp) << CVarInt(nNumber) << nHeight << nSlot << hashPrev << btMerkleRoot << hashStateRoot << btReceiptsRoot << btCrosschainMerkleRoot << btBloomData << btGasLimit << btGasUsed << mapProof;
     return ss.GetSize();
 }
 
 void CBlock::GetSerializedProofOfWorkData(std::vector<unsigned char>& vchProofOfWork) const
 {
     mtbase::CBufStream ss;
-    ss << nVersion << nType << nTimeStamp << nNumber << nSlot << hashPrev << mapProof;
+    ss << nVersion << nType << nTimeStamp << nNumber << nHeight << nSlot << hashPrev << mapProof;
     vchProofOfWork.assign(ss.GetData(), ss.GetData() + ss.GetSize());
 }
 
@@ -149,18 +157,33 @@ uint32 CBlock::GetBlockSlot() const
 
 uint32 CBlock::GetBlockHeight() const
 {
-    if (IsGenesis())
+    // if (IsGenesis())
+    // {
+    //     return 0;
+    // }
+    // else if (IsExtended())
+    // {
+    //     return hashPrev.GetB2();
+    // }
+    // else
+    // {
+    //     return hashPrev.GetB2() + 1;
+    // }
+    return nHeight;
+}
+
+uint256 CBlock::GetRefBlock() const
+{
+    uint256 hashRefBlock;
+    if (!IsPrimary() && !IsOrigin())
     {
-        return 0;
+        CProofOfPiggyback proof;
+        if (GetPiggybackProof(proof))
+        {
+            hashRefBlock = proof.hashRefBlock;
+        }
     }
-    else if (IsExtended())
-    {
-        return hashPrev.GetB2();
-    }
-    else
-    {
-        return hashPrev.GetB2() + 1;
-    }
+    return hashRefBlock;
 }
 
 uint64 CBlock::GetBlockBeacon(int idx) const
@@ -209,36 +232,37 @@ void CBlock::SetBlockTime(const uint64 nTime)
     nTimeStamp = nTime;
 }
 
-uint256 CBlock::CalcMerkleTreeRoot() const
-{
-    std::vector<uint256> vMerkleTree;
-    uint256 hashBloom;
-    if (!btBloomData.empty())
-    {
-        hashBloom = crypto::CryptoHash(btBloomData.data(), btBloomData.size());
-    }
-    vMerkleTree.push_back(hashBloom);
-    vMerkleTree.push_back(txMint.GetHash());
-    for (const CTransaction& tx : vtx)
-    {
-        vMerkleTree.push_back(tx.GetHash());
-    }
-    size_t j = 0;
-    for (size_t nSize = vtx.size(); nSize > 1; nSize = (nSize + 1) / 2)
-    {
-        for (size_t i = 0; i < nSize; i += 2)
-        {
-            size_t i2 = std::min(i + 1, nSize - 1);
-            vMerkleTree.push_back(crypto::CryptoHash(vMerkleTree[j + i], vMerkleTree[j + i2]));
-        }
-        j += nSize;
-    }
-    return (vMerkleTree.empty() ? uint64(0) : vMerkleTree.back());
-}
-
 void CBlock::SetSignData(const bytes& btSigData)
 {
     vchSig = btSigData;
+}
+
+void CBlock::UpdateMerkleRoot()
+{
+    hashMerkleRoot = CalcMerkleTreeRoot();
+}
+
+bool CBlock::VerifyBlockHeight() const
+{
+    uint32 nCalcHeight = 0;
+    if (IsGenesis())
+    {
+        nCalcHeight = 0;
+    }
+    else if (IsExtended())
+    {
+        nCalcHeight = hashPrev.GetB2();
+    }
+    else
+    {
+        nCalcHeight = hashPrev.GetB2() + 1;
+    }
+    return (nHeight == nCalcHeight);
+}
+
+bool CBlock::VerifyBlockMerkleTreeRoot() const
+{
+    return (hashMerkleRoot == CalcMerkleTreeRoot());
 }
 
 bool CBlock::VerifyBlockSignature(const CDestination& destBlockSign) const
@@ -329,6 +353,18 @@ bool CBlock::VerifyBlockProof() const
             nDataSize = uint256().size();
             break;
         }
+        case BP_BLOCK_VOTE_SIG:
+        {
+            CBlockVoteSig proof;
+            if (!proof.Load(kv.second))
+            {
+                return false;
+            }
+            bytes btData;
+            proof.Save(btData);
+            nDataSize = btData.size();
+            break;
+        }
         default:
             return false;
         }
@@ -396,6 +432,13 @@ void CBlock::AddMintRewardProof(const uint256& nMintReward)
     mapProof[BP_MINTREWARD] = nMintReward.GetBytes();
 }
 
+void CBlock::AddBlockVoteSig(const CBlockVoteSig& proof)
+{
+    bytes btPf;
+    proof.Save(btPf);
+    mapProof[BP_BLOCK_VOTE_SIG] = btPf;
+}
+
 //------------------------------------------------
 bool CBlock::GetForkProfile(CProfile& profile) const
 {
@@ -457,8 +500,23 @@ bool CBlock::GetMintRewardProof(uint256& nMintReward) const
     return (nMintReward.SetBytes(it->second) == nMintReward.size());
 }
 
+bool CBlock::GetBlockVoteSig(CBlockVoteSig& proof) const
+{
+    auto it = mapProof.find(BP_BLOCK_VOTE_SIG);
+    if (it == mapProof.end())
+    {
+        return false;
+    }
+    return proof.Load(it->second);
+}
+
+bool CBlock::GetMerkleProve(SHP_MERKLE_PROVE_DATA ptrMerkleProvePrevBlock, SHP_MERKLE_PROVE_DATA ptrMerkleProveRefBlock, SHP_MERKLE_PROVE_DATA ptrCrossMerkleProve) const
+{
+    return (CalcMerkleTreeRootAndProve(ptrMerkleProvePrevBlock, ptrMerkleProveRefBlock, ptrCrossMerkleProve) != 0);
+}
+
 //-------------------------------------------------------
-uint32 CBlock::GetBlockChainIdByHash(const uint256& hash)
+CChainId CBlock::GetBlockChainIdByHash(const uint256& hash)
 {
     return hash.GetB1();
 }
@@ -473,11 +531,180 @@ uint16 CBlock::GetBlockSlotByHash(const uint256& hash)
     return hash.GetB3();
 }
 
+uint256 CBlock::CreateBlockHash(const CChainId nChainId, const uint32 nHeight, const uint16 nSlot, const uint256& hash)
+{
+    return uint256(nChainId, nHeight, nSlot, hash);
+}
+
+bool CBlock::BlockHashCompare(const uint256& a, const uint256& b) // return true: a < b, false: a >= b
+{
+    CChainId nChainIdA = CBlock::GetBlockChainIdByHash(a);
+    CChainId nChainIdB = CBlock::GetBlockChainIdByHash(b);
+    if (nChainIdA < nChainIdB)
+    {
+        return true;
+    }
+    else if (nChainIdA == nChainIdB)
+    {
+        uint32 nHeightA = CBlock::GetBlockHeightByHash(a);
+        uint32 nHeightB = CBlock::GetBlockHeightByHash(b);
+        if (nHeightA < nHeightB)
+        {
+            return true;
+        }
+        else if (nHeightA == nHeightB)
+        {
+            uint16 nSlotA = CBlock::GetBlockSlotByHash(a);
+            uint16 nSlotB = CBlock::GetBlockSlotByHash(b);
+            if (nSlotA < nSlotB)
+            {
+                return true;
+            }
+            else if (nSlotA == nSlotB && a < b)
+            {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+bool CBlock::VerifyBlockMerkleProve(const uint256& hashBlock, const mtbase::MERKLE_PROVE_DATA& merkleProve, const uint256& hashVerify)
+{
+    return (hashBlock == uint256(GetBlockChainIdByHash(hashBlock), GetBlockHeightByHash(hashBlock), GetBlockSlotByHash(hashBlock), CMerkleTree::GetMerkleRootByProve(merkleProve, hashVerify)));
+}
+
+//-------------------------------------------------------
+uint256 CBlock::CalcMerkleTreeRoot() const
+{
+    return CalcMerkleTreeRootAndProve(nullptr, nullptr, nullptr);
+}
+
+uint256 CBlock::CalcMerkleTreeRootAndProve(SHP_MERKLE_PROVE_DATA ptrMerkleProvePrevBlock, SHP_MERKLE_PROVE_DATA ptrMerkleProveRefBlock, SHP_MERKLE_PROVE_DATA ptrCrossMerkleProve) const
+{
+    const uint256 hashBaseMerkleRoot = CalcBlockBaseMerkleTreeRoot(ptrMerkleProvePrevBlock, ptrMerkleProveRefBlock);
+    const uint256 hashTxMerkleRoot = CalcTxMerkleTreeRoot();
+
+    std::vector<uint256> vMerkleTree;
+
+    vMerkleTree.push_back(hashBaseMerkleRoot);
+    vMerkleTree.push_back(hashStateRoot);
+    vMerkleTree.push_back(hashCrosschainMerkleRoot);
+    vMerkleTree.push_back(hashTxMerkleRoot);
+
+    const std::size_t nLeafCount = vMerkleTree.size();
+
+    uint256 hashMerkleRoot = CMerkleTree::BuildMerkleTree(vMerkleTree);
+
+    if (ptrMerkleProvePrevBlock || ptrMerkleProveRefBlock)
+    {
+        SHP_MERKLE_PROVE_DATA ptrMerkleProveBase = MAKE_SHARED_MERKLE_PROVE_DATA();
+        if (!ptrMerkleProveBase || !CMerkleTree::BuildMerkleProve(hashBaseMerkleRoot, vMerkleTree, nLeafCount, *ptrMerkleProveBase))
+        {
+            return 0;
+        }
+        if (ptrMerkleProvePrevBlock)
+        {
+            (*ptrMerkleProvePrevBlock).insert((*ptrMerkleProvePrevBlock).end(), (*ptrMerkleProveBase).begin(), (*ptrMerkleProveBase).end());
+        }
+        if (ptrMerkleProveRefBlock)
+        {
+            (*ptrMerkleProveRefBlock).insert((*ptrMerkleProveRefBlock).end(), (*ptrMerkleProveBase).begin(), (*ptrMerkleProveBase).end());
+        }
+    }
+
+    if (ptrCrossMerkleProve)
+    {
+        if (!CMerkleTree::BuildMerkleProve(hashCrosschainMerkleRoot, vMerkleTree, nLeafCount, *ptrCrossMerkleProve))
+        {
+            return 0;
+        }
+    }
+    return hashMerkleRoot;
+}
+
+uint256 CBlock::CalcBlockBaseMerkleTreeRoot(SHP_MERKLE_PROVE_DATA ptrMerkleProvePrevBlock, SHP_MERKLE_PROVE_DATA ptrMerkleProveRefBlock) const
+{
+    // mtbase::CBufStream ss;
+    // ss << nVersion << nType << nTimeStamp << nNumber << nHeight << nSlot << hashPrev << hashMerkleRoot << hashStateRoot << hashReceiptsRoot << hashCrosschainMerkleRoot << nGasLimit << nGasUsed << mapProof << txMint;
+    // return uint256(GetChainId(), GetBlockHeight(), nSlot, crypto::CryptoHash(ss.GetData(), ss.GetSize()));
+
+    uint256 hashBase;
+    uint256 hashProof;
+    uint256 hashRefBlock;
+    uint256 hashBloom;
+
+    {
+        mtbase::CBufStream ss;
+        ss << nVersion << nType << nTimeStamp << nNumber << nHeight << nSlot << nGasLimit << nGasUsed;
+        hashBase = crypto::CryptoHash(ss.GetData(), ss.GetSize());
+    }
+
+    if (!mapProof.empty())
+    {
+        mtbase::CBufStream ss;
+        ss << mapProof;
+        hashProof = crypto::CryptoHash(ss.GetData(), ss.GetSize());
+    }
+
+    hashRefBlock = GetRefBlock();
+
+    if (!btBloomData.empty())
+    {
+        hashBloom = crypto::CryptoHash(btBloomData.data(), btBloomData.size());
+    }
+
+    std::vector<uint256> vMerkleTree;
+
+    vMerkleTree.push_back(hashBase);
+    vMerkleTree.push_back(hashProof);
+    vMerkleTree.push_back(hashRefBlock);
+    vMerkleTree.push_back(hashPrev);
+    vMerkleTree.push_back(hashReceiptsRoot);
+    vMerkleTree.push_back(hashBloom);
+
+    const std::size_t nLeafCount = vMerkleTree.size();
+
+    uint256 hashMerkleRoot = CMerkleTree::BuildMerkleTree(vMerkleTree);
+    if (hashMerkleRoot == 0)
+    {
+        return 0;
+    }
+
+    if (ptrMerkleProvePrevBlock)
+    {
+        if (!CMerkleTree::BuildMerkleProve(hashPrev, vMerkleTree, nLeafCount, *ptrMerkleProvePrevBlock))
+        {
+            return 0;
+        }
+    }
+    if (ptrMerkleProveRefBlock)
+    {
+        if (!CMerkleTree::BuildMerkleProve(hashRefBlock, vMerkleTree, nLeafCount, *ptrMerkleProveRefBlock))
+        {
+            return 0;
+        }
+    }
+    return hashMerkleRoot;
+}
+
+uint256 CBlock::CalcTxMerkleTreeRoot() const
+{
+    std::vector<uint256> vMerkleTree;
+    vMerkleTree.push_back(txMint.GetHash());
+    for (const CTransaction& tx : vtx)
+    {
+        vMerkleTree.push_back(tx.GetHash());
+    }
+    return CMerkleTree::BuildMerkleTree(vMerkleTree);
+}
+
 //-------------------------------------------------------
 void CBlock::Serialize(mtbase::CStream& s, mtbase::SaveType&) const
 {
     bytes btMerkleRoot;
     bytes btReceiptsRoot;
+    bytes btCrosschainMerkleRoot;
     bytes btGasLimit = nGasLimit.ToValidBigEndianData();
     bytes btGasUsed = nGasUsed.ToValidBigEndianData();
     if (!hashMerkleRoot.IsNull())
@@ -488,7 +715,11 @@ void CBlock::Serialize(mtbase::CStream& s, mtbase::SaveType&) const
     {
         btReceiptsRoot = hashReceiptsRoot.GetBytes();
     }
-    s << nVersion << nType << CVarInt(nTimeStamp) << CVarInt(nNumber) << nSlot << hashPrev << btMerkleRoot << hashStateRoot << btReceiptsRoot << btBloomData << btGasLimit << btGasUsed << mapProof << txMint << vtx << vchSig;
+    if (!hashCrosschainMerkleRoot.IsNull())
+    {
+        btCrosschainMerkleRoot = hashCrosschainMerkleRoot.GetBytes();
+    }
+    s << nVersion << nType << CVarInt(nTimeStamp) << CVarInt(nNumber) << nHeight << nSlot << hashPrev << btMerkleRoot << hashStateRoot << btReceiptsRoot << btCrosschainMerkleRoot << btBloomData << btGasLimit << btGasUsed << mapProof << txMint << vtx << mapProve << vchSig;
 }
 
 void CBlock::Serialize(mtbase::CStream& s, mtbase::LoadType&)
@@ -497,15 +728,17 @@ void CBlock::Serialize(mtbase::CStream& s, mtbase::LoadType&)
     CVarInt varNumber;
     bytes btMerkleRoot;
     bytes btReceiptsRoot;
+    bytes btCrosschainMerkleRoot;
     bytes btGasLimit;
     bytes btGasUsed;
-    s >> nVersion >> nType >> varTimeStamp >> varNumber >> nSlot >> hashPrev >> btMerkleRoot >> hashStateRoot >> btReceiptsRoot >> btBloomData >> btGasLimit >> btGasUsed >> mapProof >> txMint >> vtx >> vchSig;
+    s >> nVersion >> nType >> varTimeStamp >> varNumber >> nHeight >> nSlot >> hashPrev >> btMerkleRoot >> hashStateRoot >> btReceiptsRoot >> btCrosschainMerkleRoot >> btBloomData >> btGasLimit >> btGasUsed >> mapProof >> txMint >> vtx >> mapProve >> vchSig;
     nTimeStamp = varTimeStamp.nValue;
     nNumber = varNumber.nValue;
     nGasLimit.FromValidBigEndianData(btGasLimit);
     nGasUsed.FromValidBigEndianData(btGasUsed);
     hashMerkleRoot.SetBytes(btMerkleRoot);
     hashReceiptsRoot.SetBytes(btReceiptsRoot);
+    hashCrosschainMerkleRoot.SetBytes(btCrosschainMerkleRoot);
 }
 
 void CBlock::Serialize(mtbase::CStream& s, std::size_t& serSize) const
@@ -513,6 +746,7 @@ void CBlock::Serialize(mtbase::CStream& s, std::size_t& serSize) const
     (void)s;
     bytes btMerkleRoot;
     bytes btReceiptsRoot;
+    bytes btCrosschainMerkleRoot;
     bytes btGasLimit = nGasLimit.ToValidBigEndianData();
     bytes btGasUsed = nGasUsed.ToValidBigEndianData();
     if (!hashMerkleRoot.IsNull())
@@ -523,8 +757,12 @@ void CBlock::Serialize(mtbase::CStream& s, std::size_t& serSize) const
     {
         btReceiptsRoot = hashReceiptsRoot.GetBytes();
     }
+    if (!hashCrosschainMerkleRoot.IsNull())
+    {
+        btCrosschainMerkleRoot = hashCrosschainMerkleRoot.GetBytes();
+    }
     mtbase::CBufStream ss;
-    ss << nVersion << nType << CVarInt(nTimeStamp) << CVarInt(nNumber) << nSlot << hashPrev << btMerkleRoot << hashStateRoot << btReceiptsRoot << btBloomData << btGasLimit << btGasUsed << mapProof << txMint << vtx << vchSig;
+    ss << nVersion << nType << CVarInt(nTimeStamp) << CVarInt(nNumber) << nHeight << nSlot << hashPrev << btMerkleRoot << hashStateRoot << btReceiptsRoot << btCrosschainMerkleRoot << btBloomData << btGasLimit << btGasUsed << mapProof << txMint << vtx << mapProve << vchSig;
     serSize = ss.GetSize();
 }
 
@@ -646,6 +884,650 @@ CBlockIndex::CBlockIndex(const uint256& hashBlock, const CBlock& block, const ui
             hashRefBlock = proof.hashRefBlock;
         }
     }
+}
+
+///////////////////////////////////////////////////
+// CBlockDexOrderProve
+
+void CBlockDexOrderProve::Serialize(mtbase::CStream& s, mtbase::SaveType&) const
+{
+    s << destOrder << nChainIdOwner << nChainIdPeer << strCoinSymbolOwner << strCoinSymbolPeer << mtbase::CVarInt(nOrderNumber) << nOrderAmount.ToValidBigEndianData() << nOrderPrice.ToValidBigEndianData();
+}
+
+void CBlockDexOrderProve::Serialize(mtbase::CStream& s, mtbase::LoadType&)
+{
+    mtbase::CVarInt varOrderNumber;
+    bytes btOrderAmount;
+    bytes btOrderPrice;
+    s >> destOrder >> nChainIdOwner >> nChainIdPeer >> strCoinSymbolOwner >> strCoinSymbolPeer >> varOrderNumber >> btOrderAmount >> btOrderPrice;
+    nOrderNumber = varOrderNumber.GetValue();
+    nOrderAmount.FromValidBigEndianData(btOrderAmount);
+    nOrderPrice.FromValidBigEndianData(btOrderPrice);
+}
+
+void CBlockDexOrderProve::Serialize(mtbase::CStream& s, std::size_t& serSize) const
+{
+    (void)s;
+    mtbase::CBufStream ss;
+    ss << destOrder << nChainIdOwner << nChainIdPeer << strCoinSymbolOwner << strCoinSymbolPeer << mtbase::CVarInt(nOrderNumber) << nOrderAmount.ToValidBigEndianData() << nOrderPrice.ToValidBigEndianData();
+    serSize = ss.GetSize();
+}
+
+///////////////////////////////////////////////////
+// CBlockCrosschainProve
+
+void CBlockCrosschainProve::Clear()
+{
+    hashPrevProveBlock = 0;
+    vCoinTransferProve.clear();
+    mapDexOrderProve.clear();
+    setCrossConfirmRecvBlock.clear();
+}
+
+bool CBlockCrosschainProve::IsNull() const
+{
+    return (vCoinTransferProve.empty() && mapDexOrderProve.empty() && setCrossConfirmRecvBlock.empty());
+}
+
+bool CBlockCrosschainProve::IsCrossProveNull() const
+{
+    return (vCoinTransferProve.empty() && mapDexOrderProve.empty());
+}
+
+uint256 CBlockCrosschainProve::GetHash() const
+{
+    mtbase::CBufStream ss;
+    ss << *this;
+    return crypto::CryptoHash(ss.GetData(), ss.GetSize());
+}
+
+void CBlockCrosschainProve::AddCoinTransferProve(const CDestination& destTransIn, const std::string& strCoinSymbolIn, const CChainId nOriChainIdIn, const CChainId nDestChainIdIn, const uint256& nTransferAmountIn)
+{
+    vCoinTransferProve.push_back(CBlockCoinTransferProve(destTransIn, strCoinSymbolIn, nOriChainIdIn, nDestChainIdIn, nTransferAmountIn));
+}
+
+void CBlockCrosschainProve::AddDexOrderProve(const CDestination& destOrderIn, const CChainId nChainIdOwnerIn, const CChainId nChainIdPeerIn, const std::string& strCoinSymbolOwnerIn,
+                                             const std::string& strCoinSymbolPeerIn, const uint64 nOrderNumberIn, const uint256& nOrderAmountIn, const uint256& nOrderPriceIn)
+{
+    mapDexOrderProve[CDexOrderHeader(nChainIdOwnerIn, destOrderIn, strCoinSymbolOwnerIn, strCoinSymbolPeerIn, nOrderNumberIn)] = CBlockDexOrderProve(destOrderIn, nChainIdOwnerIn, nChainIdPeerIn, strCoinSymbolOwnerIn, strCoinSymbolPeerIn, nOrderNumberIn, nOrderAmountIn, nOrderPriceIn);
+}
+
+void CBlockCrosschainProve::AddDexOrderProve(const CBlockDexOrderProve& orderProve)
+{
+    mapDexOrderProve[orderProve.GetDexOrderHeader()] = orderProve;
+}
+
+void CBlockCrosschainProve::AddCrossConfirmRecvBlock(const uint256& hashRecvBlock)
+{
+    setCrossConfirmRecvBlock.insert(hashRecvBlock);
+}
+
+void CBlockCrosschainProve::SetPrevProveBlock(const uint256& hashBlock)
+{
+    hashPrevProveBlock = hashBlock;
+}
+
+const uint256& CBlockCrosschainProve::GetPrevProveBlock() const
+{
+    return hashPrevProveBlock;
+}
+
+const std::vector<CBlockCoinTransferProve>& CBlockCrosschainProve::GetCoinTransferProve() const
+{
+    return vCoinTransferProve;
+}
+
+const std::map<CDexOrderHeader, CBlockDexOrderProve>& CBlockCrosschainProve::GetDexOrderProve() const
+{
+    return mapDexOrderProve;
+}
+
+const std::set<uint256>& CBlockCrosschainProve::GetCrossConfirmRecvBlock() const
+{
+    return setCrossConfirmRecvBlock;
+}
+
+void CBlockCrosschainProve::SetProveData(const std::map<uint8, bytes>& mapProveData)
+{
+    for (const auto& kv : mapProveData)
+    {
+        mtbase::CBufStream ss(kv.second);
+        switch (kv.first)
+        {
+        case CP_PROVE_TYPE_COIN_TRANSFER_PROVE:
+            ss >> vCoinTransferProve;
+            break;
+        case CP_PROVE_TYPE_DEX_ORDER_PROVE:
+        {
+            mtbase::CVarInt varValue;
+            ss >> varValue;
+            for (std::size_t i = 0; i < varValue.GetValue(); i++)
+            {
+                CBlockDexOrderProve orderProve;
+                ss >> orderProve;
+                mapDexOrderProve[orderProve.GetDexOrderHeader()] = orderProve;
+            }
+            break;
+        }
+        case CP_PROVE_TYPE_CROSS_CONFIRM_RECV_BLOCK_PROVE:
+            ss >> setCrossConfirmRecvBlock;
+            break;
+        }
+    }
+}
+
+void CBlockCrosschainProve::GetProveData(std::map<uint8, bytes>& mapProveData) const
+{
+    if (!vCoinTransferProve.empty())
+    {
+        mtbase::CBufStream ss;
+        ss << vCoinTransferProve;
+        mapProveData.insert(std::make_pair(CP_PROVE_TYPE_COIN_TRANSFER_PROVE, ss.GetBytes()));
+    }
+    if (!mapDexOrderProve.empty())
+    {
+        mtbase::CBufStream ss;
+        ss << mtbase::CVarInt(mapDexOrderProve.size());
+        for (const auto& kv : mapDexOrderProve)
+        {
+            ss << kv.second;
+        }
+        mapProveData.insert(std::make_pair(CP_PROVE_TYPE_DEX_ORDER_PROVE, ss.GetBytes()));
+    }
+    if (!setCrossConfirmRecvBlock.empty())
+    {
+        mtbase::CBufStream ss;
+        ss << setCrossConfirmRecvBlock;
+        mapProveData.insert(std::make_pair(CP_PROVE_TYPE_CROSS_CONFIRM_RECV_BLOCK_PROVE, ss.GetBytes()));
+    }
+}
+
+//-------------------------------------------------------
+void CBlockCrosschainProve::Serialize(mtbase::CStream& s, mtbase::SaveType&) const
+{
+    std::map<uint8, bytes> mapProveData;
+    GetProveData(mapProveData);
+    s << nProveVersion << hashPrevProveBlock << mapProveData;
+}
+
+void CBlockCrosschainProve::Serialize(mtbase::CStream& s, mtbase::LoadType&)
+{
+    std::map<uint8, bytes> mapProveData;
+    s >> nProveVersion >> hashPrevProveBlock >> mapProveData;
+    SetProveData(mapProveData);
+}
+
+void CBlockCrosschainProve::Serialize(mtbase::CStream& s, std::size_t& serSize) const
+{
+    (void)s;
+    std::map<uint8, bytes> mapProveData;
+    GetProveData(mapProveData);
+    mtbase::CBufStream ss;
+    ss << nProveVersion << hashPrevProveBlock << mapProveData;
+    serSize = ss.GetSize();
+}
+
+///////////////////////////////////////////////////
+// CBlockPrevProve
+
+void CBlockPrevProve::Serialize(mtbase::CStream& s, mtbase::SaveType&) const
+{
+    // prev block
+    if (hashPrevBlock != 0 && !vPrevBlockMerkleProve.empty())
+    {
+        s << mtbase::CVarInt(vPrevBlockMerkleProve.size() + 1);
+        s << hashPrevBlock;
+        for (const auto& provePair : vPrevBlockMerkleProve)
+        {
+            s << provePair;
+        }
+    }
+    else
+    {
+        s << mtbase::CVarInt(0);
+    }
+
+    // crosschain
+    if (!proveCrosschain.IsNull() && !vCrosschainMerkleProve.empty())
+    {
+        s << mtbase::CVarInt(vCrosschainMerkleProve.size() + 1);
+        s << proveCrosschain;
+        for (const auto& provePair : vCrosschainMerkleProve)
+        {
+            s << provePair;
+        }
+    }
+    else
+    {
+        s << mtbase::CVarInt(0);
+    }
+}
+
+void CBlockPrevProve::Serialize(mtbase::CStream& s, mtbase::LoadType&)
+{
+    mtbase::CVarInt varSize;
+
+    // prev block
+    s >> varSize;
+    if (varSize.GetValue() > 0)
+    {
+        s >> hashPrevBlock;
+        for (std::size_t i = 0; i < varSize.GetValue() - 1; i++)
+        {
+            std::pair<uint8, uint256> provePair;
+            s >> provePair;
+            vPrevBlockMerkleProve.push_back(provePair);
+        }
+    }
+
+    // crosschain
+    s >> varSize;
+    if (varSize.GetValue() > 0)
+    {
+        s >> proveCrosschain;
+        for (std::size_t i = 0; i < varSize.GetValue() - 1; i++)
+        {
+            std::pair<uint8, uint256> provePair;
+            s >> provePair;
+            vCrosschainMerkleProve.push_back(provePair);
+        }
+    }
+}
+
+void CBlockPrevProve::Serialize(mtbase::CStream& s, std::size_t& serSize) const
+{
+    (void)s;
+    mtbase::CBufStream ss;
+
+    // prev block
+    if (hashPrevBlock != 0 && !vPrevBlockMerkleProve.empty())
+    {
+        ss << mtbase::CVarInt(vPrevBlockMerkleProve.size() + 1);
+        ss << hashPrevBlock;
+        for (const auto& provePair : vPrevBlockMerkleProve)
+        {
+            ss << provePair;
+        }
+    }
+    else
+    {
+        ss << mtbase::CVarInt(0);
+    }
+
+    // crosschain
+    if (!proveCrosschain.IsNull() && !vCrosschainMerkleProve.empty())
+    {
+        ss << mtbase::CVarInt(vCrosschainMerkleProve.size() + 1);
+        ss << proveCrosschain;
+        for (const auto& provePair : vCrosschainMerkleProve)
+        {
+            ss << provePair;
+        }
+    }
+    else
+    {
+        ss << mtbase::CVarInt(0);
+    }
+
+    serSize = ss.GetSize();
+}
+
+///////////////////////////////////////////////////
+// CBlockProve
+
+void CBlockProve::Save(bytes& btData) const
+{
+    mtbase::CBufStream ss;
+    ss << *this;
+    ss.GetData(btData);
+}
+
+bool CBlockProve::Load(const bytes& btData)
+{
+    mtbase::CBufStream ss(btData);
+    try
+    {
+        ss >> *this;
+    }
+    catch (const std::exception& e)
+    {
+        return false;
+    }
+    return true;
+}
+
+uint256 CBlockProve::GetFirstPrevBlockHash() const
+{
+    for (auto it = vPrevBlockCcProve.rbegin(); it != vPrevBlockCcProve.rend(); ++it)
+    {
+        if (it->proveCrosschain.GetPrevProveBlock() != 0)
+        {
+            return it->proveCrosschain.GetPrevProveBlock();
+        }
+    }
+    return proveCrosschain.GetPrevProveBlock();
+}
+
+void CBlockProve::GetBlockHashList(std::vector<uint256>& vBlockHash) const
+{
+    vBlockHash.push_back(hashBlock);
+    uint256 hashAtBlock = hashPrevBlock;
+    for (const auto& vd : vPrevBlockCcProve)
+    {
+        vBlockHash.push_back(hashAtBlock);
+        hashAtBlock = vd.hashPrevBlock;
+    }
+}
+
+bool CBlockProve::IsCrossProveEmpty() const
+{
+    if (!proveCrosschain.IsCrossProveNull())
+    {
+        return false;
+    }
+    for (const CBlockPrevProve& prevProve : vPrevBlockCcProve)
+    {
+        if (!prevProve.proveCrosschain.IsCrossProveNull())
+        {
+            return false;
+        }
+    }
+    return true;
+}
+
+void CBlockProve::Serialize(mtbase::CStream& s, mtbase::SaveType&) const
+{
+    s << hashBlock << btAggSigBitmap << btAggSigData;
+
+    // ref block
+    if (hashRefBlock != 0 && !vRefBlockMerkleProve.empty())
+    {
+        s << mtbase::CVarInt(vRefBlockMerkleProve.size() + 1);
+        s << hashRefBlock;
+        for (const auto& provePair : vRefBlockMerkleProve)
+        {
+            s << provePair;
+        }
+    }
+    else
+    {
+        s << mtbase::CVarInt(0);
+    }
+
+    // prev block
+    if (hashPrevBlock != 0 && !vPrevBlockMerkleProve.empty())
+    {
+        s << mtbase::CVarInt(vPrevBlockMerkleProve.size() + 1);
+        s << hashPrevBlock;
+        for (const auto& provePair : vPrevBlockMerkleProve)
+        {
+            s << provePair;
+        }
+    }
+    else
+    {
+        s << mtbase::CVarInt(0);
+    }
+
+    // crosschain
+    if (!proveCrosschain.IsNull() && !vCrosschainMerkleProve.empty())
+    {
+        s << mtbase::CVarInt(vCrosschainMerkleProve.size() + 1);
+        s << proveCrosschain;
+        for (const auto& provePair : vCrosschainMerkleProve)
+        {
+            s << provePair;
+        }
+    }
+    else
+    {
+        s << mtbase::CVarInt(0);
+    }
+
+    s << vPrevBlockCcProve;
+}
+
+void CBlockProve::Serialize(mtbase::CStream& s, mtbase::LoadType&)
+{
+    mtbase::CVarInt varSize;
+
+    s >> hashBlock >> btAggSigBitmap >> btAggSigData;
+
+    // ref block
+    s >> varSize;
+    if (varSize.GetValue() > 0)
+    {
+        s >> hashRefBlock;
+        for (std::size_t i = 0; i < varSize.GetValue() - 1; i++)
+        {
+            std::pair<uint8, uint256> provePair;
+            s >> provePair;
+            vRefBlockMerkleProve.push_back(provePair);
+        }
+    }
+
+    // prev block
+    s >> varSize;
+    if (varSize.GetValue() > 0)
+    {
+        s >> hashPrevBlock;
+        for (std::size_t i = 0; i < varSize.GetValue() - 1; i++)
+        {
+            std::pair<uint8, uint256> provePair;
+            s >> provePair;
+            vPrevBlockMerkleProve.push_back(provePair);
+        }
+    }
+
+    // crosschain
+    s >> varSize;
+    if (varSize.GetValue() > 0)
+    {
+        s >> proveCrosschain;
+        for (std::size_t i = 0; i < varSize.GetValue() - 1; i++)
+        {
+            std::pair<uint8, uint256> provePair;
+            s >> provePair;
+            vCrosschainMerkleProve.push_back(provePair);
+        }
+    }
+
+    s >> vPrevBlockCcProve;
+}
+
+void CBlockProve::Serialize(mtbase::CStream& s, std::size_t& serSize) const
+{
+    (void)s;
+    mtbase::CBufStream ss;
+
+    ss << hashBlock << btAggSigBitmap << btAggSigData;
+
+    // ref block
+    if (hashRefBlock != 0 && !vRefBlockMerkleProve.empty())
+    {
+        ss << mtbase::CVarInt(vRefBlockMerkleProve.size() + 1);
+        ss << hashRefBlock;
+        for (const auto& provePair : vRefBlockMerkleProve)
+        {
+            ss << provePair;
+        }
+    }
+    else
+    {
+        ss << mtbase::CVarInt(0);
+    }
+
+    // prev block
+    if (hashPrevBlock != 0 && !vPrevBlockMerkleProve.empty())
+    {
+        ss << mtbase::CVarInt(vPrevBlockMerkleProve.size() + 1);
+        ss << hashPrevBlock;
+        for (const auto& provePair : vPrevBlockMerkleProve)
+        {
+            ss << provePair;
+        }
+    }
+    else
+    {
+        ss << mtbase::CVarInt(0);
+    }
+
+    // crosschain
+    if (!proveCrosschain.IsNull() && !vCrosschainMerkleProve.empty())
+    {
+        ss << mtbase::CVarInt(vCrosschainMerkleProve.size() + 1);
+        ss << proveCrosschain;
+        for (const auto& provePair : vCrosschainMerkleProve)
+        {
+            ss << provePair;
+        }
+    }
+    else
+    {
+        ss << mtbase::CVarInt(0);
+    }
+
+    ss << vPrevBlockCcProve;
+
+    serSize = ss.GetSize();
+}
+
+///////////////////////////////////////////////////
+// CBlockStorageProve
+
+void CBlockStorageProve::Save(bytes& btData) const
+{
+    mtbase::CBufStream ss;
+    ss << *this;
+    ss.GetData(btData);
+}
+
+bool CBlockStorageProve::Load(const bytes& btData)
+{
+    mtbase::CBufStream ss(btData);
+    try
+    {
+        ss >> *this;
+    }
+    catch (const std::exception& e)
+    {
+        return false;
+    }
+    return true;
+}
+
+void CBlockStorageProve::Serialize(mtbase::CStream& s, mtbase::SaveType&) const
+{
+    s << btAggSigBitmap << btAggSigData;
+
+    // ref block
+    if (hashRefBlock != 0 && !vRefBlockMerkleProve.empty())
+    {
+        s << mtbase::CVarInt(vRefBlockMerkleProve.size() + 1);
+        s << hashRefBlock;
+        for (const auto& provePair : vRefBlockMerkleProve)
+        {
+            s << provePair;
+        }
+    }
+    else
+    {
+        s << mtbase::CVarInt(0);
+    }
+
+    // prev block
+    if (hashPrevBlock != 0 && !vPrevBlockMerkleProve.empty())
+    {
+        s << mtbase::CVarInt(vPrevBlockMerkleProve.size() + 1);
+        s << hashPrevBlock;
+        for (const auto& provePair : vPrevBlockMerkleProve)
+        {
+            s << provePair;
+        }
+    }
+    else
+    {
+        s << mtbase::CVarInt(0);
+    }
+
+    s << mapCrossProve;
+}
+
+void CBlockStorageProve::Serialize(mtbase::CStream& s, mtbase::LoadType&)
+{
+    mtbase::CVarInt varSize;
+
+    s >> btAggSigBitmap >> btAggSigData;
+
+    // ref block
+    s >> varSize;
+    if (varSize.GetValue() > 0)
+    {
+        s >> hashRefBlock;
+        for (std::size_t i = 0; i < varSize.GetValue() - 1; i++)
+        {
+            std::pair<uint8, uint256> provePair;
+            s >> provePair;
+            vRefBlockMerkleProve.push_back(provePair);
+        }
+    }
+
+    // prev block
+    s >> varSize;
+    if (varSize.GetValue() > 0)
+    {
+        s >> hashPrevBlock;
+        for (std::size_t i = 0; i < varSize.GetValue() - 1; i++)
+        {
+            std::pair<uint8, uint256> provePair;
+            s >> provePair;
+            vPrevBlockMerkleProve.push_back(provePair);
+        }
+    }
+
+    s >> mapCrossProve;
+}
+
+void CBlockStorageProve::Serialize(mtbase::CStream& s, std::size_t& serSize) const
+{
+    (void)s;
+    mtbase::CBufStream ss;
+
+    ss << btAggSigBitmap << btAggSigData;
+
+    // ref block
+    if (hashRefBlock != 0 && !vRefBlockMerkleProve.empty())
+    {
+        ss << mtbase::CVarInt(vRefBlockMerkleProve.size() + 1);
+        ss << hashRefBlock;
+        for (const auto& provePair : vRefBlockMerkleProve)
+        {
+            ss << provePair;
+        }
+    }
+    else
+    {
+        ss << mtbase::CVarInt(0);
+    }
+
+    // prev block
+    if (hashPrevBlock != 0 && !vPrevBlockMerkleProve.empty())
+    {
+        ss << mtbase::CVarInt(vPrevBlockMerkleProve.size() + 1);
+        ss << hashPrevBlock;
+        for (const auto& provePair : vPrevBlockMerkleProve)
+        {
+            ss << provePair;
+        }
+    }
+    else
+    {
+        ss << mtbase::CVarInt(0);
+    }
+
+    ss << mapCrossProve;
+
+    serSize = ss.GetSize();
 }
 
 } // namespace metabasenet

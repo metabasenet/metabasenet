@@ -157,6 +157,15 @@
             "desc": "Listen for JSON-RPC connections on <port> (default: 8812 or testnet: 8814))"
         },
         {
+            "access": "protected",
+            "name": "nWsPortInt",
+            "type": "int",
+            "opt": "wsport",
+            "default": 0,
+            "format": "-wsport=port",
+            "desc": "Listen for websocket connections on <port> (default: 8817 or testnet: 8818))"
+        },
+        {
             "name": "fRPCListen",
             "type": "bool",
             "opt": "rpclisten",
@@ -297,7 +306,7 @@
             "name": "vChainIdRpcPort",
             "type": "vector<string>",
             "opt": "chainidrpcport",
-            "format": "-chainidrpcport=<chainid:rpcport>",
+            "format": "-chainidrpcport=<chainid:rpcport:wsport>",
             "desc": "Chain id of rpc port"
         }
     ],

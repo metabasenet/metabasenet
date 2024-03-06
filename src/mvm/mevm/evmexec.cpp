@@ -102,13 +102,22 @@ bool CEvmExec::evmExec(const CDestination& from, const CDestination& to, const C
             result.gas_left -= nTxGasLimit;
         }
         uint64 nUsedGas = nTxGasLimit - result.gas_left;
-        StdLog("CEvmExec", "Exec: from: %s, exec fail, status: [%ld] %s, tx amount: %s, call param: %s, gas limit: %ld, gas left: %ld, gas used: %ld, to: %s",
+
+        StdLog("CEvmExec", "Exec: from: %s, exec fail, status: [%ld] %s, tx amount: %s, call param: %s, gas limit: %ld, gas left: %ld, gas used: %ld, to: %s, out: %s",
                from.ToString().c_str(), result.status_code, GetStatusInfo(result.status_code).c_str(), CoinToTokenBigFloat(nTxAmount).c_str(),
-               ToHexString(btRunParam).c_str(), nTxGasLimit, result.gas_left, nUsedGas, to.ToString().c_str());
+               ToHexString(btRunParam).c_str(), nTxGasLimit, result.gas_left, nUsedGas, to.ToString().c_str(), ToHexString(result.output_data, result.output_size).c_str());
 
         dbHost.SaveGasUsed(destCodeOwner, nUsedGas);
 
         nStatusCode = result.status_code;
+        if (result.output_data && result.output_size > 0)
+        {
+            vResult.assign(result.output_data, result.output_data + result.output_size);
+        }
+        else
+        {
+            vResult.clear();
+        }
         nGasLeft = result.gas_left;
         return false;
     }

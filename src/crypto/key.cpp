@@ -356,5 +356,20 @@ bool CKey::SignEthTx(const CEthTxSkeleton& ets, uint256& hashTx, bytes& btEthTxD
     return GetEthTxData(pCryptoKey->secret, ets, hashTx, btEthTxData);
 }
 
+bool CKey::GetBlsKey(CCryptoBlsKey& keyBls)
+{
+    if (IsNull())
+    {
+        StdError("CKey", "Get bls key: pubkey is null");
+        return false;
+    }
+    if (IsLocked())
+    {
+        StdError("CKey", "Get bls key: pubkey is locked");
+        return false;
+    }
+    return CryptoBlsMakeNewKey(keyBls, pCryptoKey->secret);
+}
+
 } // namespace crypto
 } // namespace metabasenet

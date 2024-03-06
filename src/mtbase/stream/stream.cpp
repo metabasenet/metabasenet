@@ -35,6 +35,44 @@ CStream& CStream::Serialize(std::string& t, ObjectType&, std::size_t& serSize)
 ///////////////////////////////
 // CVarInt
 
+std::size_t CVarInt::SetBytes(const uint8* pData, std::size_t nSize)
+{
+    try
+    {
+        CBufStream ss((char*)pData, nSize);
+        ss >> *this;
+        return (nSize - ss.size());
+    }
+    catch (std::exception& e)
+    {
+        return 0;
+    }
+}
+
+std::size_t CVarInt::SetBytes(const bytes& btData)
+{
+    return SetBytes(btData.data(), btData.size());
+}
+
+std::size_t CVarInt::SetBytes(const std::string& strData)
+{
+    return SetBytes((const uint8*)strData.data(), strData.size());
+}
+
+void CVarInt::GetBytes(bytes& btData) const
+{
+    CBufStream ss;
+    ss << *this;
+    ss.GetData(btData);
+}
+
+bytes CVarInt::GetBytes() const
+{
+    bytes btData;
+    GetBytes(btData);
+    return btData;
+}
+
 std::size_t CVarInt::BytesRequired()
 {
     std::size_t n = 0;

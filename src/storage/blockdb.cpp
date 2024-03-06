@@ -54,6 +54,11 @@ bool CBlockDB::Initialize(const boost::filesystem::path& pathData, const uint256
         StdLog("CBlockDB", "Initialize: dbVote initialize fail");
         return false;
     }
+    if (!dbHdex.Initialize(pathData))
+    {
+        StdLog("CBlockDB", "Initialize: dbHdex initialize fail");
+        return false;
+    }
     if (!dbState.Initialize(pathData))
     {
         StdLog("CBlockDB", "Initialize: dbState initialize fail");
@@ -96,6 +101,7 @@ void CBlockDB::Deinitialize()
     dbAddress.Deinitialize();
     dbState.Deinitialize();
     dbVote.Deinitialize();
+    dbHdex.Deinitialize();
     dbTxIndex.Deinitialize();
     dbBlockIndex.Deinitialize();
     dbFork.Deinitialize();
@@ -114,6 +120,7 @@ void CBlockDB::RemoveAll()
     dbAddress.Clear();
     dbState.Clear();
     dbVote.Clear();
+    dbHdex.Clear();
     dbTxIndex.Clear();
     dbBlockIndex.Clear();
     dbFork.Clear();
@@ -126,9 +133,9 @@ void CBlockDB::RemoveAll()
     }
 }
 
-bool CBlockDB::AddForkContext(const uint256& hashPrevBlock, const uint256& hashBlock, const std::map<uint256, CForkContext>& mapForkCtxt, uint256& hashNewRoot)
+bool CBlockDB::AddForkContext(const uint256& hashPrevBlock, const uint256& hashBlock, const std::map<uint256, CForkContext>& mapForkCtxt, const std::map<std::string, CCoinContext>& mapSymbolCoin, uint256& hashNewRoot)
 {
-    return dbFork.AddForkContext(hashPrevBlock, hashBlock, mapForkCtxt, hashNewRoot);
+    return dbFork.AddForkContext(hashPrevBlock, hashBlock, mapForkCtxt, mapSymbolCoin, hashNewRoot);
 }
 
 bool CBlockDB::ListForkContext(std::map<uint256, CForkContext>& mapForkCtxt, const uint256& hashBlock)
@@ -151,6 +158,11 @@ bool CBlockDB::RetrieveForkLast(const uint256& hashFork, uint256& hashLastBlock)
     return dbFork.RetrieveForkLast(hashFork, hashLastBlock);
 }
 
+bool CBlockDB::GetForkCoinCtxByForkSymbol(const std::string& strForkSymbol, CCoinContext& ctxCoin, const uint256& hashMainChainRefBlock)
+{
+    return dbFork.GetForkCoinCtxByForkSymbol(strForkSymbol, ctxCoin, hashMainChainRefBlock);
+}
+
 bool CBlockDB::GetForkHashByForkName(const std::string& strForkName, uint256& hashFork, const uint256& hashMainChainRefBlock)
 {
     return dbFork.GetForkHashByForkName(strForkName, hashFork, hashMainChainRefBlock);
@@ -159,6 +171,26 @@ bool CBlockDB::GetForkHashByForkName(const std::string& strForkName, uint256& ha
 bool CBlockDB::GetForkHashByChainId(const CChainId nChainId, uint256& hashFork, const uint256& hashMainChainRefBlock)
 {
     return dbFork.GetForkHashByChainId(nChainId, hashFork, hashMainChainRefBlock);
+}
+
+bool CBlockDB::ListCoinContext(std::map<std::string, CCoinContext>& mapSymbolCoin, const uint256& hashMainChainRefBlock)
+{
+    return dbFork.ListCoinContext(mapSymbolCoin, hashMainChainRefBlock);
+}
+
+bool CBlockDB::GetDexCoinPairBySymbolPair(const std::string& strSymbol1, const std::string& strSymbol2, uint32& nCoinPair, const uint256& hashMainChainRefBlock)
+{
+    return dbFork.GetDexCoinPairBySymbolPair(strSymbol1, strSymbol2, nCoinPair, hashMainChainRefBlock);
+}
+
+bool CBlockDB::GetSymbolPairByDexCoinPair(const uint32 nCoinPair, std::string& strSymbol1, std::string& strSymbol2, const uint256& hashMainChainRefBlock)
+{
+    return dbFork.GetSymbolPairByDexCoinPair(nCoinPair, strSymbol1, strSymbol2, hashMainChainRefBlock);
+}
+
+bool CBlockDB::ListDexCoinPair(const uint32 nCoinPair, const std::string& strCoinSymbol, std::map<uint32, std::pair<std::string, std::string>>& mapDexCoinPair, const uint256& hashMainChainRefBlock)
+{
+    return dbFork.ListDexCoinPair(nCoinPair, strCoinSymbol, mapDexCoinPair, hashMainChainRefBlock);
 }
 
 bool CBlockDB::AddNewFork(const uint256& hashFork)
@@ -284,6 +316,36 @@ bool CBlockDB::RetrieveBlockHashByNumber(const uint256& hashFork, const uint32 n
     return dbBlockIndex.RetrieveBlockHashByNumber(hashFork, nChainId, hashLastBlock, nBlockNumber, hashBlock);
 }
 
+bool CBlockDB::AddBlockVoteResult(const uint256& hashBlock, const bool fLongChain, const bytes& btBitmap, const bytes& btAggSig, const bool fAtChain, const uint256& hashAtBlock)
+{
+    return dbBlockIndex.AddBlockVoteResult(hashBlock, fLongChain, btBitmap, btAggSig, fAtChain, hashAtBlock);
+}
+
+bool CBlockDB::RemoveBlockVoteResult(const uint256& hashBlock)
+{
+    return dbBlockIndex.RemoveBlockVoteResult(hashBlock);
+}
+
+bool CBlockDB::RetrieveBlockVoteResult(const uint256& hashBlock, bytes& btBitmap, bytes& btAggSig, bool& fAtChain, uint256& hashAtBlock)
+{
+    return dbBlockIndex.RetrieveBlockVoteResult(hashBlock, btBitmap, btAggSig, fAtChain, hashAtBlock);
+}
+
+bool CBlockDB::GetLastBlockVoteResult(const uint256& hashFork, uint256& hashLastBlock, bytes& btBitmap, bytes& btAggSig, bool& fAtChain, uint256& hashAtBlock)
+{
+    return dbBlockIndex.GetLastBlockVoteResult(hashFork, hashLastBlock, btBitmap, btAggSig, fAtChain, hashAtBlock);
+}
+
+bool CBlockDB::GetLastConfirmBlock(const uint256& hashFork, uint256& hashLastConfirmBlock)
+{
+    return dbBlockIndex.GetLastConfirmBlock(hashFork, hashLastConfirmBlock);
+}
+
+bool CBlockDB::AddBlockLocalVoteSignFlag(const uint256& hashBlock)
+{
+    return dbBlockIndex.AddBlockLocalVoteSignFlag(hashBlock);
+}
+
 bool CBlockDB::AddBlockVerify(const CBlockOutline& outline, const uint32 nRootCrc)
 {
     return dbVerify.AddBlockVerify(outline, nRootCrc);
@@ -386,9 +448,9 @@ bool CBlockDB::ListDestState(const uint256& hashFork, const uint256& hashBlockRo
     return dbState.ListDestState(hashFork, hashBlockRoot, mapBlockState);
 }
 
-bool CBlockDB::AddBlockTxIndexReceipt(const uint256& hashFork, const uint256& hashBlock, const std::map<uint256, CTxIndex>& mapBlockTxIndex, const std::map<uint256, CTransactionReceipt>& mapBlockTxReceipts)
+bool CBlockDB::AddBlockTxIndexReceipt(const uint256& hashFork, const uint256& hashBlock, const std::map<uint256, CTxIndex>& mapBlockTxIndex, const std::vector<CTransactionReceipt>& vTxReceipts)
 {
-    return dbTxIndex.AddBlockTxIndexReceipt(hashFork, hashBlock, mapBlockTxIndex, mapBlockTxReceipts);
+    return dbTxIndex.AddBlockTxIndexReceipt(hashFork, hashBlock, mapBlockTxIndex, vTxReceipts);
 }
 
 bool CBlockDB::UpdateBlockLongChain(const uint256& hashFork, const std::vector<uint256>& vRemoveTx, const std::map<uint256, uint256>& mapNewTx)
@@ -407,9 +469,9 @@ bool CBlockDB::RetrieveContractKvValue(const uint256& hashFork, const uint256& h
 }
 
 bool CBlockDB::AddAddressContext(const uint256& hashFork, const uint256& hashPrevBlock, const uint256& hashBlock, const std::map<CDestination, CAddressContext>& mapAddress, const uint64 nNewAddressCount,
-                                 const std::map<CDestination, CTimeVault>& mapTimeVault, const std::map<uint32, CFunctionAddressContext>& mapFunctionAddress, uint256& hashNewRoot)
+                                 const std::map<CDestination, CTimeVault>& mapTimeVault, const std::map<uint32, CFunctionAddressContext>& mapFunctionAddress, const std::map<CDestination, uint384>& mapBlsPubkeyContext, uint256& hashNewRoot)
 {
-    return dbAddress.AddAddressContext(hashFork, hashPrevBlock, hashBlock, mapAddress, nNewAddressCount, mapTimeVault, mapFunctionAddress, hashNewRoot);
+    return dbAddress.AddAddressContext(hashFork, hashPrevBlock, hashBlock, mapAddress, nNewAddressCount, mapTimeVault, mapFunctionAddress, mapBlsPubkeyContext, hashNewRoot);
 }
 
 bool CBlockDB::RetrieveAddressContext(const uint256& hashFork, const uint256& hashBlock, const CDestination& dest, CAddressContext& ctxAddress)
@@ -453,6 +515,11 @@ bool CBlockDB::ListFunctionAddress(const uint256& hashFork, const uint256& hashB
 bool CBlockDB::RetrieveFunctionAddress(const uint256& hashFork, const uint256& hashBlock, const uint32 nFuncId, CFunctionAddressContext& ctxFuncAddress)
 {
     return dbAddress.RetrieveFunctionAddress(hashFork, hashBlock, nFuncId, ctxFuncAddress);
+}
+
+bool CBlockDB::RetrieveBlsPubkeyContext(const uint256& hashFork, const uint256& hashBlock, const CDestination& dest, uint384& blsPubkey)
+{
+    return dbAddress.RetrieveBlsPubkeyContext(hashFork, hashBlock, dest, blsPubkey);
 }
 
 bool CBlockDB::AddCodeContext(const uint256& hashFork, const uint256& hashPrevBlock, const uint256& hashBlock,
@@ -529,6 +596,88 @@ bool CBlockDB::AddVoteReward(const uint256& hashFork, const uint32 nChainId, con
 bool CBlockDB::ListVoteReward(const uint32 nChainId, const uint256& hashBlock, const CDestination& dest, const uint32 nGetCount, std::vector<std::pair<uint32, uint256>>& vVoteReward)
 {
     return dbVote.ListVoteReward(nChainId, hashBlock, dest, nGetCount, vVoteReward);
+}
+
+bool CBlockDB::AddDexOrder(const uint256& hashFork, const uint256& hashRefBlock, const uint256& hashPrevBlock, const uint256& hashBlock, const std::map<CDexOrderHeader, CDexOrderBody>& mapDexOrder, const std::map<CChainId, std::vector<CBlockCoinTransferProve>>& mapCrossTransferProve,
+                           const std::map<uint256, uint256>& mapCoinPairCompletePrice, const std::set<CChainId>& setPeerCrossChainId, const std::map<CDexOrderHeader, std::vector<CCompDexOrderRecord>>& mapCompDexOrderRecord, const std::map<CChainId, CBlockProve>& mapBlockProve, uint256& hashNewRoot)
+{
+    return dbHdex.AddDexOrder(hashFork, hashRefBlock, hashPrevBlock, hashBlock, mapDexOrder, mapCrossTransferProve, mapCoinPairCompletePrice, setPeerCrossChainId, mapCompDexOrderRecord, mapBlockProve, hashNewRoot);
+}
+
+bool CBlockDB::GetDexOrder(const uint256& hashBlock, const CDestination& destOrder, const CChainId nChainIdOwner, const std::string& strCoinSymbolOwner, const std::string& strCoinSymbolPeer, const uint64 nOrderNumber, CDexOrderBody& dexOrder)
+{
+    return dbHdex.GetDexOrder(hashBlock, destOrder, nChainIdOwner, strCoinSymbolOwner, strCoinSymbolPeer, nOrderNumber, dexOrder);
+}
+
+bool CBlockDB::GetDexCompletePrice(const uint256& hashBlock, const uint256& hashCoinPair, uint256& nCompletePrice)
+{
+    return dbHdex.GetDexCompletePrice(hashBlock, hashCoinPair, nCompletePrice);
+}
+
+bool CBlockDB::GetCompleteOrder(const uint256& hashBlock, const CDestination& destOrder, const CChainId nChainIdOwner, const std::string& strCoinSymbolOwner, const std::string& strCoinSymbolPeer, const uint64 nOrderNumber, uint256& nCompleteAmount, uint64& nCompleteOrderCount)
+{
+    return dbHdex.GetCompleteOrder(hashBlock, destOrder, nChainIdOwner, strCoinSymbolOwner, strCoinSymbolPeer, nOrderNumber, nCompleteAmount, nCompleteOrderCount);
+}
+
+bool CBlockDB::GetCompleteOrder(const uint256& hashBlock, const uint256& hashDexOrder, uint256& nCompleteAmount, uint64& nCompleteOrderCount)
+{
+    return dbHdex.GetCompleteOrder(hashBlock, hashDexOrder, nCompleteAmount, nCompleteOrderCount);
+}
+
+bool CBlockDB::ListAddressDexOrder(const uint256& hashBlock, const CDestination& destOrder, const std::string& strCoinSymbolOwner, const std::string& strCoinSymbolPeer,
+                                   const uint64 nBeginOrderNumber, const uint32 nGetCount, std::map<CDexOrderHeader, CDexOrderSave>& mapDexOrder)
+{
+    return dbHdex.ListAddressDexOrder(hashBlock, destOrder, strCoinSymbolOwner, strCoinSymbolPeer, nBeginOrderNumber, nGetCount, mapDexOrder);
+}
+
+bool CBlockDB::GetDexOrderMaxNumber(const uint256& hashBlock, const CDestination& destOrder, const std::string& strCoinSymbolOwner, const std::string& strCoinSymbolPeer, uint64& nMaxOrderNumber)
+{
+    return dbHdex.GetDexOrderMaxNumber(hashBlock, destOrder, strCoinSymbolOwner, strCoinSymbolPeer, nMaxOrderNumber);
+}
+
+bool CBlockDB::GetPeerCrossLastBlock(const uint256& hashBlock, const CChainId nPeerChainId, uint256& hashLastProveBlock)
+{
+    return dbHdex.GetPeerCrossLastBlock(hashBlock, nPeerChainId, hashLastProveBlock);
+}
+
+bool CBlockDB::GetMatchDexData(const uint256& hashBlock, std::map<uint256, CMatchOrderResult>& mapMatchResult)
+{
+    return dbHdex.GetMatchDexData(hashBlock, mapMatchResult);
+}
+
+bool CBlockDB::ListMatchDexOrder(const uint256& hashBlock, const std::string& strCoinSymbolSell, const std::string& strCoinSymbolBuy, const uint64 nGetCount, CRealtimeDexOrder& realDexOrder)
+{
+    return dbHdex.ListMatchDexOrder(hashBlock, strCoinSymbolSell, strCoinSymbolBuy, nGetCount, realDexOrder);
+}
+
+bool CBlockDB::AddBlockCrosschainProve(const uint256& hashBlock, const CBlockStorageProve& proveBlockCrosschain)
+{
+    return dbHdex.AddBlockCrosschainProve(hashBlock, proveBlockCrosschain);
+}
+
+bool CBlockDB::UpdateBlockAggSign(const uint256& hashBlock, const bytes& btAggBitmap, const bytes& btAggSig, std::map<CChainId, CBlockProve>& mapBlockProve)
+{
+    return dbHdex.UpdateBlockAggSign(hashBlock, btAggBitmap, btAggSig, mapBlockProve);
+}
+
+bool CBlockDB::GetBlockCrosschainProve(const uint256& hashBlock, CBlockStorageProve& proveBlockCrosschain)
+{
+    return dbHdex.GetBlockCrosschainProve(hashBlock, proveBlockCrosschain);
+}
+
+bool CBlockDB::GetCrosschainProveForPrevBlock(const CChainId nRecvChainId, const uint256& hashRecvPrevBlock, std::map<CChainId, CBlockProve>& mapBlockCrosschainProve)
+{
+    return dbHdex.GetCrosschainProveForPrevBlock(nRecvChainId, hashRecvPrevBlock, mapBlockCrosschainProve);
+}
+
+bool CBlockDB::AddRecvCrosschainProve(const CChainId nRecvChainId, const CBlockProve& blockProve)
+{
+    return dbHdex.AddRecvCrosschainProve(nRecvChainId, blockProve);
+}
+
+bool CBlockDB::GetRecvCrosschainProve(const CChainId nRecvChainId, const CChainId nSendChainId, const uint256& hashSendProvePrevBlock, CBlockProve& blockProve)
+{
+    return dbHdex.GetRecvCrosschainProve(nRecvChainId, nSendChainId, hashSendProvePrevBlock, blockProve);
 }
 
 bool CBlockDB::AddBlacklistAddress(const CDestination& dest)
@@ -611,6 +760,11 @@ bool CBlockDB::VerifyBlockRoot(const bool fPrimary, const uint256& hashFork, con
     if (!dbVote.VerifyVoteReward(hashFork, hashPrevBlock, hashBlock, localBlockRoot.hashVoteRewardRoot, fVerifyAllNode))
     {
         StdError("CBlockDB", "Verify block root: Verify reward lock fail, block: %s", hashBlock.GetHex().c_str());
+        return false;
+    }
+    if (!dbHdex.VerifyDexOrder(hashFork, hashPrevBlock, hashBlock, localBlockRoot.hashDexOrderRoot, fVerifyAllNode))
+    {
+        StdError("CBlockDB", "Verify block root: Verify dev order fail, block: %s", hashBlock.GetHex().c_str());
         return false;
     }
     if (fCfgFullDb)

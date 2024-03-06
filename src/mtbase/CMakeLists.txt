@@ -9,7 +9,8 @@
 set(sources
     version.h
     type.h
-    util.cpp                util.h
+    util.cpp util.h
+    mthbase.cpp mthbase.h
     rwlock.h
     cache.h
     compacttv.h
@@ -18,6 +19,7 @@ set(sources
     event/eventproc.cpp     event/eventproc.h
     stream/circular.cpp     stream/circular.h
     stream/stream.cpp       stream/stream.h
+    bitmap/bitmap.cpp bitmap/bitmap.h
     bloomfilter/MurmurHash3.cpp bloomfilter/MurmurHash3.h
     bloomfilter/bloomfilter.h
     base/base.cpp           base/base.h

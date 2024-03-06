@@ -954,23 +954,8 @@ void CLogsFilter::matchesLogs(CTransactionReceipt const& _m, MatchLogsVec& vLogs
 //////////////////////////////
 // CFilterId
 
-uint256 CFilterId::CreateFilterId(const uint8 nFilterType, const uint256& hash)
+uint256 CFilterId::CreateFilterId(const uint8 nFilterType, const uint64 nId, const uint256& hash)
 {
-    uint64 nId = 0;
-    switch (nFilterType)
-    {
-    case FILTERID_HEADER_LOGS:
-        nId = nLogsFilterIdCreate++;
-        break;
-    case FILTERID_HEADER_BLOCK:
-        nId = nBlockFilterIdCreate++;
-        break;
-    case FILTERID_HEADER_TX:
-        nId = nTxFilterIdCreate++;
-        break;
-    default:
-        return 0;
-    }
     mtbase::CBufStream ss;
     ss << nFilterType << hash << nId;
     uint256 hashFilterId = CryptoHash(ss.GetData(), ss.GetSize());

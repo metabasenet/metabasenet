@@ -64,7 +64,7 @@ cd ..
 ```
 ## Download code and compile
 ```
-git clone https://github.com/Block-Way/MetabaseNet.git
+git clone https://github.com/metabasenetwork/MetabaseNet.git
 cd metabasenet
 ./INSTALL.sh
 ```

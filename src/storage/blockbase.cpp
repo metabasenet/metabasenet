@@ -11,6 +11,7 @@
 #include "delegatecomm.h"
 #include "mevm/evmexec.h"
 #include "mwvm/wasmrun.h"
+#include "structure/merkletree.h"
 #include "template/delegate.h"
 #include "template/fork.h"
 #include "template/pledge.h"
@@ -99,410 +100,60 @@ bool CForkHeightIndex::GetMaxHeight(uint32& nMaxHeight)
 }
 
 //////////////////////////////
-// CBlockLogsFilter
-
-bool CBlockLogsFilter::isTimeout()
-{
-    if (GetTime() - nPrevGetChangesTime >= FILTER_DEFAULT_TIMEOUT)
-    {
-        return true;
-    }
-    return false;
-}
-
-bool CBlockLogsFilter::AddTxReceipt(const uint256& hashForkIn, const uint64 nBlockNumber, const uint256& hashBlock, const uint256& txid, const CTransactionReceipt& receipt)
-{
-    if (hashForkIn != hashFork)
-    {
-        return true;
-    }
-    if (logFilter.hashFromBlock != 0 && CBlock::GetBlockHeightByHash(hashBlock) < CBlock::GetBlockHeightByHash(logFilter.hashFromBlock))
-    {
-        return true;
-    }
-    if (logFilter.hashToBlock != 0 && CBlock::GetBlockHeightByHash(hashBlock) > CBlock::GetBlockHeightByHash(logFilter.hashToBlock))
-    {
-        return true;
-    }
-
-    MatchLogsVec vLogs;
-    logFilter.matchesLogs(receipt, vLogs);
-    if (!vLogs.empty())
-    {
-        CReceiptLogs r(vLogs);
-        r.txid = txid;
-        r.nTxIndex = receipt.nTxIndex;
-        r.nBlockNumber = nBlockNumber;
-        r.hashBlock = hashBlock;
-        vReceiptLogs.push_back(r);
-
-        nLogsCount += r.matchLogs.size();
-        if (nLogsCount > MAX_FILTER_CACHE_COUNT * 2)
-        {
-            return false;
-        }
-    }
-    return true;
-}
-
-void CBlockLogsFilter::GetTxReceiptLogs(const bool fAll, ReceiptLogsVec& receiptLogs)
-{
-    if (fAll)
-    {
-        for (auto& r : vHisReceiptLogs)
-        {
-            receiptLogs.push_back(r);
-        }
-        for (auto& r : vReceiptLogs)
-        {
-            receiptLogs.push_back(r);
-        }
-    }
-    else
-    {
-        for (auto& r : vReceiptLogs)
-        {
-            receiptLogs.push_back(r);
-            vHisReceiptLogs.push_back(r);
-            nHisLogsCount += r.matchLogs.size();
-        }
-
-        vReceiptLogs.clear();
-        nLogsCount = 0;
-        nPrevGetChangesTime = GetTime();
-
-        while (vHisReceiptLogs.size() > 0 && nHisLogsCount > MAX_FILTER_CACHE_COUNT * 2)
-        {
-            auto it = vHisReceiptLogs.begin();
-            nHisLogsCount -= it->matchLogs.size();
-            vHisReceiptLogs.erase(it);
-        }
-    }
-}
-
-//////////////////////////////
-// CBlockMakerFilter
-
-bool CBlockMakerFilter::isTimeout()
-{
-    if (GetTime() - nPrevGetChangesTime >= FILTER_DEFAULT_TIMEOUT)
-    {
-        return true;
-    }
-    return false;
-}
-
-bool CBlockMakerFilter::AddBlockHash(const uint256& hashForkIn, const uint256& hashBlock, const uint256& hashPrev)
-{
-    if (hashForkIn != hashFork)
-    {
-        return true;
-    }
-    if (mapBlockHash.size() >= MAX_FILTER_CACHE_COUNT * 2)
-    {
-        return false;
-    }
-    mapBlockHash[hashBlock] = hashPrev;
-    return true;
-}
-
-bool CBlockMakerFilter::GetFilterBlockHashs(const uint256& hashLastBlock, const bool fAll, std::vector<uint256>& vBlockhash)
-{
-    if (fAll)
-    {
-        uint256 hash = hashLastBlock;
-        while (true)
-        {
-            auto it = mapBlockHash.find(hash);
-            if (it == mapBlockHash.end())
-            {
-                break;
-            }
-            vBlockhash.push_back(hash);
-            hash = it->second;
-        }
-        while (true)
-        {
-            auto it = mapHisBlockHash.find(hash);
-            if (it == mapHisBlockHash.end())
-            {
-                break;
-            }
-            vBlockhash.push_back(hash);
-            hash = it->second;
-        }
-    }
-    else
-    {
-        if (mapBlockHash.count(hashLastBlock) == 0)
-        {
-            return true;
-        }
-        uint256 hash = hashLastBlock;
-        while (true)
-        {
-            auto it = mapBlockHash.find(hash);
-            if (it == mapBlockHash.end())
-            {
-                break;
-            }
-            vBlockhash.push_back(hash);
-            mapHisBlockHash.insert(*it);
-            hash = it->second;
-        }
-        mapBlockHash.clear();
-        nPrevGetChangesTime = GetTime();
-        std::reverse(vBlockhash.begin(), vBlockhash.end());
-
-        while (mapHisBlockHash.size() > MAX_FILTER_CACHE_COUNT * 2)
-        {
-            mapHisBlockHash.erase(mapHisBlockHash.begin());
-        }
-    }
-    return true;
-}
-
-//////////////////////////////
-// CBlockPendingTxFilter
-
-bool CBlockPendingTxFilter::isTimeout()
-{
-    if (GetTime() - nPrevGetChangesTime >= FILTER_DEFAULT_TIMEOUT)
-    {
-        return true;
-    }
-    return false;
-}
-
-bool CBlockPendingTxFilter::AddPendingTx(const uint256& hashForkIn, const uint256& txid)
-{
-    if (hashForkIn != hashFork)
-    {
-        return true;
-    }
-    if (setTxid.size() >= MAX_FILTER_CACHE_COUNT * 2)
-    {
-        return false;
-    }
-    if (setTxid.find(txid) == setTxid.end())
-    {
-        setTxid.insert(txid);
-        if (setHisTxid.find(txid) != setHisTxid.end())
-        {
-            setHisTxid.erase(txid);
-        }
-    }
-    return true;
-}
-
-bool CBlockPendingTxFilter::GetFilterTxids(const uint256& hashForkIn, const bool fAll, std::vector<uint256>& vTxid)
-{
-    if (hashForkIn != hashFork)
-    {
-        return true;
-    }
-    if (fAll)
-    {
-        for (auto& txid : setTxid)
-        {
-            vTxid.push_back(txid);
-        }
-        for (auto& txid : setHisTxid)
-        {
-            vTxid.push_back(txid);
-        }
-    }
-    else
-    {
-        for (auto& txid : setTxid)
-        {
-            vTxid.push_back(txid);
-            setHisTxid.insert(txid);
-            if (++nSeqCreate == 0)
-            {
-                nSeqCreate++;
-                mapHisSeq.clear();
-                setHisTxid.clear();
-                setHisTxid.insert(txid);
-            }
-            mapHisSeq.insert(std::make_pair(nSeqCreate, txid));
-        }
-        setTxid.clear();
-        nPrevGetChangesTime = GetTime();
-
-        while (setHisTxid.size() > MAX_FILTER_CACHE_COUNT * 2 && mapHisSeq.size() > 0)
-        {
-            auto it = mapHisSeq.begin();
-            setHisTxid.erase(it->second);
-            mapHisSeq.erase(it);
-        }
-    }
-    return true;
-}
-
-//////////////////////////////
-// CBlockFilter
-
-void CBlockFilter::RemoveFilter(const uint256& nFilterId)
-{
-    boost::unique_lock<boost::shared_mutex> lock(mutexFilter);
-    if (CFilterId::isLogsFilter(nFilterId))
-    {
-        mapLogFilter.erase(nFilterId);
-    }
-    else if (CFilterId::isBlockFilter(nFilterId))
-    {
-        mapBlockFilter.erase(nFilterId);
-    }
-    else if (CFilterId::isTxFilter(nFilterId))
-    {
-        mapTxFilter.erase(nFilterId);
-    }
-}
-
-uint256 CBlockFilter::AddLogsFilter(const uint256& hashClient, const uint256& hashFork, const CLogsFilter& logFilterIn)
-{
-    boost::unique_lock<boost::shared_mutex> lock(mutexFilter);
-    uint256 nFilterId = createFilterId.CreateLogsFilterId(hashClient);
-    while (mapLogFilter.count(nFilterId) > 0)
-    {
-        nFilterId = createFilterId.CreateLogsFilterId(hashClient);
-    }
-    mapLogFilter.insert(make_pair(nFilterId, CBlockLogsFilter(hashFork, logFilterIn)));
-    return nFilterId;
-}
-
-void CBlockFilter::AddTxReceipt(const uint256& hashForkIn, const uint64 nBlockNumber, const uint256& hashBlock, const uint256& txid, const CTransactionReceipt& receipt)
-{
-    boost::unique_lock<boost::shared_mutex> lock(mutexFilter);
-    for (auto it = mapLogFilter.begin(); it != mapLogFilter.end();)
-    {
-        if (it->second.isTimeout())
-        {
-            mapLogFilter.erase(it++);
-        }
-        else
-        {
-            if (!it->second.AddTxReceipt(hashForkIn, nBlockNumber, hashBlock, txid, receipt))
-            {
-                mapLogFilter.erase(it++);
-            }
-            else
-            {
-                ++it;
-            }
-        }
-    }
-}
-
-bool CBlockFilter::GetTxReceiptLogsByFilterId(const uint256& nFilterId, const bool fAll, ReceiptLogsVec& receiptLogs)
-{
-    boost::shared_lock<boost::shared_mutex> lock(mutexFilter);
-    auto it = mapLogFilter.find(nFilterId);
-    if (it == mapLogFilter.end())
-    {
-        return false;
-    }
-    it->second.GetTxReceiptLogs(fAll, receiptLogs);
-    return true;
-}
-
-uint256 CBlockFilter::AddBlockFilter(const uint256& hashClient, const uint256& hashFork)
-{
-    boost::unique_lock<boost::shared_mutex> lock(mutexFilter);
-    uint256 nFilterId = createFilterId.CreateBlockFilterId(hashClient);
-    while (mapBlockFilter.count(nFilterId) > 0)
-    {
-        nFilterId = createFilterId.CreateBlockFilterId(hashClient);
-    }
-    mapBlockFilter.insert(make_pair(nFilterId, CBlockMakerFilter(hashFork)));
-    return nFilterId;
-}
-
-void CBlockFilter::AddNewBlockHash(const uint256& hashForkIn, const uint256& hashBlock, const uint256& hashPrev)
-{
-    boost::unique_lock<boost::shared_mutex> lock(mutexFilter);
-    for (auto it = mapBlockFilter.begin(); it != mapBlockFilter.end();)
-    {
-        if (it->second.isTimeout())
-        {
-            mapBlockFilter.erase(it++);
-        }
-        else
-        {
-            if (!it->second.AddBlockHash(hashForkIn, hashBlock, hashPrev))
-            {
-                mapBlockFilter.erase(it++);
-            }
-            else
-            {
-                ++it;
-            }
-        }
-    }
-}
-
-bool CBlockFilter::GetFilterBlockHashs(const uint256& nFilterId, const uint256& hashLastBlock, const bool fAll, std::vector<uint256>& vBlockHash)
-{
-    boost::shared_lock<boost::shared_mutex> lock(mutexFilter);
-    auto it = mapBlockFilter.find(nFilterId);
-    if (it == mapBlockFilter.end())
-    {
-        return false;
-    }
-    it->second.GetFilterBlockHashs(hashLastBlock, fAll, vBlockHash);
-    return true;
-}
-
-uint256 CBlockFilter::AddPendingTxFilter(const uint256& hashClient, const uint256& hashForkIn)
-{
-    boost::unique_lock<boost::shared_mutex> lock(mutexFilter);
-    uint256 nFilterId = createFilterId.CreateTxFilterId(hashClient);
-    while (mapTxFilter.count(nFilterId) > 0)
-    {
-        nFilterId = createFilterId.CreateTxFilterId(hashClient);
-    }
-    mapTxFilter.insert(make_pair(nFilterId, CBlockPendingTxFilter(hashForkIn)));
-    return nFilterId;
-}
-
-void CBlockFilter::AddPendingTx(const uint256& hashForkIn, const uint256& txid)
-{
-    boost::unique_lock<boost::shared_mutex> lock(mutexFilter);
-    for (auto it = mapTxFilter.begin(); it != mapTxFilter.end();)
-    {
-        if (it->second.isTimeout())
-        {
-            mapTxFilter.erase(it++);
-        }
-        else
-        {
-            if (!it->second.AddPendingTx(hashForkIn, txid))
-            {
-                mapTxFilter.erase(it++);
-            }
-            else
-            {
-                ++it;
-            }
-        }
-    }
-}
-
-bool CBlockFilter::GetFilterTxids(const uint256& hashForkIn, const uint256& nFilterId, const bool fAll, std::vector<uint256>& vTxid)
-{
-    boost::shared_lock<boost::shared_mutex> lock(mutexFilter);
-    auto it = mapTxFilter.find(nFilterId);
-    if (it == mapTxFilter.end())
-    {
-        return false;
-    }
-    it->second.GetFilterTxids(hashForkIn, fAll, vTxid);
-    return true;
-}
-
-//////////////////////////////
 // CBlockState
+
+CBlockState::CBlockState(CBlockBase& dbBlockBaseIn, const uint256& hashForkIn, const CBlock& block, const uint256& hashPrevStateRootIn, const uint32 nPrevBlockTimeIn, const std::map<CDestination, CAddressContext>& mapAddressContext)
+  : dbBlockBase(dbBlockBaseIn), nBlockType(block.nType), nLocalChainId(CBlock::GetBlockChainIdByHash(hashForkIn)), hashFork(hashForkIn), hashPrevBlock(block.hashPrev),
+    hashPrevStateRoot(hashPrevStateRootIn), nPrevBlockTime(nPrevBlockTimeIn), nOriBlockGasLimit(block.nGasLimit.Get64()), nSurplusBlockGasLimit(block.nGasLimit.Get64()),
+    nBlockTimestamp(block.GetBlockTime()), nBlockHeight(block.GetBlockHeight()), nBlockNumber(block.GetBlockNumber()), destMint(block.txMint.GetToAddress()),
+    mintTx(block.txMint), txidMint(block.txMint.GetHash()), fPrimaryBlock(block.IsPrimary()), mapBlockAddressContext(mapAddressContext), mapBlockProve(block.mapProve)
+{
+    hashRefBlock = 0;
+    if (fPrimaryBlock)
+    {
+        if (block.IsProofOfWork())
+        {
+            CProofOfHashWork proof;
+            if (block.GetHashWorkProof(proof))
+            {
+                uint256 hashTarget = (~uint256(uint64(0)) >> proof.nBits);
+                nAgreement = hashTarget + proof.nNonce;
+            }
+        }
+        else
+        {
+            CProofOfDelegate proof;
+            if (block.GetDelegateProof(proof))
+            {
+                nAgreement = proof.nAgreement;
+            }
+        }
+    }
+    else
+    {
+        CProofOfPiggyback proof;
+        if (block.GetPiggybackProof(proof))
+        {
+            hashRefBlock = proof.hashRefBlock;
+            nAgreement = proof.nAgreement;
+        }
+    }
+    for (auto& tx : block.vtx)
+    {
+        setBlockBloomData.insert(tx.GetHash().GetBytes());
+    }
+    uint256 nMintCoint;
+    if (!block.GetMintCoinProof(nMintCoint))
+    {
+        nMintCoint = 0;
+    }
+    uint256 nTotalTxFee;
+    for (auto& tx : block.vtx)
+    {
+        nTotalTxFee += tx.GetTxFee();
+    }
+    nOriginalBlockMintReward = nMintCoint + nTotalTxFee;
+}
 
 bool CBlockState::AddTxState(const CTransaction& tx, const int nTxIndex)
 {
@@ -748,11 +399,14 @@ bool CBlockState::AddTxState(const CTransaction& tx, const int nTxIndex)
 
                 //nBlockBloom |= receipt.nLogsBloom;
                 receipt.GetBloomDataSet(setBlockBloomData);
-                mapBlockTxReceipts.insert(std::make_pair(txid, receipt));
-
-                mtbase::CBufStream ss;
-                ss << receipt;
-                vReceiptHash.push_back(metabasenet::crypto::CryptoHash(ss.GetData(), ss.GetSize()));
+                if (mapBlockTxReceipts.count(txid) == 0)
+                {
+                    mapBlockTxReceipts.insert(std::make_pair(txid, vBlockTxReceipts.size()));
+                    vBlockTxReceipts.push_back(receipt);
+                    mtbase::CBufStream ss;
+                    ss << receipt;
+                    vReceiptHash.push_back(metabasenet::crypto::CryptoHash(ss.GetData(), ss.GetSize()));
+                }
                 return true;
             }
         }
@@ -906,17 +560,20 @@ bool CBlockState::AddTxState(const CTransaction& tx, const int nTxIndex)
     receipt.CalcLogsBloom();
     //nBlockBloom |= receipt.nLogsBloom;
     receipt.GetBloomDataSet(setBlockBloomData);
-    mapBlockTxReceipts.insert(std::make_pair(txid, receipt));
-    mtbase::CBufStream ss;
-    ss << receipt;
-    vReceiptHash.push_back(metabasenet::crypto::CryptoHash(ss.GetData(), ss.GetSize()));
+    if (mapBlockTxReceipts.count(txid) == 0)
+    {
+        mapBlockTxReceipts.insert(std::make_pair(txid, vBlockTxReceipts.size()));
+        vBlockTxReceipts.push_back(receipt);
+        mtbase::CBufStream ss;
+        ss << receipt;
+        vReceiptHash.push_back(metabasenet::crypto::CryptoHash(ss.GetData(), ss.GetSize()));
+    }
     return true;
 }
 
-bool CBlockState::DoBlockState(uint256& hashReceiptRoot, uint256& nBlockGasUsed, bytes& btBlockBloomDataOut, uint256& nTotalMintRewardOut)
+bool CBlockState::DoBlockState(uint256& hashReceiptRoot, uint256& nBlockGasUsed, bytes& btBlockBloomDataOut, uint256& nTotalMintRewardOut, uint256& hashCrosschainMerkleRoot, bool& fMoStatus)
 {
     nBlockGasUsed = uint256(nOriBlockGasLimit - nSurplusBlockGasLimit);
-    hashReceiptRoot = CReceiptMerkleTree::BuildMerkleTree(vReceiptHash);
 
     if (nOriginalBlockMintReward < nBlockFeeLeft)
     {
@@ -956,138 +613,34 @@ bool CBlockState::DoBlockState(uint256& hashReceiptRoot, uint256& nBlockGasUsed,
 
     if (fPrimaryBlock)
     {
-        std::map<CDestination, std::pair<uint32, uint32>> mapPledgeFinalHeight;
-        if (!dbBlockBase.ListPledgeFinalHeight(hashPrevBlock, nBlockHeight, mapPledgeFinalHeight))
+        if (!CalcPledgeRedeem())
         {
-            StdError("CBlockState", "Do block state: List pledge final height failed, block height: %d, prev block: %s", nBlockHeight, hashPrevBlock.ToString().c_str());
+            StdError("CBlockState", "Do block state: Calc pledge redeem fail, block height: %d, prev block: %s", nBlockHeight, hashPrevBlock.ToString().c_str());
             return false;
         }
-        for (auto& kv : mapPledgeFinalHeight)
+    }
+
+    if (nBlockType != CBlock::BLOCK_GENESIS
+        && nBlockType != CBlock::BLOCK_ORIGIN
+        && nBlockType != CBlock::BLOCK_VACANT)
+    {
+        if (!CalcCrosschainTransfer())
         {
-            const CDestination& destPledge = kv.first;
-
-            CVoteContext ctxVote;
-            if (!dbBlockBase.RetrieveDestVoteContext(hashPrevBlock, destPledge, ctxVote))
-            {
-                StdLog("CBlockState", "Do block state: Retrieve dest vote context fail, pledge dest: %s, block height: %d, prev block: %s",
-                       destPledge.ToString().c_str(), nBlockHeight, hashPrevBlock.ToString().c_str());
-                return false;
-            }
-            if (kv.second.first != ctxVote.nFinalHeight)
-            {
-                StdLog("CBlockState", "Do block state: Final height error, get final height: %d, vote final height: %d, pledge dest: %s, block height: %d, prev block: %s",
-                       kv.second.first, ctxVote.nFinalHeight, destPledge.ToString().c_str(), nBlockHeight, hashPrevBlock.ToString().c_str());
-                continue;
-            }
-
-            CAddressContext ctxFromAddress;
-            if (!GetAddressContext(destPledge, ctxFromAddress))
-            {
-                StdLog("CBlockState", "Do block state: Retrieve pledge address context fail, pledge address: %s, block height: %d, prev block: %s",
-                       destPledge.ToString().c_str(), nBlockHeight, hashPrevBlock.ToString().c_str());
-                return false;
-            }
-            CTemplateAddressContext ctxTemplate;
-            if (!ctxFromAddress.GetTemplateAddressContext(ctxTemplate))
-            {
-                StdLog("CBlockState", "Do block state: Get template address context failed, pledge address: %s, block height: %d, prev block: %s",
-                       destPledge.ToString().c_str(), nBlockHeight, hashPrevBlock.ToString().c_str());
-                return false;
-            }
-            CTemplatePtr ptr = CTemplate::Import(ctxTemplate.btData);
-            if (!ptr || ptr->GetTemplateType() != TEMPLATE_PLEDGE)
-            {
-                StdLog("CBlockState", "Do block state: Import pledge template fail or template type error, pledge address: %s, block height: %d, prev block: %s",
-                       destPledge.ToString().c_str(), nBlockHeight, hashPrevBlock.ToString().c_str());
-                return false;
-            }
-            const CDestination& destTo = boost::dynamic_pointer_cast<CTemplatePledge>(ptr)->destOwner;
-
-            CDestState statePledge;
-            if (!GetDestState(destPledge, statePledge))
-            {
-                StdLog("CBlockState", "Do block state: Get pledge state fail, pledge address: %s, block height: %d, prev block: %s",
-                       destPledge.ToString().c_str(), nBlockHeight, hashPrevBlock.ToString().c_str());
-                return false;
-            }
-            uint256 nRedeemAmount = statePledge.GetBalance();
-
-            CAddressContext ctxToAddress;
-            if (!GetAddressContext(destTo, ctxToAddress))
-            {
-                ctxToAddress = CAddressContext(CPubkeyAddressContext());
-            }
-            if (ctxToAddress.IsContract())
-            {
-                CTransaction txRedeem;
-                txRedeem.SetTxType(CTransaction::TX_INTERNAL);
-                txRedeem.SetChainId(CBlock::GetBlockChainIdByHash(hashFork));
-                txRedeem.SetNonce(mintTx.GetNonce());
-                txRedeem.SetFromAddress(destPledge);
-                txRedeem.SetToAddress(destTo);
-                txRedeem.SetAmount(nRedeemAmount);
-
-                bool fCallResult = true;
-                CTransactionReceipt receiptRedeem;
-                if (!AddContractState(txRedeem.GetHash(), txRedeem, 0, PLEDGE_REDEEM_TX_GAS_LIMIT, 0, fCallResult, receiptRedeem))
-                {
-                    // Execution failure does not affect the process.
-                    StdLog("CBlockState", "Do block state: Add redeem contract state fail");
-                }
-                else
-                {
-                    StdDebug("CBlockState", "Do block state: Add redeem contract state success, call result: %s", (fCallResult ? "true" : "false"));
-                }
-            }
-
-            CDestState stateTo;
-            if (!GetDestState(destTo, stateTo))
-            {
-                stateTo.SetNull();
-                stateTo.SetType(ctxToAddress.GetDestType(), ctxToAddress.GetTemplateType());
-            }
-            stateTo.IncBalance(nRedeemAmount);
-            statePledge.SetBalance(0);
-
-            SetDestState(destPledge, statePledge);
-            SetDestState(destTo, stateTo);
-
-            mapBlockAddressContext[destTo] = ctxToAddress;
-
-            CContractTransfer ctrTransfer(CContractTransfer::CT_REDEEM, destPledge, destTo, nRedeemAmount);
-            mapBlockContractTransfer[txidMint].push_back(ctrTransfer);
-
-            {
-                CTransactionReceipt receipt;
-
-                receipt.nReceiptType = CTransactionReceipt::RECEIPT_TYPE_COMMON;
-
-                receipt.nTxIndex = 0;
-                receipt.txid = txidMint;
-                receipt.nBlockNumber = nBlockNumber;
-                receipt.from = mintTx.GetFromAddress();
-                receipt.to = mintTx.GetToAddress();
-                receipt.nTxGasUsed = 0;
-                receipt.nTvGasUsed = 0;
-                receipt.nEffectiveGasPrice = mintTx.GetGasPrice();
-
-                receipt.vTransfer.push_back(ctrTransfer);
-
-                receipt.CalcLogsBloom();
-                //nBlockBloom |= receipt.nLogsBloom;
-                receipt.GetBloomDataSet(setBlockBloomData);
-                mapBlockTxReceipts.insert(std::make_pair(txidMint, receipt));
-                mtbase::CBufStream ss;
-                ss << receipt;
-                vReceiptHash.push_back(metabasenet::crypto::CryptoHash(ss.GetData(), ss.GetSize()));
-            }
-
-            // When redeeming pledge, give timevault
-            mapBlockPayTvFee[destTo] += CTimeVault::CalcGiveTvFee(nRedeemAmount);
-
-            StdLog("CBlockState", "Do block state: Pledge redeem, redeem amount: %s, pledge address: %s, owner address: %s, block height: %d, prev block: %s",
-                   CoinToTokenBigFloat(nRedeemAmount).c_str(), destPledge.ToString().c_str(), destTo.ToString().c_str(), nBlockHeight, hashPrevBlock.ToString().c_str());
+            StdError("CBlockState", "Do block state: Calc crosschain transfer fail, block height: %d, prev block: %s", nBlockHeight, hashPrevBlock.ToString().c_str());
+            return false;
         }
+        bool fMatchDex = false;
+        if (!CalcCrosschainDex(fMatchDex))
+        {
+            StdError("CBlockState", "Do block state: Calc crosschain dex fail, block height: %d, prev block: %s", nBlockHeight, hashPrevBlock.ToString().c_str());
+            return false;
+        }
+        if (fMatchDex)
+        {
+            fMoStatus = true;
+        }
+        CalcCrosschainConfirmRecvBlock();
+        SetPeerPrevCrossLastBlock();
     }
 
     for (const auto& kv : mapContractKvState)
@@ -1102,11 +655,15 @@ bool CBlockState::DoBlockState(uint256& hashReceiptRoot, uint256& nBlockGasUsed,
         uint256 hashRoot;
         if (!dbBlockBase.AddBlockContractKvValue(hashFork, stateDestContract.GetStorageRoot(), hashRoot, kv.second))
         {
-            StdLog("CBlockState", "Do block state: Add block contract state fail, destContract: %s", destContract.ToString().c_str());
+            StdLog("CBlockState", "Do block state: Add block contract state fail, contract address: %s", destContract.ToString().c_str());
             return false;
         }
         stateDestContract.SetStorageRoot(hashRoot);
         SetDestState(destContract, stateDestContract);
+    }
+    if (!mapContractKvState.empty())
+    {
+        fMoStatus = true;
     }
 
     for (auto& kv : mapBlockAddressContext)
@@ -1127,6 +684,35 @@ bool CBlockState::DoBlockState(uint256& hashReceiptRoot, uint256& nBlockGasUsed,
             }
         }
     }
+
+    if (receiptMintTx.vTransfer.size() > 0)
+    {
+        receiptMintTx.nReceiptType = CTransactionReceipt::RECEIPT_TYPE_COMMON;
+
+        receiptMintTx.nTxIndex = 0;
+        receiptMintTx.txid = txidMint;
+        receiptMintTx.nBlockNumber = nBlockNumber;
+        receiptMintTx.from = mintTx.GetFromAddress();
+        receiptMintTx.to = mintTx.GetToAddress();
+        receiptMintTx.nTxGasUsed = 0;
+        receiptMintTx.nTvGasUsed = 0;
+        receiptMintTx.nEffectiveGasPrice = mintTx.GetGasPrice();
+
+        receiptMintTx.CalcLogsBloom();
+        //nBlockBloom |= receiptMintTx.nLogsBloom;
+        receiptMintTx.GetBloomDataSet(setBlockBloomData);
+        if (mapBlockTxReceipts.count(txidMint) == 0)
+        {
+            mapBlockTxReceipts.insert(std::make_pair(txidMint, vBlockTxReceipts.size()));
+            vBlockTxReceipts.push_back(receiptMintTx);
+            mtbase::CBufStream ss;
+            ss << receiptMintTx;
+            vReceiptHash.push_back(metabasenet::crypto::CryptoHash(ss.GetData(), ss.GetSize()));
+        }
+    }
+
+    hashReceiptRoot = CMerkleTree::CalcMerkleTreeRoot(vReceiptHash);
+    hashCrosschainMerkleRoot = CalcCrosschainMerkleRoot();
 
     GetBlockBloomData(btBlockBloomDataOut);
     return true;
@@ -1486,8 +1072,8 @@ bool CBlockState::ContractTransfer(const CDestination& from, const CDestination&
     }
     if (stateFrom.GetBalance() < amount)
     {
-        StdLog("CBlockState", "Contract transfer: nBalance < amount, nBalance: %s, amount: %s, from: %s",
-               stateFrom.GetBalance().GetHex().c_str(), amount.GetHex().c_str(), from.ToString().c_str());
+        StdLog("CBlockState", "Contract transfer: Balance not enough, balance: %s, amount: %s, from: %s",
+               CoinToTokenBigFloat(stateFrom.GetBalance()).c_str(), CoinToTokenBigFloat(amount).c_str(), from.ToString().c_str());
         return false;
     }
 
@@ -1585,6 +1171,22 @@ bool CBlockState::IsContractDestroy(const CDestination& destContractIn)
     return false;
 }
 
+void CBlockState::UpdateCrosschainProveTail(const uint256& hashPrevBlock, const std::vector<std::pair<uint8, uint256>>& vPrevBlockMerkleProve,
+                                            const uint256& hashRefBlock, const std::vector<std::pair<uint8, uint256>>& vRefBlockMerkleProve,
+                                            const std::vector<std::pair<uint8, uint256>>& vCrossMerkleProveTail)
+{
+    proveBlockCrosschain.hashPrevBlock = hashPrevBlock;
+    proveBlockCrosschain.vPrevBlockMerkleProve = vPrevBlockMerkleProve;
+
+    proveBlockCrosschain.hashRefBlock = hashRefBlock;
+    proveBlockCrosschain.vRefBlockMerkleProve = vRefBlockMerkleProve;
+
+    for (auto& kv : proveBlockCrosschain.mapCrossProve)
+    {
+        kv.second.second.insert(kv.second.second.end(), vCrossMerkleProveTail.begin(), vCrossMerkleProveTail.end());
+    }
+}
+
 //////////////////////////////////////////
 void CBlockState::CreateFunctionContractData()
 {
@@ -1616,10 +1218,12 @@ void CBlockState::CreateFunctionContractData()
     mapBlockAddressContext[destFuncContract] = CAddressContext(ctxContract);
 
     mapBlockAddressContext[FUNCTION_BLACKHOLE_ADDRESS] = CAddressContext(CPubkeyAddressContext());
+    mapBlockAddressContext[FUNCTION_CROSSCHAIN_ADDRESS] = CAddressContext(CPubkeyAddressContext());
     mapBlockAddressContext[PLEDGE_SURPLUS_REWARD_ADDRESS] = CAddressContext(CPubkeyAddressContext());
     mapBlockAddressContext[TIME_VAULT_TO_ADDRESS] = CAddressContext(CPubkeyAddressContext());
     mapBlockAddressContext[PROJECT_PARTY_REWARD_TO_ADDRESS] = CAddressContext(CPubkeyAddressContext());
     mapBlockAddressContext[FOUNDATION_REWARD_TO_ADDRESS] = CAddressContext(CPubkeyAddressContext());
+    mapBlockAddressContext[FUNCTION_DEX_POOL_ADDRESS] = CAddressContext(CPubkeyAddressContext());
 
     // create create and runtime code context
     mapBlockContractCreateCodeContext[hashCreateCode] = CContractCreateCodeContext({}, {}, {}, destFuncContract, btCreateCode, {}, {}, hashRuntimeCode);
@@ -1733,16 +1337,426 @@ bool CBlockState::GetDestContractCode(const CTransaction& tx, CDestination& dest
     return true;
 }
 
+bool CBlockState::CalcPledgeRedeem()
+{
+    std::map<CDestination, std::pair<uint32, uint32>> mapPledgeFinalHeight;
+    if (!dbBlockBase.ListPledgeFinalHeight(hashPrevBlock, nBlockHeight, mapPledgeFinalHeight))
+    {
+        StdError("CBlockState", "Calc pledge redeem: List pledge final height failed, block height: %d, prev block: %s", nBlockHeight, hashPrevBlock.ToString().c_str());
+        return false;
+    }
+    for (auto& kv : mapPledgeFinalHeight)
+    {
+        const CDestination& destPledge = kv.first;
+
+        CVoteContext ctxVote;
+        if (!dbBlockBase.RetrieveDestVoteContext(hashPrevBlock, destPledge, ctxVote))
+        {
+            StdLog("CBlockState", "Calc pledge redeem: Retrieve dest vote context fail, pledge dest: %s, block height: %d, prev block: %s",
+                   destPledge.ToString().c_str(), nBlockHeight, hashPrevBlock.ToString().c_str());
+            return false;
+        }
+        if (kv.second.first != ctxVote.nFinalHeight)
+        {
+            StdLog("CBlockState", "Calc pledge redeem: Final height error, get final height: %d, vote final height: %d, pledge dest: %s, block height: %d, prev block: %s",
+                   kv.second.first, ctxVote.nFinalHeight, destPledge.ToString().c_str(), nBlockHeight, hashPrevBlock.ToString().c_str());
+            continue;
+        }
+
+        CAddressContext ctxFromAddress;
+        if (!GetAddressContext(destPledge, ctxFromAddress))
+        {
+            StdLog("CBlockState", "Calc pledge redeem: Retrieve pledge address context fail, pledge address: %s, block height: %d, prev block: %s",
+                   destPledge.ToString().c_str(), nBlockHeight, hashPrevBlock.ToString().c_str());
+            return false;
+        }
+        CTemplateAddressContext ctxTemplate;
+        if (!ctxFromAddress.GetTemplateAddressContext(ctxTemplate))
+        {
+            StdLog("CBlockState", "Calc pledge redeem: Get template address context failed, pledge address: %s, block height: %d, prev block: %s",
+                   destPledge.ToString().c_str(), nBlockHeight, hashPrevBlock.ToString().c_str());
+            return false;
+        }
+        CTemplatePtr ptr = CTemplate::Import(ctxTemplate.btData);
+        if (!ptr || ptr->GetTemplateType() != TEMPLATE_PLEDGE)
+        {
+            StdLog("CBlockState", "Calc pledge redeem: Import pledge template fail or template type error, pledge address: %s, block height: %d, prev block: %s",
+                   destPledge.ToString().c_str(), nBlockHeight, hashPrevBlock.ToString().c_str());
+            return false;
+        }
+        const CDestination& destTo = boost::dynamic_pointer_cast<CTemplatePledge>(ptr)->destOwner;
+
+        CDestState statePledge;
+        if (!GetDestState(destPledge, statePledge))
+        {
+            StdLog("CBlockState", "Calc pledge redeem: Get pledge state fail, pledge address: %s, block height: %d, prev block: %s",
+                   destPledge.ToString().c_str(), nBlockHeight, hashPrevBlock.ToString().c_str());
+            return false;
+        }
+        uint256 nRedeemAmount = statePledge.GetBalance();
+
+        CAddressContext ctxToAddress;
+        if (!GetAddressContext(destTo, ctxToAddress))
+        {
+            ctxToAddress = CAddressContext(CPubkeyAddressContext());
+        }
+        if (ctxToAddress.IsContract())
+        {
+            CTransaction txRedeem;
+            txRedeem.SetTxType(CTransaction::TX_INTERNAL);
+            txRedeem.SetChainId(CBlock::GetBlockChainIdByHash(hashFork));
+            txRedeem.SetNonce(mintTx.GetNonce());
+            txRedeem.SetFromAddress(destPledge);
+            txRedeem.SetToAddress(destTo);
+            txRedeem.SetAmount(nRedeemAmount);
+
+            bool fCallResult = true;
+            CTransactionReceipt receiptRedeem;
+            if (!AddContractState(txRedeem.GetHash(), txRedeem, 0, PLEDGE_REDEEM_TX_GAS_LIMIT, 0, fCallResult, receiptRedeem))
+            {
+                // Execution failure does not affect the process.
+                StdLog("CBlockState", "Calc pledge redeem: Add redeem contract state fail");
+            }
+            else
+            {
+                StdDebug("CBlockState", "Calc pledge redeem: Add redeem contract state success, call result: %s", (fCallResult ? "true" : "false"));
+            }
+        }
+
+        CDestState stateTo;
+        if (!GetDestState(destTo, stateTo))
+        {
+            stateTo.SetNull();
+            stateTo.SetType(ctxToAddress.GetDestType(), ctxToAddress.GetTemplateType());
+        }
+        stateTo.IncBalance(nRedeemAmount);
+        statePledge.SetBalance(0);
+
+        SetDestState(destPledge, statePledge);
+        SetDestState(destTo, stateTo);
+
+        mapBlockAddressContext[destTo] = ctxToAddress;
+
+        CContractTransfer ctrTransfer(CContractTransfer::CT_REDEEM, destPledge, destTo, nRedeemAmount);
+        mapBlockContractTransfer[txidMint].push_back(ctrTransfer);
+
+        receiptMintTx.vTransfer.push_back(ctrTransfer);
+
+        // When redeeming pledge, give timevault
+        mapBlockPayTvFee[destTo] += CTimeVault::CalcGiveTvFee(nRedeemAmount);
+
+        StdLog("CBlockState", "Calc pledge redeem: Pledge redeem, redeem amount: %s, pledge address: %s, owner address: %s, block height: %d, prev block: %s",
+               CoinToTokenBigFloat(nRedeemAmount).c_str(), destPledge.ToString().c_str(), destTo.ToString().c_str(), nBlockHeight, hashPrevBlock.ToString().c_str());
+    }
+    return true;
+}
+
+bool CBlockState::CalcCrosschainTransfer()
+{
+    const uint256 hashGenesisFork = dbBlockBase.GetGenesisBlockHash();
+    const CChainId nGenChainId = CBlock::GetBlockChainIdByHash(hashGenesisFork);
+
+    for (const auto& kv : mapBlockProve)
+    {
+        const CChainId nPeerChainId = kv.first;
+        const CBlockProve& blockProve = kv.second;
+
+        auto funcTransferWork = [&](const CBlockCrosschainProve& ccProve) -> bool {
+            for (const CBlockCoinTransferProve& transferProve : ccProve.GetCoinTransferProve())
+            {
+                if (transferProve.nDestChainId == nLocalChainId)
+                {
+                    const CDestination& destFrom = FUNCTION_CROSSCHAIN_ADDRESS;
+                    const CDestination& destTo = transferProve.destTransfer;
+                    const uint256& nTransferAmount = transferProve.nTransferAmount;
+
+                    CAddressContext ctxToAddress;
+                    if (!GetAddressContext(destTo, ctxToAddress))
+                    {
+                        ctxToAddress = CAddressContext(CPubkeyAddressContext()); // WAIT_CHECK
+                    }
+
+                    CDestState stateFrom;
+                    CDestState stateTo;
+                    if (!GetDestState(destFrom, stateFrom))
+                    {
+                        stateFrom.SetNull();
+                        stateFrom.SetType(CDestination::PREFIX_PUBKEY, 0);
+                    }
+                    if (!GetDestState(destTo, stateTo))
+                    {
+                        stateTo.SetNull();
+                        stateTo.SetType(ctxToAddress.GetDestType(), ctxToAddress.GetTemplateType());
+                    }
+
+                    stateTo.IncBalance(nTransferAmount);
+                    if (nLocalChainId == nGenChainId)
+                    {
+                        stateFrom.DecBalance(nTransferAmount);
+                    }
+                    else
+                    {
+                        stateFrom.IncBalance(nTransferAmount);
+                    }
+
+                    SetDestState(destFrom, stateFrom);
+                    SetDestState(destTo, stateTo);
+
+                    mapBlockAddressContext[destTo] = ctxToAddress;
+
+                    CContractTransfer ctrTransfer(CContractTransfer::CT_CROSSCHAIN_TRANSFER, destFrom, destTo, nTransferAmount);
+                    mapBlockContractTransfer[txidMint].push_back(ctrTransfer);
+
+                    receiptMintTx.vTransfer.push_back(ctrTransfer);
+                }
+                else
+                {
+                    StdLog("CBlockState", "Calc crosschain transfer: Transfer chainid error, dest chainid: %d, local chainid: %d", transferProve.nDestChainId, nLocalChainId);
+                }
+            }
+            return true;
+        };
+
+        if (!funcTransferWork(blockProve.proveCrosschain))
+        {
+            StdLog("CBlockState", "Calc crosschain transfer: Transfer fail, block: %s, peer chainid: %d", blockProve.hashBlock.ToString().c_str(), nPeerChainId);
+            return false;
+        }
+
+        uint256 hashAtBlock = blockProve.hashPrevBlock;
+        for (const auto& prevProve : blockProve.vPrevBlockCcProve)
+        {
+            if (!funcTransferWork(prevProve.proveCrosschain))
+            {
+                StdLog("CBlockState", "Calc crosschain transfer: Transfer fail2, at block: %s, peer chainid: %d", hashAtBlock.ToString().c_str(), nPeerChainId);
+                return false;
+            }
+            hashAtBlock = prevProve.hashPrevBlock;
+        }
+    }
+    return true;
+}
+
+bool CBlockState::CalcCrosschainDex(bool& fMatchDex)
+{
+    std::map<uint256, CMatchOrderResult> mapMatchResult;
+    if (!dbBlockBase.GetMatchDexData(hashPrevBlock, mapMatchResult))
+    {
+        StdLog("CBlockState", "Calc crosschain dex: Get match dex fail, prev block: %s", hashPrevBlock.GetBhString().c_str());
+        return false;
+    }
+    const CChainId nChainId = CBlock::GetBlockChainIdByHash(hashPrevBlock);
+
+    uint256 hashPrevRefBlock;
+    if (!dbBlockBase.GetBlockForRefBlockNoLock(hashPrevBlock, hashPrevRefBlock))
+    {
+        StdLog("CBlockState", "Calc crosschain dex: Get prev ref block fail, prev block: %s", hashPrevBlock.GetBhString().c_str());
+        return false;
+    }
+
+    for (const auto& kv : mapMatchResult)
+    {
+        const uint256& hashCoinPair = kv.first;
+        const CMatchOrderResult& matchResult = kv.second;
+
+        CCoinContext ctxCoinSell;
+        CCoinContext ctxCoinBuy;
+        if (!dbBlockBase.GetForkCoinCtxByForkSymbol(matchResult.strCoinSymbolSell, ctxCoinSell, hashPrevRefBlock))
+        {
+            StdLog("CBlockState", "Calc crosschain dex: Get sell coin context fail, sell symbol: %s, prev ref block: %s", matchResult.strCoinSymbolSell.c_str(), hashPrevRefBlock.GetBhString().c_str());
+            return false;
+        }
+        if (!dbBlockBase.GetForkCoinCtxByForkSymbol(matchResult.strCoinSymbolBuy, ctxCoinBuy, hashPrevRefBlock))
+        {
+            StdLog("CBlockState", "Calc crosschain dex: Get buy coin context fail, buy symbol: %s, prev ref block: %s", matchResult.strCoinSymbolBuy.c_str(), hashPrevRefBlock.GetBhString().c_str());
+            return false;
+        }
+
+        for (const CMatchOrderRecord& matchRecord : matchResult.vMatchOrderRecord)
+        {
+            auto funcTrans = [&](const CDestination& destFrom, const CDestination& destTo, const uint256& nTransferAmount, const uint8 nCoinTypeFrom, const CDestination& destFromContractAddress) -> bool {
+                if (nCoinTypeFrom == CCoinContext::CT_COIN_TYPE_FORK || nCoinTypeFrom == CCoinContext::CT_COIN_TYPE_FORK)
+                {
+                    CAddressContext ctxToAddress;
+                    if (!GetAddressContext(destTo, ctxToAddress))
+                    {
+                        ctxToAddress = CAddressContext(CPubkeyAddressContext());
+                    }
+
+                    CDestState stateFrom;
+                    CDestState stateTo;
+                    if (!GetDestState(destFrom, stateFrom))
+                    {
+                        StdLog("CBlockState", "Calc crosschain dex: Get from state fail, from: %s, prev block: %s", destFrom.ToString().c_str(), hashPrevBlock.GetBhString().c_str());
+                        return false;
+                    }
+                    if (stateFrom.GetBalance() < nTransferAmount)
+                    {
+                        StdLog("CBlockState", "Calc crosschain dex: From balance is not enough, balance: %s, transfer amount: %s, from: %s, prev block: %s",
+                               CoinToTokenBigFloat(stateFrom.GetBalance()).c_str(), CoinToTokenBigFloat(nTransferAmount).c_str(),
+                               destFrom.ToString().c_str(), hashPrevBlock.GetBhString().c_str());
+                        return false;
+                    }
+                    if (!GetDestState(destTo, stateTo))
+                    {
+                        stateTo.SetNull();
+                        stateTo.SetType(ctxToAddress.GetDestType(), ctxToAddress.GetTemplateType());
+                    }
+                    stateTo.IncBalance(nTransferAmount);
+                    stateFrom.DecBalance(nTransferAmount);
+
+                    SetDestState(destFrom, stateFrom);
+                    SetDestState(destTo, stateTo);
+
+                    mapBlockAddressContext[destTo] = ctxToAddress;
+
+                    CContractTransfer ctrTransfer(CContractTransfer::CT_CROSSCHAIN_DEX, destFrom, destTo, nTransferAmount);
+
+                    bool fAdd = true;
+                    auto& ct = mapBlockContractTransfer[txidMint];
+                    for (auto& d : ct)
+                    {
+                        if (d.nType == CContractTransfer::CT_CROSSCHAIN_DEX
+                            && d.destFrom == destFrom
+                            && d.destTo == destTo)
+                        {
+                            d.nAmount += nTransferAmount;
+                            fAdd = false;
+                            break;
+                        }
+                    }
+                    if (fAdd)
+                    {
+                        ct.push_back(ctrTransfer);
+                    }
+
+                    fAdd = true;
+                    for (auto& d : receiptMintTx.vTransfer)
+                    {
+                        if (d.nType == CContractTransfer::CT_CROSSCHAIN_DEX
+                            && d.destFrom == destFrom
+                            && d.destTo == destTo)
+                        {
+                            d.nAmount += nTransferAmount;
+                            fAdd = false;
+                            break;
+                        }
+                    }
+                    if (fAdd)
+                    {
+                        receiptMintTx.vTransfer.push_back(ctrTransfer);
+                    }
+                }
+                else if (nCoinTypeFrom == CCoinContext::CT_COIN_TYPE_CONTRACT)
+                {
+                    if (!ContractInTransfer(destFromContractAddress, destFrom, destTo, nTransferAmount))
+                    {
+                        StdLog("CBlockState", "Calc crosschain dex: Contract transfer fail, constract address: %s, from: %s, to: %s, amount: %s, prev block: %s",
+                               destFromContractAddress.ToString().c_str(), destFrom.ToString().c_str(), destTo.ToString().c_str(),
+                               CoinToTokenBigFloat(nTransferAmount).c_str(), hashPrevBlock.GetBhString().c_str());
+                        return false;
+                    }
+                }
+                else
+                {
+                    StdLog("CBlockState", "Calc crosschain dex: From coin type error, coin type: %d, from: %s, prev block: %s", nCoinTypeFrom, destFrom.ToString().c_str(), hashPrevBlock.GetBhString().c_str());
+                    return false;
+                }
+                return true;
+            };
+
+            if (matchRecord.nSellOrderAtChainId == nChainId)
+            {
+                //if (!funcTrans(matchRecord.destSellOrder, matchRecord.destBuyOrder, matchRecord.nSellCompleteAmount, ctxCoinSell.nCoinType, ctxCoinSell.destContract))
+                if (!funcTrans(FUNCTION_DEX_POOL_ADDRESS, matchRecord.destBuyOrder, matchRecord.nSellCompleteAmount, ctxCoinSell.nCoinType, ctxCoinSell.destContract))
+                {
+                    StdLog("CBlockState", "Calc crosschain dex: Transfer sell fail, prev block: %s", hashPrevBlock.GetBhString().c_str());
+                    continue;
+                }
+            }
+            if (matchRecord.nBuyOrderAtChainId == nChainId)
+            {
+                // if (!funcTrans(matchRecord.destBuyOrder, matchRecord.destSellOrder, matchRecord.nBuyCompleteAmount, ctxCoinBuy.nCoinType, ctxCoinBuy.destContract))
+                if (!funcTrans(FUNCTION_DEX_POOL_ADDRESS, matchRecord.destSellOrder, matchRecord.nBuyCompleteAmount, ctxCoinBuy.nCoinType, ctxCoinBuy.destContract))
+                {
+                    StdLog("CBlockState", "Calc crosschain dex: Transfer buy fail, prev block: %s", hashPrevBlock.GetBhString().c_str());
+                    continue;
+                }
+            }
+
+            auto& dexOrderRecordSell = mapCompDexOrderRecord[CDexOrderHeader(matchRecord.nSellOrderAtChainId, matchRecord.destSellOrder, matchResult.strCoinSymbolSell, matchResult.strCoinSymbolBuy, matchRecord.nSellOrderNumber)];
+            dexOrderRecordSell.push_back(CCompDexOrderRecord(matchRecord.destBuyOrder, matchRecord.nSellCompleteAmount, matchRecord.nCompletePrice));
+
+            auto& dexOrderRecordBuy = mapCompDexOrderRecord[CDexOrderHeader(matchRecord.nBuyOrderAtChainId, matchRecord.destBuyOrder, matchResult.strCoinSymbolBuy, matchResult.strCoinSymbolSell, matchRecord.nBuyOrderNumber)];
+            dexOrderRecordBuy.push_back(CCompDexOrderRecord(matchRecord.destSellOrder, matchRecord.nBuyCompleteAmount, matchRecord.nCompletePrice));
+
+            mapCoinPairCompletePrice[hashCoinPair] = matchRecord.nCompletePrice;
+        }
+    }
+
+    fMatchDex = !mapCompDexOrderRecord.empty();
+    return true;
+}
+
+void CBlockState::CalcCrosschainConfirmRecvBlock()
+{
+    for (const auto& kv : mapBlockProve)
+    {
+        const CChainId nPeerChainId = kv.first;
+        const CBlockProve& blockProve = kv.second;
+
+        if (!blockProve.IsCrossProveEmpty())
+        {
+            //StdDebug("TEST", "Calc Crosschain Confirm Recv Block: nPeerChainId: %d, hashPrevBlock: %s", nPeerChainId, hashPrevBlock.GetBhString().c_str());
+            proveBlockCrosschain.mapCrossProve[nPeerChainId].first.AddCrossConfirmRecvBlock(blockProve.hashBlock);
+        }
+    }
+}
+
+void CBlockState::SetPeerPrevCrossLastBlock()
+{
+    for (auto& kv : proveBlockCrosschain.mapCrossProve)
+    {
+        const CChainId nPeerChainId = kv.first;
+        CBlockCrosschainProve& crossProve = kv.second.first;
+
+        uint256 hashLastProveBlock;
+        if (!dbBlockBase.GetPeerCrossLastBlock(hashPrevBlock, nPeerChainId, hashLastProveBlock))
+        {
+            hashLastProveBlock = hashFork;
+        }
+        crossProve.SetPrevProveBlock(hashLastProveBlock);
+    }
+}
+
+uint256 CBlockState::CalcCrosschainMerkleRoot()
+{
+    if (proveBlockCrosschain.mapCrossProve.empty())
+    {
+        return 0;
+    }
+
+    std::vector<uint256> vMerkleTree;
+    for (const auto& kv : proveBlockCrosschain.mapCrossProve)
+    {
+        vMerkleTree.push_back(kv.second.first.GetHash());
+    }
+
+    std::size_t nLeafCount = vMerkleTree.size();
+    uint256 hashMerkleRoot = CMerkleTree::BuildMerkleTree(vMerkleTree);
+
+    std::size_t nIndex = 0;
+    for (auto& kv : proveBlockCrosschain.mapCrossProve)
+    {
+        kv.second.second.clear();
+        CMerkleTree::BuildMerkleProve(nIndex++, vMerkleTree, nLeafCount, kv.second.second);
+    }
+    return hashMerkleRoot;
+}
+
 bool CBlockState::AddContractState(const uint256& txid, const CTransaction& tx, const int nTxIndex, const uint64 nRunGasLimit, const uint256& nTvGasUsedIn, bool& fCallResult, CTransactionReceipt& receipt)
 {
-    mapCacheContractData.clear();
-    mapCacheAddressContext.clear();
-    mapCacheContractCreateCodeContext.clear();
-    mapCacheContractRunCodeContext.clear();
-    vCacheContractTransfer.clear();
-    mapCacheCodeDestGasUsed.clear();
-    mapCacheModifyPledgeFinalHeight.clear();
-    mapCacheFunctionAddress.clear();
+    ClearCacheContractData();
 
     fCallResult = true;
     if (isFunctionContractAddress(tx.GetToAddress()))
@@ -1778,84 +1792,80 @@ bool CBlockState::AddContractState(const uint256& txid, const CTransaction& tx, 
 
     if (fCall)
     {
-        if (tx.IsEthTx() || tx.IsRewardTx() || tx.IsInternalTx())
+        // if (tx.IsEthTx() || tx.IsRewardTx() || tx.IsInternalTx())
+        // {
+        // StdLog("TEST", "GetGasLimit: %lu", tx.GetGasLimit().Get64());
+        // StdLog("TEST", "RunGasLimit: %lu", nRunGasLimit);
+        // StdLog("TEST", "GetTxBaseGas: %lu", tx.GetTxBaseGas().Get64());
+        // StdLog("TEST", "GetTxDataSize: %lu", tx.GetTxDataSize());
+        // StdLog("TEST", "GetTxDataGas: %lu", tx.GetTxDataGas().Get64());
+        // StdLog("TEST", "destCodeOwner: %s", destCodeOwner.ToString().c_str());
+
+        uint64 nSetRunGasLimit = nRunGasLimit;
+        if (tx.IsRewardTx() || tx.IsInternalTx())
         {
-            // StdLog("TEST", "GetGasLimit: %lu", tx.GetGasLimit().Get64());
-            // StdLog("TEST", "RunGasLimit: %lu", nRunGasLimit);
-            // StdLog("TEST", "GetTxBaseGas: %lu", tx.GetTxBaseGas().Get64());
-            // StdLog("TEST", "GetTxDataSize: %lu", tx.GetTxDataSize());
-            // StdLog("TEST", "GetTxDataGas: %lu", tx.GetTxDataGas().Get64());
-            // StdLog("TEST", "destCodeOwner: %s", destCodeOwner.ToString().c_str());
-
-            uint64 nSetRunGasLimit = nRunGasLimit;
-            if (tx.IsRewardTx() || tx.IsInternalTx())
-            {
-                nSetRunGasLimit = REWARD_TX_GAS_LIMIT;
-            }
-
-            CContractHostDB dbHost(*this, destContract, destCodeOwner, txid, tx.GetNonce());
-            CEvmExec vmExec(dbHost, hashFork, tx.GetChainId(), nAgreement);
-            if (!(fCallResult = vmExec.evmExec(tx.GetFromAddress(), tx.GetToAddress(), destContract, destCodeOwner, nSetRunGasLimit,
-                                               tx.GetGasPrice(), tx.GetAmount(), destMint, nBlockTimestamp,
-                                               nBlockHeight, nSurplusBlockGasLimit, btContractCode, btRunParam, txcd)))
-            {
-                StdLog("CBlockState", "Add contract state: Evm exec fail, txid: %s", txid.ToString().c_str());
-                mapCacheContractData.clear();
-                mapCacheAddressContext.clear();
-                mapCacheContractCreateCodeContext.clear();
-                mapCacheContractRunCodeContext.clear();
-                vCacheContractTransfer.clear();
-                mapCacheCodeDestGasUsed.clear();
-                mapCacheModifyPledgeFinalHeight.clear();
-                mapCacheFunctionAddress.clear();
-            }
-            uint64 nSetGasLeft = vmExec.nGasLeft;
-            uint256 nSetTvGasUsed = nTvGasUsedIn;
-            if (tx.IsRewardTx() || tx.IsInternalTx())
-            {
-                nSetGasLeft = 0;
-                nSetTvGasUsed = 0;
-            }
-            if (!DoRunResult(txid, tx, nTxIndex, destContract, hashContractCreateCode,
-                             nSetGasLeft, nSetTvGasUsed, vmExec.nStatusCode, vmExec.vResult, receipt))
-            {
-                StdLog("CBlockState", "Add contract state: Do run result fail, txid: %s", txid.ToString().c_str());
-                return false;
-            }
+            nSetRunGasLimit = REWARD_TX_GAS_LIMIT;
         }
-        else
+
+        CContractHostDB dbHost(*this, destContract, destCodeOwner, txid, tx.GetNonce());
+        CEvmExec vmExec(dbHost, hashFork, tx.GetChainId(), nAgreement);
+        if (!(fCallResult = vmExec.evmExec(tx.GetFromAddress(), tx.GetToAddress(), destContract, destCodeOwner, nSetRunGasLimit,
+                                           tx.GetGasPrice(), tx.GetAmount(), destMint, nBlockTimestamp,
+                                           nBlockHeight, nSurplusBlockGasLimit, btContractCode, btRunParam, txcd)))
         {
-            // CContractHostDB dbHost(*this, destContract, destCodeOwner, txid, tx.GetNonce());
-            // CContractRun vmExec(dbHost, hashFork);
-            // if (!(fCallResult = vmExec.RunContract(tx.GetFromAddress(), tx.GetToAddress(), destContract, destCodeOwner, nRunGasLimit,
-            //                                        tx.GetGasPrice(), tx.GetAmount(), destMint, nBlockTimestamp,
-            //                                        nBlockHeight, nSurplusBlockGasLimit, btContractCode, btRunParam, txcd)))
-            // {
-            //     StdLog("CBlockState", "Add contract state: Run contract fail, txid: %s", txid.ToString().c_str());
-            //     mapCacheContractData.clear();
-            //     mapCacheAddressContext.clear();
-            //     mapCacheContractCreateCodeContext.clear();
-            //     mapCacheContractRunCodeContext.clear();
-            //     vCacheContractTransfer.clear();
-            //     mapCacheCodeDestGasUsed.clear();
-            //     mapCacheModifyPledgeFinalHeight.clear();
-            //     mapCacheFunctionAddress.clear();
-            // }
-            // if (!DoRunResult(txid, tx, nTxIndex, destContract, hashContractCreateCode,
-            //                  vmExec.nGasLeft, nTvGasUsedIn, vmExec.nStatusCode, vmExec.vResult, receipt))
-            // {
-            //     StdLog("CBlockState", "Add contract state: Do run result fail, txid: %s", txid.ToString().c_str());
-            //     return false;
-            // }
-
-            uint64 nGasLeft = 0;
-            int nStatusCode = -2; //EVMC_REJECTED
-            if (!DoRunResult(txid, tx, nTxIndex, destContract, hashContractCreateCode, nGasLeft, nTvGasUsedIn, nStatusCode, {}, receipt))
-            {
-                StdLog("CBlockState", "Add contract state: Do run result fail, txid: %s", txid.ToString().c_str());
-                return false;
-            }
+            StdLog("CBlockState", "Add contract state: Evm exec fail, txid: %s", txid.ToString().c_str());
+            ClearCacheContractData();
         }
+        uint64 nSetGasLeft = vmExec.nGasLeft;
+        uint256 nSetTvGasUsed = nTvGasUsedIn;
+        if (tx.IsRewardTx() || tx.IsInternalTx())
+        {
+            nSetGasLeft = 0;
+            nSetTvGasUsed = 0;
+        }
+        if (!DoRunResult(txid, tx, nTxIndex, destContract, hashContractCreateCode,
+                         nSetGasLeft, nSetTvGasUsed, vmExec.nStatusCode, vmExec.vResult, receipt))
+        {
+            StdLog("CBlockState", "Add contract state: Do run result fail, txid: %s", txid.ToString().c_str());
+            return false;
+        }
+        // }
+        // else
+        // {
+        /////////////////////////////////
+        // wasm vm
+        // CContractHostDB dbHost(*this, destContract, destCodeOwner, txid, tx.GetNonce());
+        // CContractRun vmExec(dbHost, hashFork);
+        // if (!(fCallResult = vmExec.RunContract(tx.GetFromAddress(), tx.GetToAddress(), destContract, destCodeOwner, nRunGasLimit,
+        //                                        tx.GetGasPrice(), tx.GetAmount(), destMint, nBlockTimestamp,
+        //                                        nBlockHeight, nSurplusBlockGasLimit, btContractCode, btRunParam, txcd)))
+        // {
+        //     StdLog("CBlockState", "Add contract state: Run contract fail, txid: %s", txid.ToString().c_str());
+        //     mapCacheContractData.clear();
+        //     mapCacheAddressContext.clear();
+        //     mapCacheContractCreateCodeContext.clear();
+        //     mapCacheContractRunCodeContext.clear();
+        //     vCacheContractTransfer.clear();
+        //     mapCacheCodeDestGasUsed.clear();
+        //     mapCacheModifyPledgeFinalHeight.clear();
+        //     mapCacheFunctionAddress.clear();
+        // }
+        // if (!DoRunResult(txid, tx, nTxIndex, destContract, hashContractCreateCode,
+        //                  vmExec.nGasLeft, nTvGasUsedIn, vmExec.nStatusCode, vmExec.vResult, receipt))
+        // {
+        //     StdLog("CBlockState", "Add contract state: Do run result fail, txid: %s", txid.ToString().c_str());
+        //     return false;
+        // }
+
+        //---------------------------------------
+        // uint64 nGasLeft = 0;
+        // int nStatusCode = -2; //EVMC_REJECTED
+        // if (!DoRunResult(txid, tx, nTxIndex, destContract, hashContractCreateCode, nGasLeft, nTvGasUsedIn, nStatusCode, {}, receipt))
+        // {
+        //     StdLog("CBlockState", "Add contract state: Do run result fail, txid: %s", txid.ToString().c_str());
+        //     return false;
+        // }
+        // }
     }
     return true;
 }
@@ -1948,15 +1958,31 @@ bool CBlockState::DoRunResult(const uint256& txid, const CTransaction& tx, const
     {
         mapBlockFunctionAddress[kv.first] = kv.second;
     }
+    for (auto& kv : mapCacheSymbolCoin)
+    {
+        mapBlockSymbolCoin[kv.first] = kv.second;
+    }
+    for (auto& kv : mapCacheDexOrder)
+    {
+        mapBlockDexOrder[kv.first] = kv.second;
+    }
+    for (auto& kv : mapCacheCrossProve)
+    {
+        const CChainId nPeerChainId = kv.first;
+        const CBlockCrosschainProve& cacheCrossProve = kv.second;
+        CBlockCrosschainProve& crossProve = proveBlockCrosschain.mapCrossProve[nPeerChainId].first;
 
-    mapCacheContractData.clear();
-    mapCacheAddressContext.clear();
-    mapCacheContractCreateCodeContext.clear();
-    mapCacheContractRunCodeContext.clear();
-    vCacheContractTransfer.clear();
-    mapCacheCodeDestGasUsed.clear();
-    mapCacheModifyPledgeFinalHeight.clear();
-    mapCacheFunctionAddress.clear();
+        for (const CBlockCoinTransferProve& transferProve : cacheCrossProve.GetCoinTransferProve())
+        {
+            crossProve.AddCoinTransferProve(transferProve.destTransfer, transferProve.strCoinSymbol, transferProve.nOriChainId, transferProve.nDestChainId, transferProve.nTransferAmount);
+        }
+        for (const auto& kv : cacheCrossProve.GetDexOrderProve())
+        {
+            crossProve.AddDexOrderProve(kv.second);
+        }
+    }
+
+    ClearCacheContractData();
 
     uint256 nTxGasUsed;
     if (!tx.GetFromAddress().IsNull() && tx.GetGasLimit() > 0 && tx.GetGasLimit() > nGasLeftIn)
@@ -1995,7 +2021,7 @@ bool CBlockState::DoRunResult(const uint256& txid, const CTransaction& tx, const
     // ss << receipt;
 
     // vReceiptHash.push_back(metabasenet::crypto::CryptoHash(ss.GetData(), ss.GetSize()));
-    // mapBlockTxReceipts.insert(std::make_pair(txid, receipt));
+    // vBlockTxReceipts.push_back(receipt);
 
     nSurplusBlockGasLimit -= nTxGasUsed.Get64();
     if (!tx.GetFromAddress().IsNull() && tx.GetGasLimit() > 0 && nGasLeftIn != 0)
@@ -2012,6 +2038,153 @@ bool CBlockState::DoRunResult(const uint256& txid, const CTransaction& tx, const
         nBlockFeeLeft += (tx.GetGasPrice() * nGasLeftIn);
     }
     nBlockFeeLeft += nTotalCodeFeeUsed;
+    return true;
+}
+
+void CBlockState::ClearCacheContractData()
+{
+    mapCacheContractData.clear();
+    mapCacheAddressContext.clear();
+    mapCacheContractCreateCodeContext.clear();
+    mapCacheContractRunCodeContext.clear();
+    vCacheContractTransfer.clear();
+    mapCacheCodeDestGasUsed.clear();
+    mapCacheModifyPledgeFinalHeight.clear();
+    mapCacheFunctionAddress.clear();
+    mapCacheSymbolCoin.clear();
+    mapCacheDexOrder.clear();
+    mapCacheCrossProve.clear();
+}
+
+bool CBlockState::CallContractInFunction(const CDestination& destFrom, const CDestination& destContract, const bytes& btRunParam)
+{
+    uint256 hashContractCreateCode;
+    CDestination destCodeOwner;
+    uint256 hashContractRunCode;
+    bytes btContractCode;
+    CTxContractData txcd;
+    bool fDestroy = false;
+
+    if (!GetContractRunCode(destContract, hashContractCreateCode, destCodeOwner, hashContractRunCode, btContractCode, fDestroy))
+    {
+        StdLog("CBlockState", "Call contract function: Get contract run code fail, contract address: %s", destContract.ToString().c_str());
+        return false;
+    }
+    if (fDestroy)
+    {
+        StdLog("CBlockState", "Call contract function: Contract has been destroyed, contract address: %s", destContract.ToString().c_str());
+        return false;
+    }
+
+    ClearCacheContractData();
+
+    uint256 txid;
+    const CDestination& destTo = destContract;
+    uint64 nSetRunGasLimit = REWARD_TX_GAS_LIMIT;
+    uint64 nTxNonce = 0;
+    uint256 nAgreement = 0;
+    uint256 nTxGasPrice = 0;
+    uint256 nTxAmount = 0;
+
+    CContractHostDB dbHost(*this, destContract, destCodeOwner, txid, nTxNonce);
+    CEvmExec vmExec(dbHost, hashFork, nLocalChainId, nAgreement);
+    if (!vmExec.evmExec(destFrom, destTo, destContract, destCodeOwner, nSetRunGasLimit,
+                        nTxGasPrice, nTxAmount, destMint, nBlockTimestamp,
+                        nBlockHeight, nSurplusBlockGasLimit, btContractCode, btRunParam, txcd))
+    {
+        StdLog("CBlockState", "Call contract function: Evm exec fail, from address: %s, contract address: %s", destFrom.ToString().c_str(), destContract.ToString().c_str());
+        ClearCacheContractData();
+        return false;
+    }
+
+    //--------------------------------------------------------------
+    for (const auto& vd : mapCacheContractData)
+    {
+        const CDestination& dest = vd.first;
+        const CCacheContractData& conData = vd.second;
+
+        auto& mapSetContractKv = mapContractKvState[dest];
+        for (const auto& kv : conData.cacheContractKv)
+        {
+            mapSetContractKv[kv.first] = kv.second;
+        }
+        if (!conData.cacheDestState.IsNull())
+        {
+            SetDestState(dest, conData.cacheDestState);
+        }
+
+        // for (auto& logs : conData.cacheContractLogs)
+        // {
+        //     receipt.vLogs.push_back(logs);
+        // }
+    }
+    for (const auto& kv : mapCacheAddressContext)
+    {
+        mapBlockAddressContext[kv.first] = kv.second;
+    }
+    for (const auto& kv : mapCacheContractCreateCodeContext)
+    {
+        mapBlockContractCreateCodeContext[kv.first] = kv.second;
+    }
+    for (const auto& kv : mapCacheContractRunCodeContext)
+    {
+        mapBlockContractRunCodeContext[kv.first] = kv.second;
+    }
+    for (const auto& vd : vCacheContractTransfer)
+    {
+        mapBlockContractTransfer[txid].push_back(vd);
+        //receipt.vTransfer.push_back(vd);
+    }
+    for (auto& kv : mapCacheModifyPledgeFinalHeight)
+    {
+        mapBlockModifyPledgeFinalHeight[kv.first] = kv.second;
+    }
+    for (auto& kv : mapCacheFunctionAddress)
+    {
+        mapBlockFunctionAddress[kv.first] = kv.second;
+    }
+    for (auto& kv : mapCacheSymbolCoin)
+    {
+        mapBlockSymbolCoin[kv.first] = kv.second;
+    }
+    for (auto& kv : mapCacheDexOrder)
+    {
+        mapBlockDexOrder[kv.first] = kv.second;
+    }
+    for (auto& kv : mapCacheCrossProve)
+    {
+        const CChainId nPeerChainId = kv.first;
+        const CBlockCrosschainProve& cacheCrossProve = kv.second;
+        CBlockCrosschainProve& crossProve = proveBlockCrosschain.mapCrossProve[nPeerChainId].first;
+
+        for (const CBlockCoinTransferProve& transferProve : cacheCrossProve.GetCoinTransferProve())
+        {
+            crossProve.AddCoinTransferProve(transferProve.destTransfer, transferProve.strCoinSymbol, transferProve.nOriChainId, transferProve.nDestChainId, transferProve.nTransferAmount);
+        }
+        for (const auto& kv : cacheCrossProve.GetDexOrderProve())
+        {
+            crossProve.AddDexOrderProve(kv.second);
+        }
+    }
+
+    ClearCacheContractData();
+    return true;
+}
+
+bool CBlockState::ContractInTransfer(const CDestination& destContract, const CDestination& destFrom, const CDestination& destTo, const uint256& nTransferAmount)
+{
+    //function transfer(address to, uint tokens) external returns (bool);
+
+    std::vector<bytes> vParamList;
+    vParamList.push_back(destTo.ToHash().GetBytes());
+    vParamList.push_back(nTransferAmount.ToBigEndian());
+
+    bytes btRunParam = MakeEthTxCallData("transfer(address,uint256)", vParamList);
+
+    if (!CallContractInFunction(destFrom, destContract, btRunParam))
+    {
+        return false;
+    }
     return true;
 }
 
@@ -2084,6 +2257,88 @@ bool CBlockState::VerifyFunctionAddressDisable(const uint32 nFuncId)
         }
     }
     return true;
+}
+
+bool CBlockState::GetContractStringParam(const uint8* pParamBeginPos, const std::size_t nParamSize, const uint8* pCurrParamPos, const std::size_t nSurplusParamLen, std::string& strParamOut)
+{
+    if (nSurplusParamLen < 32)
+    {
+        StdLog("CBlockState", "Get contract string param: Param var pos error, surplus param len: %lu, param size: %lu", nSurplusParamLen, nParamSize);
+        return false;
+    }
+    uint256 tempData;
+    tempData.FromBigEndian(pCurrParamPos, 32);
+    std::size_t nVarPos = tempData.Get64();
+
+    if (nParamSize < nVarPos)
+    {
+        StdLog("CBlockState", "Get contract string param: Param var pos error, var pos: %lu, param size: %lu", nVarPos, nParamSize);
+        return false;
+    }
+    const uint8* p = pParamBeginPos + nVarPos;
+    std::size_t nSurplusSize = nParamSize - nVarPos;
+
+    if (nSurplusSize < 32)
+    {
+        StdLog("CBlockState", "Get contract string param: Surplus size not enough1, surplus size: %lu", nSurplusSize);
+        return false;
+    }
+    tempData.FromBigEndian(p, 32);
+    uint64 nStringSize = tempData.Get64();
+    p += 32;
+    nSurplusSize -= 32;
+
+    if (nStringSize == 0)
+    {
+        StdLog("CBlockState", "Get contract string param: String size is 0, surplus size: %lu", nSurplusSize);
+        return false;
+    }
+    const std::size_t nSectByteCount = (nStringSize / 32 + ((nStringSize % 32) == 0 ? 0 : 1)) * 32;
+    if (nSurplusSize < nSectByteCount)
+    {
+        StdLog("CBlockState", "Get contract string param: Surplus size not enough2, surplus size: %lu, sect size: %lu, string size: %lu", nSurplusSize, nSectByteCount, nStringSize);
+        return false;
+    }
+    strParamOut.assign(p, p + nStringSize);
+    return true;
+}
+
+uint64 CBlockState::GetMaxDexCoinOrderNumber(const CDestination& destFrom, const std::string& strCoinSymbolOwner, const std::string& strCoinSymbolPeer)
+{
+    uint256 hashCoinPair = CDexOrderHeader::GetCoinPairHashStatic(strCoinSymbolOwner, strCoinSymbolPeer);
+    uint8 nOwnerCoinFlag = CDexOrderHeader::GetOwnerCoinFlagStatic(strCoinSymbolOwner, strCoinSymbolPeer);
+    uint64 nMaxNumber = 0;
+    for (auto& kv : mapCacheDexOrder)
+    {
+        if (kv.first.GetOrderAddress() == destFrom && kv.first.GetCoinPairHash() == hashCoinPair && kv.first.GetOwnerCoinFlag() == nOwnerCoinFlag)
+        {
+            if (kv.first.GetOrderNumber() > nMaxNumber)
+            {
+                nMaxNumber = kv.first.GetOrderNumber();
+            }
+        }
+    }
+    if (nMaxNumber == 0)
+    {
+        for (auto& kv : mapBlockDexOrder)
+        {
+            if (kv.first.GetOrderAddress() == destFrom && kv.first.GetCoinPairHash() == hashCoinPair && kv.first.GetOwnerCoinFlag() == nOwnerCoinFlag)
+            {
+                if (kv.first.GetOrderNumber() > nMaxNumber)
+                {
+                    nMaxNumber = kv.first.GetOrderNumber();
+                }
+            }
+        }
+    }
+    if (nMaxNumber == 0)
+    {
+        if (!dbBlockBase.GetDexOrderMaxNumber(hashPrevBlock, destFrom, strCoinSymbolOwner, strCoinSymbolPeer, nMaxNumber))
+        {
+            nMaxNumber = 0;
+        }
+    }
+    return nMaxNumber;
 }
 
 //---------------------------------------------------------------------------------------------------------
@@ -2162,15 +2417,31 @@ bool CBlockState::DoFunctionContractTx(const uint256& txid, const CTransaction& 
     {
         mapBlockFunctionAddress[kv.first] = kv.second;
     }
+    for (auto& kv : mapCacheSymbolCoin)
+    {
+        mapBlockSymbolCoin[kv.first] = kv.second;
+    }
+    for (auto& kv : mapCacheDexOrder)
+    {
+        mapBlockDexOrder[kv.first] = kv.second;
+    }
+    for (auto& kv : mapCacheCrossProve)
+    {
+        const CChainId nPeerChainId = kv.first;
+        const CBlockCrosschainProve& cacheCrossProve = kv.second;
+        CBlockCrosschainProve& crossProve = proveBlockCrosschain.mapCrossProve[nPeerChainId].first;
 
-    mapCacheContractData.clear();
-    mapCacheAddressContext.clear();
-    mapCacheContractCreateCodeContext.clear();
-    mapCacheContractRunCodeContext.clear();
-    vCacheContractTransfer.clear();
-    mapCacheCodeDestGasUsed.clear();
-    mapCacheModifyPledgeFinalHeight.clear();
-    mapCacheFunctionAddress.clear();
+        for (const CBlockCoinTransferProve& transferProve : cacheCrossProve.GetCoinTransferProve())
+        {
+            crossProve.AddCoinTransferProve(transferProve.destTransfer, transferProve.strCoinSymbol, transferProve.nOriChainId, transferProve.nDestChainId, transferProve.nTransferAmount);
+        }
+        for (const auto& kv : cacheCrossProve.GetDexOrderProve())
+        {
+            crossProve.AddDexOrderProve(kv.second);
+        }
+    }
+
+    ClearCacheContractData();
 
     uint256 nTxGasUsed;
     if (tx.GetGasLimit() > nGasLeft)
@@ -2217,7 +2488,7 @@ bool CBlockState::DoFunctionContractTx(const uint256& txid, const CTransaction& 
         // ss << receipt;
 
         // vReceiptHash.push_back(metabasenet::crypto::CryptoHash(ss.GetData(), ss.GetSize()));
-        // mapBlockTxReceipts.insert(std::make_pair(txid, receipt));
+        // vBlockTxReceipts.push_back(receipt);
     }
 
     nSurplusBlockGasLimit -= nTxGasUsed.Get64();
@@ -2298,7 +2569,7 @@ bool CBlockState::DoFuncContractCall(const CDestination& destFrom, const CDestin
     {
         fRet = DoFuncTxGetPledgeUnlockHeight(destFrom, destTo, btTxParam, nGasLimit, nGasLeft, logs, btResult);
     }
-    // query
+    // query delegate
     else if (btFuncSign == CryptoKeccakSign("getPageSize()"))
     {
         fRet = DoFuncTxGetPageSize(destFrom, destTo, btTxParam, nGasLimit, nGasLeft, logs, btResult);
@@ -2319,6 +2590,7 @@ bool CBlockState::DoFuncContractCall(const CDestination& destFrom, const CDestin
     {
         fRet = DoFuncTxGetVoteUnlockHeight(destFrom, destTo, btTxParam, nGasLimit, nGasLeft, logs, btResult);
     }
+    // function address
     else if (btFuncSign == CryptoKeccakSign("setFunctionAddress(uint32,address,bool)"))
     {
         fRet = DoFuncTxSetFunctionAddress(destFrom, destTo, btTxParam, nGasLimit, nGasLeft, logs, btResult);
@@ -2326,6 +2598,41 @@ bool CBlockState::DoFuncContractCall(const CDestination& destFrom, const CDestin
     else if (btFuncSign == CryptoKeccakSign("getFunctionAddress(uint32)"))
     {
         fRet = DoFuncTxGetFunctionAddress(destFrom, destTo, btTxParam, nGasLimit, nGasLeft, logs, btResult);
+    }
+    // coin
+    else if (btFuncSign == CryptoKeccakSign("addUserCoin(string,uint32)"))
+    {
+        fRet = DoFuncTxAddUserCoin(destFrom, destTo, btTxParam, nGasLimit, nGasLeft, logs, btResult);
+    }
+    else if (btFuncSign == CryptoKeccakSign("addContractCoin(string,uint32,address)"))
+    {
+        fRet = DoFuncTxAddContractCoin(destFrom, destTo, btTxParam, nGasLimit, nGasLeft, logs, btResult);
+    }
+    else if (btFuncSign == CryptoKeccakSign("getCoin(string)"))
+    {
+        fRet = DoFuncTxGetCoin(destFrom, destTo, btTxParam, nGasLimit, nGasLeft, logs, btResult);
+    }
+    // dex order
+    else if (btFuncSign == CryptoKeccakSign("addDexOrder(string,string,uint64,uint256,uint256)"))
+    {
+        fRet = DoFuncTxAddDexOrder(destFrom, destTo, btTxParam, nGasLimit, nGasLeft, logs, btResult);
+    }
+    else if (btFuncSign == CryptoKeccakSign("getDexOrder(string,string,uint64)"))
+    {
+        fRet = DoFuncTxGetDexOrder(destFrom, destTo, btTxParam, nGasLimit, nGasLeft, logs, btResult);
+    }
+    else if (btFuncSign == CryptoKeccakSign("getMaxDexOrderNumber(string,string)"))
+    {
+        fRet = DoFuncTxGetMaxDexOrderNumber(destFrom, destTo, btTxParam, nGasLimit, nGasLeft, logs, btResult);
+    }
+    // crosschain transfer
+    else if (btFuncSign == CryptoKeccakSign("transferCoin(uint32,uint256)"))
+    {
+        fRet = DoFuncTxTransferCoin(destFrom, destTo, btTxParam, nGasLimit, nGasLeft, logs, btResult);
+    }
+    else if (btFuncSign == CryptoKeccakSign("getCrosschainTransferAmount()"))
+    {
+        fRet = DoFuncTxGetCrosschainTransferAmount(destFrom, destTo, btTxParam, nGasLimit, nGasLeft, logs, btResult);
     }
     else
     {
@@ -3269,6 +3576,741 @@ bool CBlockState::DoFuncTxGetFunctionAddress(const CDestination& destFrom, const
     return true;
 }
 
+bool CBlockState::DoFuncTxAddUserCoin(const CDestination& destFrom, const CDestination& destTo, const bytes& btTxParam, const uint64 nGasLimit, uint64& nGasLeft, CTransactionLogs& logs, bytes& btResult)
+{
+    if (hashFork != dbBlockBase.GetGenesisBlockHash())
+    {
+        StdLog("CBlockState", "Do func tx add user coin: Fork not is genesis, fork: %s", hashFork.ToString().c_str());
+        return false;
+    }
+
+    uint256 tempData;
+    std::string strCoinSymbol;
+    uint32 nChainId;
+
+    const uint8* p = btTxParam.data();
+    std::size_t nSurplusParamLen = btTxParam.size();
+
+    // coin symbol
+    if (!GetContractStringParam(btTxParam.data(), btTxParam.size(), p, nSurplusParamLen, strCoinSymbol) || strCoinSymbol.empty() || strCoinSymbol.size() > MAX_COIN_SYMBOL_SIZE)
+    {
+        StdLog("CBlockState", "Do func tx add user coin: Param coinsymbol error, param size: %lu", btTxParam.size());
+        return false;
+    }
+    StringToUpper(strCoinSymbol);
+    p += 32;
+    nSurplusParamLen -= 32;
+
+    // chainid
+    if (nSurplusParamLen < 32)
+    {
+        StdLog("CBlockState", "Do func tx add user coin: Param chainid error, param size: %lu", btTxParam.size());
+        return false;
+    }
+    tempData.FromBigEndian(p, 32);
+    nChainId = tempData.Get32();
+
+    uint256 hashCoinFork;
+    if (!dbBlockBase.GetForkHashByChainId(nChainId, hashCoinFork, hashPrevBlock))
+    {
+        StdLog("CBlockState", "Do func tx add user coin: Chainid not exist, chainid: %d", nChainId);
+        return false;
+    }
+
+    CCoinContext ctxCoinTemp;
+    if (dbBlockBase.GetForkCoinCtxByForkSymbol(strCoinSymbol, ctxCoinTemp, hashPrevBlock))
+    {
+        StdLog("CBlockState", "Do func tx add user coin: Coinsymbol existed, coinsymbol: %s", strCoinSymbol.c_str());
+        return false;
+    }
+
+    mapCacheSymbolCoin[strCoinSymbol] = CCoinContext(hashCoinFork, CCoinContext::CT_COIN_TYPE_USER, {});
+
+    btResult = uint256(1).ToBigEndian();
+
+    logs.topics.push_back(hashCoinFork);
+
+    StdDebug("CBlockState", "Do func tx add user coin: Add success, coinsymbol: %s, chainid: %d, from: %s",
+             strCoinSymbol.c_str(), nChainId, destFrom.ToString().c_str());
+
+    return true;
+}
+
+bool CBlockState::DoFuncTxAddContractCoin(const CDestination& destFrom, const CDestination& destTo, const bytes& btTxParam, const uint64 nGasLimit, uint64& nGasLeft, CTransactionLogs& logs, bytes& btResult)
+{
+    if (hashFork != dbBlockBase.GetGenesisBlockHash())
+    {
+        StdLog("CBlockState", "Do func tx add contract coin: Fork not is genesis, fork: %s", hashFork.ToString().c_str());
+        return false;
+    }
+
+    uint256 tempData;
+    std::string strCoinSymbol;
+    uint32 nChainId;
+    CDestination destContract;
+
+    const uint8* p = btTxParam.data();
+    std::size_t nSurplusParamLen = btTxParam.size();
+
+    // coin symbol
+    if (!GetContractStringParam(btTxParam.data(), btTxParam.size(), p, nSurplusParamLen, strCoinSymbol) || strCoinSymbol.empty() || strCoinSymbol.size() > MAX_COIN_SYMBOL_SIZE)
+    {
+        StdLog("CBlockState", "Do func tx add contract coin: Param coinsymbol error, param size: %lu", btTxParam.size());
+        return false;
+    }
+    StringToUpper(strCoinSymbol);
+    p += 32;
+    nSurplusParamLen -= 32;
+
+    // chainid
+    if (nSurplusParamLen < 32)
+    {
+        StdLog("CBlockState", "Do func tx add contract coin: Param chainid error, param size: %lu", btTxParam.size());
+        return false;
+    }
+    tempData.FromBigEndian(p, 32);
+    nChainId = tempData.Get32();
+    p += 32;
+    nSurplusParamLen -= 32;
+
+    // contract address
+    if (nSurplusParamLen < 32)
+    {
+        StdLog("CBlockState", "Do func tx add contract coin: Param contractAddress error, param size: %lu", btTxParam.size());
+        return false;
+    }
+    memcpy(tempData.begin(), p, 32);
+    destContract.SetHash(tempData);
+
+    uint256 hashCoinFork;
+    if (!dbBlockBase.GetForkHashByChainId(nChainId, hashCoinFork, hashPrevBlock))
+    {
+        StdLog("CBlockState", "Do func tx add contract coin: Chainid not exist, chainid: %d", nChainId);
+        return false;
+    }
+
+    CCoinContext ctxCoinTemp;
+    if (dbBlockBase.GetForkCoinCtxByForkSymbol(strCoinSymbol, ctxCoinTemp, hashPrevBlock))
+    {
+        StdLog("CBlockState", "Do func tx add contract coin: Coinsymbol existed, coinsymbol: %s", strCoinSymbol.c_str());
+        return false;
+    }
+
+    mapCacheSymbolCoin[strCoinSymbol] = CCoinContext(hashCoinFork, CCoinContext::CT_COIN_TYPE_CONTRACT, destContract);
+
+    btResult = uint256(1).ToBigEndian();
+
+    logs.topics.push_back(hashCoinFork);
+
+    StdDebug("CBlockState", "Do func tx add contract coin: Add success, coinsymbol: %s, chainid: %d, contract address: %s, from: %s",
+             strCoinSymbol.c_str(), nChainId, destContract.ToString().c_str(), destFrom.ToString().c_str());
+
+    return true;
+}
+
+bool CBlockState::DoFuncTxGetCoin(const CDestination& destFrom, const CDestination& destTo, const bytes& btTxParam, const uint64 nGasLimit, uint64& nGasLeft, CTransactionLogs& logs, bytes& btResult)
+{
+    if (hashFork != dbBlockBase.GetGenesisBlockHash())
+    {
+        StdLog("CBlockState", "Do func tx get coin: Fork not is genesis, fork: %s", hashFork.ToString().c_str());
+        return false;
+    }
+
+    std::string strCoinSymbol;
+    if (!GetContractStringParam(btTxParam.data(), btTxParam.size(), btTxParam.data(), btTxParam.size(), strCoinSymbol) || strCoinSymbol.empty() || strCoinSymbol.size() > MAX_COIN_SYMBOL_SIZE)
+    {
+        StdLog("CBlockState", "Do func tx get coin: Param coinsymbol error, param size: %lu", btTxParam.size());
+        return false;
+    }
+    StringToUpper(strCoinSymbol);
+
+    CChainId nChainId = 0;
+    uint32 nCoinType = 0;
+    CDestination destContract;
+    CCoinContext ctxCoin;
+    bool fRet = dbBlockBase.GetForkCoinCtxByForkSymbol(strCoinSymbol, ctxCoin, hashPrevBlock);
+    if (!fRet)
+    {
+        StdLog("CBlockState", "Do func tx get coin: Coinsymbol not existed, coinsymbol: %s", strCoinSymbol.c_str());
+    }
+    else
+    {
+        nChainId = CBlock::GetBlockChainIdByHash(ctxCoin.hashAtFork);
+        nCoinType = ctxCoin.nCoinType;
+        destContract = ctxCoin.destContract;
+    }
+
+    bytes btSetData;
+    btSetData = uint256((uint64)fRet).ToBigEndian();
+    btResult.insert(btResult.end(), btSetData.begin(), btSetData.end());
+    btSetData = uint256(nChainId).ToBigEndian();
+    btResult.insert(btResult.end(), btSetData.begin(), btSetData.end());
+    btSetData = uint256(nCoinType).ToBigEndian();
+    btResult.insert(btResult.end(), btSetData.begin(), btSetData.end());
+    btSetData = destContract.ToHash().GetBytes();
+    btResult.insert(btResult.end(), btSetData.begin(), btSetData.end());
+
+    StdDebug("CBlockState", "Do func tx get coin: Get success, ret: %s, coinsymbol: %s, chainid: %d, cointype: %d, contract address: %s, from: %s",
+             (fRet ? "true" : "false"), strCoinSymbol.c_str(), nChainId, nCoinType, destContract.ToString().c_str(), destFrom.ToString().c_str());
+
+    return true;
+}
+
+bool CBlockState::DoFuncTxAddDexOrder(const CDestination& destFrom, const CDestination& destTo, const bytes& btTxParam, const uint64 nGasLimit, uint64& nGasLeft, CTransactionLogs& logs, bytes& btResult)
+{
+    uint256 tempData;
+    std::string strCoinSymbolOwner;
+    std::string strCoinSymbolPeer;
+    uint64 nOrderNumber;
+    uint256 nOrderAmount;
+    uint256 nOrderPrice;
+
+    const uint8* p = btTxParam.data();
+    std::size_t nSurplusParamLen = btTxParam.size();
+
+    // coin symbol owner
+    if (!GetContractStringParam(btTxParam.data(), btTxParam.size(), p, nSurplusParamLen, strCoinSymbolOwner) || strCoinSymbolOwner.empty() || strCoinSymbolOwner.size() > MAX_COIN_SYMBOL_SIZE)
+    {
+        StdLog("CBlockState", "Do func tx add dex order: Param coin symbol owner error, param size: %lu", btTxParam.size());
+        return false;
+    }
+    StringToUpper(strCoinSymbolOwner);
+    p += 32;
+    nSurplusParamLen -= 32;
+
+    // coin symbol peer
+    if (!GetContractStringParam(btTxParam.data(), btTxParam.size(), p, nSurplusParamLen, strCoinSymbolPeer) || strCoinSymbolPeer.empty() || strCoinSymbolPeer.size() > MAX_COIN_SYMBOL_SIZE)
+    {
+        StdLog("CBlockState", "Do func tx add dex order: Param coin symbol peer error, param size: %lu", btTxParam.size());
+        return false;
+    }
+    StringToUpper(strCoinSymbolPeer);
+    p += 32;
+    nSurplusParamLen -= 32;
+
+    if (strCoinSymbolOwner == strCoinSymbolPeer)
+    {
+        StdLog("CBlockState", "Do func tx add dex order: Param symbol is same, symbol: %s, param size: %lu", strCoinSymbolOwner.c_str(), btTxParam.size());
+        return false;
+    }
+
+    // order number
+    if (nSurplusParamLen < 32)
+    {
+        StdLog("CBlockState", "Do func tx add dex order: Param order number error, param size: %lu", btTxParam.size());
+        return false;
+    }
+    tempData.FromBigEndian(p, 32);
+    nOrderNumber = tempData.Get64();
+    p += 32;
+    nSurplusParamLen -= 32;
+
+    // order amount
+    if (nSurplusParamLen < 32)
+    {
+        StdLog("CBlockState", "Do func tx add dex order: Param order amount error, param size: %lu", btTxParam.size());
+        return false;
+    }
+    nOrderAmount.FromBigEndian(p, 32);
+    if (nOrderAmount == 0)
+    {
+        StdLog("CBlockState", "Do func tx add dex order: Param order amount is 0, param size: %lu", btTxParam.size());
+        return false;
+    }
+    p += 32;
+    nSurplusParamLen -= 32;
+
+    // order price
+    if (nSurplusParamLen < 32)
+    {
+        StdLog("CBlockState", "Do func tx add dex order: Param order price error, param size: %lu", btTxParam.size());
+        return false;
+    }
+    nOrderPrice.FromBigEndian(p, 32);
+    if (nOrderPrice == 0)
+    {
+        StdLog("CBlockState", "Do func tx add dex order: Param order price is 0, param size: %lu", btTxParam.size());
+        return false;
+    }
+    p += 32;
+    nSurplusParamLen -= 32;
+
+    uint256 hashPrevRefBlock;
+    if (hashFork == dbBlockBase.GetGenesisBlockHash())
+    {
+        hashPrevRefBlock = hashPrevBlock;
+    }
+    else
+    {
+        if (!dbBlockBase.GetBlockForRefBlockNoLock(hashPrevBlock, hashPrevRefBlock))
+        {
+            StdLog("CBlockState", "Do func tx add dex order: Get prev ref block fail, prev block: %s", hashPrevBlock.ToString().c_str());
+            return false;
+        }
+    }
+
+    CCoinContext ctxCoinOwner;
+    CCoinContext ctxCoinPeer;
+    if (!dbBlockBase.GetForkCoinCtxByForkSymbol(strCoinSymbolOwner, ctxCoinOwner, hashPrevRefBlock))
+    {
+        StdLog("CBlockState", "Do func tx add dex order: Coin symbol owner not exist, symbol: %s", strCoinSymbolOwner.c_str());
+        return false;
+    }
+    if (!dbBlockBase.GetForkCoinCtxByForkSymbol(strCoinSymbolPeer, ctxCoinPeer, hashPrevRefBlock))
+    {
+        StdLog("CBlockState", "Do func tx add dex order: Coin symbol peer not exist, symbol: %s", strCoinSymbolPeer.c_str());
+        return false;
+    }
+    if (ctxCoinOwner.hashAtFork != hashFork)
+    {
+        StdLog("CBlockState", "Do func tx add dex order: Owner coin symbol not local fork, owner symbol: %s, owner fork: %s, local fork: %s",
+               strCoinSymbolOwner.c_str(), ctxCoinOwner.hashAtFork.ToString().c_str(), hashFork.ToString().c_str());
+        return false;
+    }
+    const CChainId nChainIdOwner = CBlock::GetBlockChainIdByHash(ctxCoinOwner.hashAtFork);
+    const CChainId nChainIdPeer = CBlock::GetBlockChainIdByHash(ctxCoinPeer.hashAtFork);
+
+    uint64 nMaxNumber = GetMaxDexCoinOrderNumber(destFrom, strCoinSymbolOwner, strCoinSymbolPeer);
+    if (nOrderNumber == 0)
+    {
+        nOrderNumber = nMaxNumber + 1;
+    }
+    else
+    {
+        // nOrderNumber > 0: modify dex order
+        if (nOrderNumber > nMaxNumber)
+        {
+            StdLog("CBlockState", "Do func tx add dex order: Order number out of range, set order number: %lu, max order number: %lu, from: %s, fork: %s",
+                   nOrderNumber, nMaxNumber, destFrom.ToString().c_str(), hashFork.ToString().c_str());
+            return false;
+        }
+    }
+
+    CDexOrderHeader dexOrderHeader(nChainIdOwner, destFrom, strCoinSymbolOwner, strCoinSymbolPeer, nOrderNumber);
+
+    bool fGetCacheOrder = false;
+    CDexOrderBody oldOrderBody;
+    auto it = mapCacheDexOrder.find(dexOrderHeader);
+    if (it != mapCacheDexOrder.end())
+    {
+        oldOrderBody = it->second;
+        fGetCacheOrder = true;
+    }
+    else
+    {
+        auto mt = mapBlockDexOrder.find(dexOrderHeader);
+        if (mt != mapBlockDexOrder.end())
+        {
+            oldOrderBody = mt->second;
+            fGetCacheOrder = true;
+        }
+    }
+    if (!fGetCacheOrder)
+    {
+        if (dbBlockBase.GetDexOrder(hashPrevBlock, destFrom, nChainIdOwner, strCoinSymbolOwner, strCoinSymbolPeer, nOrderNumber, oldOrderBody))
+        {
+            fGetCacheOrder = true;
+        }
+    }
+    if (fGetCacheOrder)
+    {
+        if (nOrderPrice != oldOrderBody.nOrderPrice)
+        {
+            StdLog("CBlockState", "Do func tx add dex order: Modify dex order, order price error, set order price: %s, old order price: %s, from: %s, fork: %s",
+                   CoinToTokenBigFloat(nOrderPrice).c_str(), CoinToTokenBigFloat(oldOrderBody.nOrderPrice).c_str(),
+                   destFrom.ToString().c_str(), hashFork.ToString().c_str());
+            return false;
+        }
+    }
+
+    uint256 nCompleteAmount;
+    uint64 nCompleteOrderCount = 0;
+    if (!dbBlockBase.GetCompleteOrder(hashPrevBlock, destFrom, nChainIdOwner, strCoinSymbolOwner, strCoinSymbolPeer, nOrderNumber, nCompleteAmount, nCompleteOrderCount))
+    {
+        nCompleteAmount = 0;
+        nCompleteOrderCount = 0;
+    }
+    if (nOrderAmount < nCompleteAmount)
+    {
+        StdLog("CBlockState", "Do func tx add dex order: Order amount out of range, order amount: %s, complete amount: %s, from: %s, fork: %s",
+               CoinToTokenBigFloat(nOrderAmount).c_str(), CoinToTokenBigFloat(nCompleteAmount).c_str(),
+               destFrom.ToString().c_str(), hashFork.ToString().c_str());
+        return false;
+    }
+
+    if (nOrderAmount < oldOrderBody.nOrderAmount)
+    {
+        // Indicates a decrease in order volume
+        if (nOrderAmount > nCompleteAmount)
+        {
+            // Return the remaining coins to the user
+            uint256 nTransferAmount = nOrderAmount - nCompleteAmount;
+            if (ctxCoinOwner.IsContractCoin())
+            {
+                if (!ContractInTransfer(ctxCoinOwner.destContract, FUNCTION_DEX_POOL_ADDRESS, destFrom, nTransferAmount))
+                {
+                    StdLog("CBlockState", "Do func tx add dex order: Return the remaining coins to the user, contract transfer fail, constract address: %s, from: %s, amount: %s",
+                           ctxCoinOwner.destContract.ToString().c_str(), destFrom.ToString().c_str(), CoinToTokenBigFloat(nTransferAmount).c_str());
+                    return false;
+                }
+            }
+            else
+            {
+                CAddressContext ctxFromAddress;
+                if (!GetAddressContext(destFrom, ctxFromAddress))
+                {
+                    StdLog("CBlockState", "Do func tx add dex order: Get from address context fail, from: %s", destFrom.ToString().c_str());
+                    return false;
+                }
+                uint64 nGasLeftTemp = FUNCTION_TX_GAS_TRANS;
+                if (!ContractTransfer(FUNCTION_DEX_POOL_ADDRESS, destFrom, nTransferAmount, nGasLimit, nGasLeftTemp, ctxFromAddress, CContractTransfer::CT_CROSSCHAIN_DEX))
+                {
+                    StdLog("CBlockState", "Do func tx add dex order: Return the remaining coins to the user, dex pool transfer fail, from: %s, amount: %s",
+                           destFrom.ToString().c_str(), CoinToTokenBigFloat(nTransferAmount).c_str());
+                    return false;
+                }
+            }
+        }
+    }
+    else if (nOrderAmount > oldOrderBody.nOrderAmount)
+    {
+        // Indicates the addition of new orders or an increase in order volume
+        uint256 nTransferAmount = nOrderAmount - oldOrderBody.nOrderAmount;
+        if (ctxCoinOwner.IsContractCoin())
+        {
+            if (!ContractInTransfer(ctxCoinOwner.destContract, destFrom, FUNCTION_DEX_POOL_ADDRESS, nTransferAmount))
+            {
+                StdLog("CBlockState", "Do func tx add dex order: Increase order, contract transfer fail, constract address: %s, from: %s, amount: %s",
+                       ctxCoinOwner.destContract.ToString().c_str(), destFrom.ToString().c_str(), CoinToTokenBigFloat(nTransferAmount).c_str());
+                return false;
+            }
+        }
+        else
+        {
+            uint64 nGasLeftTemp = FUNCTION_TX_GAS_TRANS;
+            if (!ContractTransfer(destFrom, FUNCTION_DEX_POOL_ADDRESS, nTransferAmount, nGasLimit, nGasLeftTemp, CAddressContext(CPubkeyAddressContext()), CContractTransfer::CT_CROSSCHAIN_DEX))
+            {
+                StdLog("CBlockState", "Do func tx add dex order: Increase order, dex pool transfer fail, from: %s, amount: %s",
+                       destFrom.ToString().c_str(), CoinToTokenBigFloat(nTransferAmount).c_str());
+                return false;
+            }
+        }
+    }
+
+    if (ctxCoinPeer.hashAtFork != hashFork)
+    {
+        mapCacheCrossProve[nChainIdPeer].AddDexOrderProve(destFrom, nChainIdOwner, nChainIdPeer, strCoinSymbolOwner, strCoinSymbolPeer, nOrderNumber, nOrderAmount, nOrderPrice);
+    }
+    mapCacheDexOrder[dexOrderHeader] = CDexOrderBody(strCoinSymbolOwner, strCoinSymbolPeer, nChainIdPeer, nOrderAmount, nOrderPrice);
+
+    btResult = uint256(1).ToBigEndian();
+    logs.topics.push_back(uint256(uint256(nOrderNumber).ToBigEndian()));
+
+    StdDebug("CBlockState", "Do func tx add dex order: Add success, coin pair owner: %s, coin pair peer: %s, order number: %lu, amount: %s, price: %s, from: %s, fork: %s",
+             strCoinSymbolOwner.c_str(), strCoinSymbolPeer.c_str(), nOrderNumber, CoinToTokenBigFloat(nOrderAmount).c_str(),
+             CoinToTokenBigFloat(nOrderPrice).c_str(), destFrom.ToString().c_str(), hashFork.ToString().c_str());
+
+    return true;
+}
+
+bool CBlockState::DoFuncTxGetDexOrder(const CDestination& destFrom, const CDestination& destTo, const bytes& btTxParam, const uint64 nGasLimit, uint64& nGasLeft, CTransactionLogs& logs, bytes& btResult)
+{
+    uint256 tempData;
+    std::string strCoinSymbolOwner;
+    std::string strCoinSymbolPeer;
+    uint64 nOrderNumber;
+
+    const uint8* p = btTxParam.data();
+    std::size_t nSurplusParamLen = btTxParam.size();
+
+    // coin symbol owner
+    if (!GetContractStringParam(btTxParam.data(), btTxParam.size(), p, nSurplusParamLen, strCoinSymbolOwner) || strCoinSymbolOwner.empty() || strCoinSymbolOwner.size() > MAX_COIN_SYMBOL_SIZE)
+    {
+        StdLog("CBlockState", "Do func tx get user coin: Param coin symbol owner error, param size: %lu", btTxParam.size());
+        return false;
+    }
+    StringToUpper(strCoinSymbolOwner);
+    p += 32;
+    nSurplusParamLen -= 32;
+
+    // coin symbol peer
+    if (!GetContractStringParam(btTxParam.data(), btTxParam.size(), p, nSurplusParamLen, strCoinSymbolPeer) || strCoinSymbolPeer.empty() || strCoinSymbolPeer.size() > MAX_COIN_SYMBOL_SIZE)
+    {
+        StdLog("CBlockState", "Do func tx get user coin: Param coin symbol peer error, param size: %lu", btTxParam.size());
+        return false;
+    }
+    StringToUpper(strCoinSymbolPeer);
+    p += 32;
+    nSurplusParamLen -= 32;
+
+    if (strCoinSymbolOwner == strCoinSymbolPeer)
+    {
+        StdLog("CBlockState", "Do func tx get user coin: Param symbol is same, symbol: %s, param size: %lu", strCoinSymbolOwner.c_str(), btTxParam.size());
+        return false;
+    }
+
+    // order number
+    if (nSurplusParamLen < 32)
+    {
+        StdLog("CBlockState", "Do func tx get dex order: Param order number error, param size: %lu", btTxParam.size());
+        return false;
+    }
+    tempData.FromBigEndian(p, 32);
+    nOrderNumber = tempData.Get64();
+    p += 32;
+    nSurplusParamLen -= 32;
+
+    const uint256 hashCoinPair = CDexOrderHeader::GetCoinPairHashStatic(strCoinSymbolOwner, strCoinSymbolPeer);
+    const uint8 nOwnerCoinFlag = CDexOrderHeader::GetOwnerCoinFlagStatic(strCoinSymbolOwner, strCoinSymbolPeer);
+    const CChainId nChainIdOwner = CBlock::GetBlockChainIdByHash(hashPrevBlock);
+
+    CDexOrderBody dexOrder;
+    bool fGetOk = false;
+    for (auto& kv : mapCacheDexOrder)
+    {
+        if (kv.first.GetOrderAddress() == destFrom && kv.first.GetCoinPairHash() == hashCoinPair && kv.first.GetOwnerCoinFlag() == nOwnerCoinFlag && kv.first.GetOrderNumber() == nOrderNumber)
+        {
+            dexOrder = kv.second;
+            fGetOk = true;
+            break;
+        }
+    }
+    if (!fGetOk)
+    {
+        for (auto& kv : mapBlockDexOrder)
+        {
+            if (kv.first.GetOrderAddress() == destFrom && kv.first.GetCoinPairHash() == hashCoinPair && kv.first.GetOwnerCoinFlag() == nOwnerCoinFlag && kv.first.GetOrderNumber() == nOrderNumber)
+            {
+                dexOrder = kv.second;
+                fGetOk = true;
+                break;
+            }
+        }
+    }
+    if (!fGetOk)
+    {
+        fGetOk = dbBlockBase.GetDexOrder(hashPrevBlock, destFrom, nChainIdOwner, strCoinSymbolOwner, strCoinSymbolPeer, nOrderNumber, dexOrder);
+        if (!fGetOk)
+        {
+            dexOrder.SetNull();
+        }
+    }
+
+    bytes btSetData;
+    btSetData = uint256((uint64)fGetOk).ToBigEndian();
+    btResult.insert(btResult.end(), btSetData.begin(), btSetData.end());
+    btSetData = dexOrder.nOrderAmount.ToBigEndian();
+    btResult.insert(btResult.end(), btSetData.begin(), btSetData.end());
+    btSetData = dexOrder.nOrderPrice.ToBigEndian();
+    btResult.insert(btResult.end(), btSetData.begin(), btSetData.end());
+
+    StdDebug("CBlockState", "Do func tx get dex order: result: %s, coin pair owner: %s, coin pair peer: %s, order number: %lu, amount: %s, price: %s, from: %s",
+             (fGetOk ? "true" : "false"), strCoinSymbolOwner.c_str(), strCoinSymbolPeer.c_str(), nOrderNumber, CoinToTokenBigFloat(dexOrder.nOrderAmount).c_str(),
+             CoinToTokenBigFloat(dexOrder.nOrderPrice).c_str(), destFrom.ToString().c_str());
+
+    return true;
+}
+
+bool CBlockState::DoFuncTxGetMaxDexOrderNumber(const CDestination& destFrom, const CDestination& destTo, const bytes& btTxParam, const uint64 nGasLimit, uint64& nGasLeft, CTransactionLogs& logs, bytes& btResult)
+{
+    uint256 tempData;
+    std::string strCoinSymbolOwner;
+    std::string strCoinSymbolPeer;
+
+    const uint8* p = btTxParam.data();
+    std::size_t nSurplusParamLen = btTxParam.size();
+
+    // coin symbol owner
+    if (!GetContractStringParam(btTxParam.data(), btTxParam.size(), p, nSurplusParamLen, strCoinSymbolOwner) || strCoinSymbolOwner.empty() || strCoinSymbolOwner.size() > MAX_COIN_SYMBOL_SIZE)
+    {
+        StdLog("CBlockState", "Do func tx get max dex order number: Param coin symbol owner error, param size: %lu", btTxParam.size());
+        return false;
+    }
+    StringToUpper(strCoinSymbolOwner);
+    p += 32;
+    nSurplusParamLen -= 32;
+
+    // coin symbol peer
+    if (!GetContractStringParam(btTxParam.data(), btTxParam.size(), p, nSurplusParamLen, strCoinSymbolPeer) || strCoinSymbolPeer.empty() || strCoinSymbolPeer.size() > MAX_COIN_SYMBOL_SIZE)
+    {
+        StdLog("CBlockState", "Do func tx get max dex order number: Param coin symbol peer error, param size: %lu", btTxParam.size());
+        return false;
+    }
+    StringToUpper(strCoinSymbolPeer);
+    p += 32;
+    nSurplusParamLen -= 32;
+
+    if (strCoinSymbolOwner == strCoinSymbolPeer)
+    {
+        StdLog("CBlockState", "Do func tx get max dex order number: Param symbol is same, symbol: %s, param size: %lu", strCoinSymbolOwner.c_str(), btTxParam.size());
+        return false;
+    }
+
+    uint64 nMaxNumber = GetMaxDexCoinOrderNumber(destFrom, strCoinSymbolOwner, strCoinSymbolPeer);
+    btResult = uint256(nMaxNumber).ToBigEndian();
+
+    StdDebug("CBlockState", "Do func tx get max dex order number: coin pair owner: %s, coin pair peer: %s, max order number: %lu, from: %s",
+             strCoinSymbolOwner.c_str(), strCoinSymbolPeer.c_str(), nMaxNumber, destFrom.ToString().c_str());
+
+    return true;
+}
+
+bool CBlockState::DoFuncTxTransferCoin(const CDestination& destFrom, const CDestination& destTo, const bytes& btTxParam, const uint64 nGasLimit, uint64& nGasLeft, CTransactionLogs& logs, bytes& btResult)
+{
+    if (btTxParam.size() != 32 * 2)
+    {
+        StdLog("CBlockState", "Do func tx transfer coin: Tx param error, param size: %lu", btTxParam.size());
+        return false;
+    }
+
+    uint256 tempData;
+    uint32 nPeerChainId;
+    uint256 nTransferAmount;
+
+    const uint8* p = btTxParam.data();
+
+    tempData.FromBigEndian(p, 32);
+    nPeerChainId = tempData.Get32();
+    p += 32;
+
+    nTransferAmount.FromBigEndian(p, 32);
+
+    const uint256 hashGenesisFork = dbBlockBase.GetGenesisBlockHash();
+    const CChainId nGenChainId = CBlock::GetBlockChainIdByHash(hashGenesisFork);
+    const CDestination& destTransferTo = FUNCTION_CROSSCHAIN_ADDRESS;
+
+    if (nPeerChainId == nLocalChainId)
+    {
+        StdLog("CBlockState", "Do func tx transfer coin: Peer chainid is same as source chainid, peer chainid: %d, source chainid: %d, from: %s", nPeerChainId, nLocalChainId, destFrom.ToString().c_str());
+        return false;
+    }
+
+    uint256 hashPrimaryRefBlock;
+    if (fPrimaryBlock)
+    {
+        hashPrimaryRefBlock = hashPrevBlock;
+    }
+    else
+    {
+        hashPrimaryRefBlock = hashRefBlock;
+    }
+
+    CForkContext ctxLocalFork;
+    if (!dbBlockBase.RetrieveForkContext(hashFork, ctxLocalFork, hashPrimaryRefBlock))
+    {
+        StdLog("CBlockState", "Do func tx transfer coin: Retrieve genesis fork context fail, fork: %s, ref block: %s, from: %s",
+               hashFork.ToString().c_str(), hashPrimaryRefBlock.ToString().c_str(), destFrom.ToString().c_str());
+        return false;
+    }
+    if (hashFork != hashGenesisFork && !ctxLocalFork.IsClonemapFork())
+    {
+        StdLog("CBlockState", "Do func tx transfer coin: Clonemap fork only allows crosschain transfer, fork: %s, from: %s", hashFork.ToString().c_str(), destFrom.ToString().c_str());
+        return false;
+    }
+
+    CForkContext ctxGenesisFork;
+    if (!dbBlockBase.RetrieveForkContext(hashGenesisFork, ctxGenesisFork, hashPrimaryRefBlock))
+    {
+        StdLog("CBlockState", "Do func tx transfer coin: Retrieve genesis fork context fail, ref block: %s, from: %s", hashPrimaryRefBlock.ToString().c_str(), destFrom.ToString().c_str());
+        return false;
+    }
+
+    CDestState stateFrom;
+    if (!GetDestState(destFrom, stateFrom))
+    {
+        StdLog("CBlockState", "Do func tx transfer coin: Get from state fail, fork: %s, from: %s", hashFork.ToString().c_str(), destFrom.ToString().c_str());
+        return false;
+    }
+    if (stateFrom.GetBalance() < nTransferAmount)
+    {
+        StdLog("CBlockState", "Do func tx transfer coin: From address balance not enough, from balance: %s, transfer amount: %s, fork: %s, from: %s",
+               CoinToTokenBigFloat(stateFrom.GetBalance()).c_str(), CoinToTokenBigFloat(nTransferAmount).c_str(), hashFork.ToString().c_str(), destFrom.ToString().c_str());
+        return false;
+    }
+
+    CAddressContext ctxToAddress;
+    if (!GetAddressContext(destTransferTo, ctxToAddress))
+    {
+        ctxToAddress = CAddressContext(CPubkeyAddressContext());
+    }
+
+    // if (!ContractTransfer(destFrom, destTransferTo, nTransferAmount, nGasLimit, nGasLeft, ctxToAddress, CContractTransfer::CT_CROSSCHAIN_TRANSFER))
+    // {
+    //     StdLog("CBlockState", "Do func tx transfer coin: Contract transfer fail, from: %s", destFrom.ToString().c_str());
+    //     return false;
+    // }
+
+    // verify reward lock
+    uint256 nLockedAmount;
+    if (!GetDestLockedAmount(destFrom, nLockedAmount))
+    {
+        StdLog("CBlockState", "Do func tx transfer coin: Get reward locked amount failed, fork: %s, from: %s", hashFork.ToString().c_str(), destFrom.ToString().c_str());
+        return false;
+    }
+    if (nLockedAmount > 0 && stateFrom.GetBalance() < nLockedAmount + nTransferAmount)
+    {
+        StdLog("CBlockState", "Do func tx transfer coin: Balance locked, balance: %s, lock amount: %s, amount: %s, fork: %s, from: %s",
+               CoinToTokenBigFloat(stateFrom.GetBalance()).c_str(), CoinToTokenBigFloat(nLockedAmount).c_str(),
+               CoinToTokenBigFloat(nTransferAmount).c_str(), hashFork.ToString().c_str(), destFrom.ToString().c_str());
+        return false;
+    }
+
+    CDestState stateTo;
+    if (!GetDestState(destTransferTo, stateTo))
+    {
+        stateTo.SetNull();
+        stateTo.SetType(ctxToAddress.GetDestType(), ctxToAddress.GetTemplateType());
+    }
+
+    stateFrom.DecBalance(nTransferAmount);
+    if (nLocalChainId == nGenChainId)
+    {
+        stateTo.IncBalance(nTransferAmount);
+    }
+    else
+    {
+        stateTo.DecBalance(nTransferAmount);
+    }
+
+    SetCacheDestState(destFrom, stateFrom);
+    SetCacheDestState(destTransferTo, stateTo);
+
+    mapBlockAddressContext[destTransferTo] = ctxToAddress;
+
+    // CContractTransfer ctrTransfer(CContractTransfer::CT_CROSSCHAIN_TRANSFER, destFrom, destTransferTo, nTransferAmount);
+    // mapBlockContractTransfer[txidMint].push_back(ctrTransfer);
+
+    // receiptMintTx.vTransfer.push_back(ctrTransfer);
+
+    vCacheContractTransfer.push_back(CContractTransfer(CContractTransfer::CT_CROSSCHAIN_TRANSFER, destFrom, destTransferTo, nTransferAmount));
+
+    mapCacheCrossProve[nPeerChainId].AddCoinTransferProve(destFrom, ctxGenesisFork.strSymbol, nLocalChainId, nPeerChainId, nTransferAmount);
+
+    logs.topics.push_back(destFrom.ToHash());
+    logs.topics.push_back(destTransferTo.ToHash());
+    logs.topics.push_back(uint256(nTransferAmount.ToBigEndian()));
+
+    btResult = uint256(1).ToBigEndian();
+
+    return true;
+}
+
+bool CBlockState::DoFuncTxGetCrosschainTransferAmount(const CDestination& destFrom, const CDestination& destTo, const bytes& btTxParam, const uint64 nGasLimit, uint64& nGasLeft, CTransactionLogs& logs, bytes& btResult)
+{
+    uint256 nTransferAmount;
+    CDestState stateCross;
+    if (!GetDestState(FUNCTION_CROSSCHAIN_ADDRESS, stateCross))
+    {
+        nTransferAmount = 0;
+    }
+    else
+    {
+        nTransferAmount = stateCross.GetBalance();
+    }
+    btResult = nTransferAmount.ToBigEndian();
+    return true;
+}
+
 //////////////////////////////
 // CContractHostDB
 
@@ -3377,6 +4419,45 @@ void CContractHostDB::SaveGasUsed(const CDestination& destCodeOwnerIn, const uin
 void CContractHostDB::SaveRunResult(const CDestination& destContractIn, const std::vector<CTransactionLogs>& vLogsIn, const std::map<uint256, bytes>& mapCacheKv)
 {
     blockState.SaveRunResult(destContractIn, vLogsIn, mapCacheKv);
+}
+
+//////////////////////////////
+// CCacheBlockReceipt
+
+void CCacheBlockReceipt::AddBlockReceiptCache(const uint256& hashBlock, const std::vector<CTransactionReceipt>& vBlockReceipt)
+{
+    CWriteLock wlock(rwBrcAccess);
+
+    const CChainId nChainId = CBlock::GetBlockChainIdByHash(hashBlock);
+    auto it = mapBlockReceiptCache.find(nChainId);
+    if (it == mapBlockReceiptCache.end())
+    {
+        it = mapBlockReceiptCache.insert(std::make_pair(nChainId, std::map<uint256, std::vector<CTransactionReceipt>, CustomBlockHashCompare>())).first;
+    }
+    auto& mapReceipts = it->second;
+    while (mapReceipts.size() >= MAX_CACHE_BLOCK_RECEIPT_COUNT)
+    {
+        mapReceipts.erase(mapReceipts.begin());
+    }
+    mapReceipts[hashBlock] = vBlockReceipt;
+}
+
+bool CCacheBlockReceipt::GetBlockReceiptCache(const uint256& hashBlock, std::vector<CTransactionReceipt>& vBlockReceipt)
+{
+    CReadLock rlock(rwBrcAccess);
+
+    auto it = mapBlockReceiptCache.find(CBlock::GetBlockChainIdByHash(hashBlock));
+    if (it == mapBlockReceiptCache.end())
+    {
+        return false;
+    }
+    auto mt = it->second.find(hashBlock);
+    if (mt == it->second.end())
+    {
+        return false;
+    }
+    vBlockReceipt = mt->second;
+    return true;
 }
 
 //////////////////////////////
@@ -3510,7 +4591,8 @@ bool CBlockBase::StorageNewBlock(const uint256& hashFork, const uint256& hashBlo
 
     CBlockIndex* pIndexNew = nullptr;
     CBlockRoot blockRoot;
-    if (!SaveBlock(hashFork, hashBlock, block, &pIndexNew, blockRoot, false))
+    std::vector<CTransactionReceipt> vBlockTxReceipts;
+    if (!SaveBlock(hashFork, hashBlock, block, &pIndexNew, blockRoot, vBlockTxReceipts, false))
     {
         StdError("BlockBase", "Storage new block: Save block failed, block: %s", hashBlock.ToString().c_str());
         return false;
@@ -3518,7 +4600,7 @@ bool CBlockBase::StorageNewBlock(const uint256& hashFork, const uint256& hashBlo
 
     if (CheckForkLongChain(hashFork, hashBlock, block, pIndexNew))
     {
-        update = CBlockChainUpdate(pIndexNew);
+        update = CBlockChainUpdate(pIndexNew, vBlockTxReceipts);
         if (block.IsOrigin())
         {
             update.vBlockAddNew.push_back(block);
@@ -3528,6 +4610,21 @@ bool CBlockBase::StorageNewBlock(const uint256& hashFork, const uint256& hashBlo
             if (!GetBlockBranchListNolock(hashBlock, 0, &block, update.vBlockRemove, update.vBlockAddNew))
             {
                 StdLog("BlockBase", "Storage new block: Get block branch list fail, block: %s", hashBlock.ToString().c_str());
+                return false;
+            }
+        }
+
+        CBlockVoteSig proofVote;
+        if (block.GetBlockVoteSig(proofVote) && !proofVote.IsNull())
+        {
+            if (!dbBlock.AddBlockVoteResult(proofVote.hashBlockVote, true, proofVote.btBlockVoteBitmap, proofVote.btBlockVoteAggSig, true, hashBlock))
+            {
+                StdError("BlockBase", "Save block: Add block vote result failed, vote block: %s, block: %s", proofVote.hashBlockVote.ToString().c_str(), hashBlock.ToString().c_str());
+                return false;
+            }
+            if (!dbBlock.UpdateBlockAggSign(proofVote.hashBlockVote, proofVote.btBlockVoteBitmap, proofVote.btBlockVoteAggSig, update.mapBlockProve))
+            {
+                StdError("BlockBase", "Save block: Update crosschain block agg sign failed, vote block: %s, block: %s", proofVote.hashBlockVote.ToString().c_str(), hashBlock.ToString().c_str());
                 return false;
             }
         }
@@ -3552,7 +4649,7 @@ bool CBlockBase::StorageNewBlock(const uint256& hashFork, const uint256& hashBlo
     return true;
 }
 
-bool CBlockBase::SaveBlock(const uint256& hashFork, const uint256& hashBlock, const CBlockEx& block, CBlockIndex** ppIndexNew, CBlockRoot& blockRoot, const bool fRepair)
+bool CBlockBase::SaveBlock(const uint256& hashFork, const uint256& hashBlock, const CBlockEx& block, CBlockIndex** ppIndexNew, CBlockRoot& blockRoot, std::vector<CTransactionReceipt>& vBlockTxReceipts, const bool fRepair)
 {
     uint32 nFile, nOffset, nCrc;
     CBlockVerify verifyBlock;
@@ -3617,7 +4714,7 @@ bool CBlockBase::SaveBlock(const uint256& hashFork, const uint256& hashBlock, co
             break;
         }
 
-        if (!UpdateBlockTxIndex(hashFork, block, nFile, nOffset, ptrBlockStateOut->mapBlockTxReceipts, blockRoot.hashTxIndexRoot))
+        if (!UpdateBlockTxIndex(hashFork, hashBlock, block, nFile, nOffset, ptrBlockStateOut->vBlockTxReceipts, blockRoot.hashTxIndexRoot))
         {
             StdError("BlockBase", "Save block: Update block tx index failed, block: %s", hashBlock.ToString().c_str());
             fRet = false;
@@ -3654,7 +4751,7 @@ bool CBlockBase::SaveBlock(const uint256& hashFork, const uint256& hashBlock, co
 
         if (pIndexNew->IsPrimary())
         {
-            if (!AddBlockForkContext(hashBlock, block, ptrBlockStateOut->mapBlockAddressContext, blockRoot.hashForkContextRoot))
+            if (!AddBlockForkContext(hashBlock, block, ptrBlockStateOut->mapBlockAddressContext, ptrBlockStateOut->mapBlockSymbolCoin, blockRoot.hashForkContextRoot))
             {
                 StdError("BlockBase", "Save block: Add bock fork context failed, block: %s", hashBlock.ToString().c_str());
                 fRet = false;
@@ -3680,6 +4777,14 @@ bool CBlockBase::SaveBlock(const uint256& hashFork, const uint256& hashBlock, co
         if (!UpdateBlockVoteReward(hashFork, pIndexNew->nChainId, hashBlock, block, blockRoot.hashVoteRewardRoot))
         {
             StdError("BlockBase", "Save block: Update block vote reward failed, block: %s", hashBlock.ToString().c_str());
+            fRet = false;
+            break;
+        }
+
+        if (!UpdateBlockDexOrder(hashFork, pIndexNew->GetRefBlock(), block.hashPrev, hashBlock, block, ptrBlockStateOut->mapBlockDexOrder, ptrBlockStateOut->proveBlockCrosschain,
+                                 ptrBlockStateOut->mapCoinPairCompletePrice, ptrBlockStateOut->mapCompDexOrderRecord, blockRoot.hashDexOrderRoot))
+        {
+            StdError("BlockBase", "Save block: Update block dex order failed, block: %s", hashBlock.ToString().c_str());
             fRet = false;
             break;
         }
@@ -3719,11 +4824,7 @@ bool CBlockBase::SaveBlock(const uint256& hashFork, const uint256& hashBlock, co
             }
         }
 
-        for (auto& kv : ptrBlockStateOut->mapBlockTxReceipts)
-        {
-            blockFilter.AddTxReceipt(hashFork, block.GetBlockNumber(), hashBlock, kv.first, kv.second);
-        }
-        blockFilter.AddNewBlockHash(hashFork, hashBlock, block.hashPrev);
+        vBlockTxReceipts = ptrBlockStateOut->vBlockTxReceipts;
     } while (0);
 
     if (!fRet)
@@ -3832,6 +4933,12 @@ bool CBlockBase::CheckForkLongChain(const uint256& hashFork, const uint256& hash
                    proof.hashRefBlock.GetHex().c_str(), hashBlock.GetHex().c_str(), hashFork.GetHex().c_str());
             return false;
         }
+    }
+    if (!VerifyBlockConfirmChain(pIndexNew))
+    {
+        StdLog("BlockBase", "Add long chain last: Verify block confirm chain fail, new block: %s, fork: %s",
+               hashBlock.GetHex().c_str(), hashFork.GetHex().c_str());
+        return false;
     }
 
     CBlockIndex* pIndexFork = GetForkLastIndex(hashFork);
@@ -4136,56 +5243,20 @@ bool CBlockBase::GetBlockBranchList(const uint256& hashBlock, std::vector<CBlock
     return GetBlockBranchListNolock(hashBlock, 0, nullptr, vRemoveBlockInvertedOrder, vAddBlockPositiveOrder);
 }
 
-bool CBlockBase::GetBlockBranchListNolock(const uint256& hashBlock, const uint256& hashForkLastBlock, const CBlockEx* pBlockex, std::vector<CBlockEx>& vRemoveBlockInvertedOrder, std::vector<CBlockEx>& vAddBlockPositiveOrder)
+bool CBlockBase::GetPrevBlockHashList(const uint256& hashBlock, const uint32 nGetCount, std::vector<uint256>& vPrevBlockhash)
 {
+    CReadLock rlock(rwAccess);
+
     CBlockIndex* pIndex = GetIndex(hashBlock);
-    if (pIndex == nullptr)
+    if (!pIndex)
     {
         return false;
     }
-
-    CBlockIndex* pForkLast = nullptr;
-    if (hashForkLastBlock == 0)
+    pIndex = pIndex->pPrev;
+    while (pIndex && !pIndex->IsOrigin() && vPrevBlockhash.size() < (std::size_t)nGetCount)
     {
-        pForkLast = GetForkLastIndex(pIndex->GetOriginHash());
-    }
-    else
-    {
-        pForkLast = GetIndex(hashForkLastBlock);
-    }
-    if (pForkLast == nullptr)
-    {
-        return false;
-    }
-
-    vector<CBlockIndex*> vPath;
-    CBlockIndex* pBranch = GetBranch(pForkLast, pIndex, vPath);
-
-    for (CBlockIndex* p = pForkLast; p != pBranch; p = p->pPrev)
-    {
-        CBlockEx block;
-        if (!tsBlock.Read(block, p->nFile, p->nOffset, true, true))
-        {
-            return false;
-        }
-        vRemoveBlockInvertedOrder.push_back(block);
-    }
-
-    for (int i = vPath.size() - 1; i >= 0; i--)
-    {
-        if (pBlockex && vPath[i]->GetBlockHash() == hashBlock)
-        {
-            vAddBlockPositiveOrder.push_back(*pBlockex);
-        }
-        else
-        {
-            CBlockEx block;
-            if (!tsBlock.Read(block, vPath[i]->nFile, vPath[i]->nOffset, true, true))
-            {
-                return false;
-            }
-            vAddBlockPositiveOrder.push_back(block);
-        }
+        vPrevBlockhash.push_back(pIndex->GetBlockHash());
+        pIndex = pIndex->pPrev;
     }
     return true;
 }
@@ -4251,7 +5322,7 @@ bool CBlockBase::LoadTx(const uint32 nTxFile, const uint32 nTxOffset, CTransacti
     return true;
 }
 
-bool CBlockBase::AddBlockForkContext(const uint256& hashBlock, const CBlockEx& blockex, const std::map<CDestination, CAddressContext>& mapAddressContext, uint256& hashNewRoot)
+bool CBlockBase::AddBlockForkContext(const uint256& hashBlock, const CBlockEx& blockex, const std::map<CDestination, CAddressContext>& mapAddressContext, const std::map<std::string, CCoinContext>& mapNewSymbolCoin, uint256& hashNewRoot)
 {
     map<uint256, CForkContext> mapNewForkCtxt;
     if (hashBlock == GetGenesisBlockHash())
@@ -4282,7 +5353,7 @@ bool CBlockBase::AddBlockForkContext(const uint256& hashBlock, const CBlockEx& b
                     {
                         if (!VerifyBlockForkTx(blockex.hashPrev, tx, vForkCtxt))
                         {
-                            StdLog("BlockBase", "Add block fork context: Verify block fork tx fail, block: %s", hashBlock.ToString().c_str());
+                            StdLog("BlockBase", "Add block fork context: Verify block fork tx fail, txid: %s, block: %s", tx.GetHash().ToString().c_str(), hashBlock.ToString().c_str());
                         }
                     }
                 }
@@ -4319,7 +5390,7 @@ bool CBlockBase::AddBlockForkContext(const uint256& hashBlock, const CBlockEx& b
         }
     }
 
-    if (!dbBlock.AddForkContext(blockex.hashPrev, hashBlock, mapNewForkCtxt, hashNewRoot))
+    if (!dbBlock.AddForkContext(blockex.hashPrev, hashBlock, mapNewForkCtxt, mapNewSymbolCoin, hashNewRoot))
     {
         StdLog("BlockBase", "Add block fork context: Add fork context to db fail, block: %s", hashBlock.ToString().c_str());
         return false;
@@ -4388,37 +5459,9 @@ bool CBlockBase::VerifyBlockForkTx(const uint256& hashPrev, const CTransaction& 
             break;
         }
 
-        map<uint256, CForkContext> mapPrevForkCtxt;
-        if (!dbBlock.ListForkContext(mapPrevForkCtxt, hashPrev))
+        if (!VerifyForkFlag(hashNewFork, profile.nChainId, profile.strSymbol, profile.strName, hashPrev))
         {
-            mapPrevForkCtxt.clear();
-        }
-        if (mapPrevForkCtxt.count(hashNewFork) > 0)
-        {
-            StdLog("BlockBase", "Verify block fork tx: fork existed, new fork: %s, tx: %s",
-                   hashNewFork.GetHex().c_str(), tx.GetHash().ToString().c_str());
-            break;
-        }
-        bool fSame = false;
-        for (const auto& kv : mapPrevForkCtxt)
-        {
-            if (kv.second.strName == profile.strName)
-            {
-                StdLog("BlockBase", "Verify block fork tx: fork name repeated, new fork: %s, name: %s, tx: %s",
-                       hashNewFork.GetHex().c_str(), kv.second.strName.c_str(), tx.GetHash().ToString().c_str());
-                fSame = true;
-                break;
-            }
-            if (kv.second.nChainId == profile.nChainId)
-            {
-                StdLog("BlockBase", "Verify block fork tx: fork sn repeated, new fork: %s, name: %s, tx: %s",
-                       hashNewFork.GetHex().c_str(), kv.second.strName.c_str(), tx.GetHash().ToString().c_str());
-                fSame = true;
-                break;
-            }
-        }
-        if (fSame)
-        {
+            StdLog("BlockBase", "Verify block fork tx: Verify fork flag fail, fork: %s, txid: %s, prev block: %s", hashNewFork.ToString().c_str(), tx.GetHash().ToString().c_str(), hashPrev.ToString().c_str());
             break;
         }
 
@@ -4426,11 +5469,12 @@ bool CBlockBase::VerifyBlockForkTx(const uint256& hashPrev, const CTransaction& 
         for (const auto& vd : vForkCtxt)
         {
             if (vd.second.hashFork == hashNewFork
+                || vd.second.strSymbol == profile.strSymbol
                 || vd.second.strName == profile.strName
                 || vd.second.nChainId == profile.nChainId)
             {
-                StdLog("BlockBase", "Verify block fork tx: fork existed or name repeated, tx: %s, new fork: %s, name: %s, chainid: %d",
-                       tx.GetHash().ToString().c_str(), hashNewFork.GetHex().c_str(), vd.second.strName.c_str(), profile.nChainId);
+                StdLog("BlockBase", "Verify block fork tx: fork existed or name repeated, tx: %s, new fork: %s, symbol: %s, name: %s, chainid: %d",
+                       tx.GetHash().ToString().c_str(), hashNewFork.GetHex().c_str(), vd.second.strSymbol.c_str(), vd.second.strName.c_str(), profile.nChainId);
                 fCheckRet = false;
                 break;
             }
@@ -4444,6 +5488,47 @@ bool CBlockBase::VerifyBlockForkTx(const uint256& hashPrev, const CTransaction& 
         StdLog("BlockBase", "Verify block fork tx success: valid fork: %s, tx: %s", hashNewFork.GetHex().c_str(), tx.GetHash().ToString().c_str());
     } while (0);
 
+    return true;
+}
+
+bool CBlockBase::VerifyForkFlag(const uint256& hashNewFork, const CChainId nChainId, const std::string& strForkSymbol, const std::string& strForkName, const uint256& hashPrevBlock)
+{
+    if (hashNewFork != 0)
+    {
+        CForkContext ctxt;
+        if (dbBlock.RetrieveForkContext(hashNewFork, ctxt, hashPrevBlock))
+        {
+            StdLog("BlockBase", "Verify fork flag: Fork id existed, fork: %s, symbol: %s, create txid: %s", hashNewFork.GetHex().c_str(), ctxt.strSymbol.c_str(), ctxt.txidEmbedded.ToString().c_str());
+            return false;
+        }
+    }
+    if (nChainId != 0)
+    {
+        uint256 hashTempFork;
+        if (dbBlock.GetForkHashByChainId(nChainId, hashTempFork, hashPrevBlock))
+        {
+            StdLog("BlockBase", "Verify fork flag: Chain id existed, chainid: %d", nChainId);
+            return false;
+        }
+    }
+    if (!strForkSymbol.empty())
+    {
+        CCoinContext ctxCoin;
+        if (dbBlock.GetForkCoinCtxByForkSymbol(strForkSymbol, ctxCoin, hashPrevBlock))
+        {
+            StdLog("BlockBase", "Verify fork flag: Symbol existed, symbol: %s", strForkSymbol.c_str());
+            return false;
+        }
+    }
+    if (!strForkName.empty())
+    {
+        uint256 hashTempFork;
+        if (dbBlock.GetForkHashByForkName(strForkName, hashTempFork, hashPrevBlock))
+        {
+            StdLog("BlockBase", "Verify fork flag: Fork name existed, name: %s", strForkName.c_str());
+            return false;
+        }
+    }
     return true;
 }
 
@@ -4506,6 +5591,11 @@ bool CBlockBase::RetrieveForkLast(const uint256& hashFork, uint256& hashLastBloc
     return dbBlock.RetrieveForkLast(hashFork, hashLastBlock);
 }
 
+bool CBlockBase::GetForkCoinCtxByForkSymbol(const std::string& strForkSymbol, CCoinContext& ctxCoin, const uint256& hashMainChainRefBlock)
+{
+    return dbBlock.GetForkCoinCtxByForkSymbol(strForkSymbol, ctxCoin, hashMainChainRefBlock);
+}
+
 bool CBlockBase::GetForkHashByForkName(const std::string& strForkName, uint256& hashFork, const uint256& hashMainChainRefBlock)
 {
     return dbBlock.GetForkHashByForkName(strForkName, hashFork, hashMainChainRefBlock);
@@ -4514,6 +5604,26 @@ bool CBlockBase::GetForkHashByForkName(const std::string& strForkName, uint256& 
 bool CBlockBase::GetForkHashByChainId(const CChainId nChainId, uint256& hashFork, const uint256& hashMainChainRefBlock)
 {
     return dbBlock.GetForkHashByChainId(nChainId, hashFork, hashMainChainRefBlock);
+}
+
+bool CBlockBase::ListCoinContext(std::map<std::string, CCoinContext>& mapSymbolCoin, const uint256& hashMainChainRefBlock)
+{
+    return dbBlock.ListCoinContext(mapSymbolCoin, hashMainChainRefBlock);
+}
+
+bool CBlockBase::GetDexCoinPairBySymbolPair(const std::string& strSymbol1, const std::string& strSymbol2, uint32& nCoinPair, const uint256& hashMainChainRefBlock)
+{
+    return dbBlock.GetDexCoinPairBySymbolPair(strSymbol1, strSymbol2, nCoinPair, hashMainChainRefBlock);
+}
+
+bool CBlockBase::GetSymbolPairByDexCoinPair(const uint32 nCoinPair, std::string& strSymbol1, std::string& strSymbol2, const uint256& hashMainChainRefBlock)
+{
+    return dbBlock.GetSymbolPairByDexCoinPair(nCoinPair, strSymbol1, strSymbol2, hashMainChainRefBlock);
+}
+
+bool CBlockBase::ListDexCoinPair(const uint32 nCoinPair, const std::string& strCoinSymbol, std::map<uint32, std::pair<std::string, std::string>>& mapDexCoinPair, const uint256& hashMainChainRefBlock)
+{
+    return dbBlock.ListDexCoinPair(nCoinPair, strCoinSymbol, mapDexCoinPair, hashMainChainRefBlock);
 }
 
 int CBlockBase::GetForkCreatedHeight(const uint256& hashFork, const uint256& hashRefBlock)
@@ -4906,26 +6016,7 @@ CBlockIndex* CBlockBase::GetForkValidLast(const uint256& hashGenesis, const uint
 bool CBlockBase::VerifySameChain(const uint256& hashPrevBlock, const uint256& hashAfterBlock)
 {
     CReadLock rlock(rwAccess);
-
-    CBlockIndex* pPrevIndex = GetIndex(hashPrevBlock);
-    if (pPrevIndex == nullptr)
-    {
-        return false;
-    }
-    CBlockIndex* pAfterIndex = GetIndex(hashAfterBlock);
-    if (pAfterIndex == nullptr)
-    {
-        return false;
-    }
-    while (pAfterIndex->GetBlockHeight() >= pPrevIndex->GetBlockHeight())
-    {
-        if (pAfterIndex == pPrevIndex)
-        {
-            return true;
-        }
-        pAfterIndex = pAfterIndex->pPrev;
-    }
-    return false;
+    return VerifySameChainNoLock(hashPrevBlock, hashAfterBlock);
 }
 
 bool CBlockBase::GetLastRefBlockHash(const uint256& hashFork, const uint256& hashBlock, uint256& hashRefBlock, bool& fOrigin)
@@ -4984,6 +6075,17 @@ bool CBlockBase::GetLastRefBlockHash(const uint256& hashFork, const uint256& has
         return true;
     }
     return false;
+}
+
+bool CBlockBase::GetBlockForRefBlockNoLock(const uint256& hashBlock, uint256& hashRefBlock)
+{
+    CBlockIndex* pIndex = GetIndex(hashBlock);
+    if (!pIndex)
+    {
+        return false;
+    }
+    hashRefBlock = pIndex->GetRefBlock();
+    return true;
 }
 
 bool CBlockBase::GetPrimaryHeightBlockTime(const uint256& hashLastBlock, int nHeight, uint256& hashBlock, int64& nTime)
@@ -5047,7 +6149,7 @@ bool CBlockBase::RetrieveDestState(const uint256& hashFork, const uint256& hashB
 }
 
 SHP_BLOCK_STATE CBlockBase::CreateBlockStateRoot(const uint256& hashFork, const CBlock& block, const uint256& hashPrevStateRoot, const uint32 nPrevBlockTime, uint256& hashStateRoot, uint256& hashReceiptRoot,
-                                                 uint256& nBlockGasUsed, bytes& btBloomDataOut, uint256& nTotalMintRewardOut, const std::map<CDestination, CAddressContext>& mapAddressContext)
+                                                 uint256& hashCrosschainMerkleRoot, uint256& nBlockGasUsed, bytes& btBloomDataOut, uint256& nTotalMintRewardOut, bool& fMoStatus, const std::map<CDestination, CAddressContext>& mapAddressContext)
 {
     SHP_BLOCK_STATE ptrBlockState(new CBlockState(*this, hashFork, block, hashPrevStateRoot, nPrevBlockTime, mapAddressContext));
 
@@ -5062,7 +6164,7 @@ SHP_BLOCK_STATE CBlockBase::CreateBlockStateRoot(const uint256& hashFork, const 
         }
     }
 
-    if (!ptrBlockState->DoBlockState(hashReceiptRoot, nBlockGasUsed, btBloomDataOut, nTotalMintRewardOut))
+    if (!ptrBlockState->DoBlockState(hashReceiptRoot, nBlockGasUsed, btBloomDataOut, nTotalMintRewardOut, hashCrosschainMerkleRoot, fMoStatus))
     {
         StdLog("BlockBase", "Create block state root: Do block state fail, prev: %s", block.hashPrev.GetHex().c_str());
         return nullptr;
@@ -5087,6 +6189,7 @@ bool CBlockBase::UpdateBlockState(const uint256& hashFork, const uint256& hashBl
     uint256 nTotalMintReward;
     uint256 nBlockGasUsed;
     uint256 hashReceiptRoot;
+    uint256 hashCrosschainMerkleRoot;
     bytes btBloomDataTemp;
 
     if (block.hashPrev != 0)
@@ -5104,37 +6207,55 @@ bool CBlockBase::UpdateBlockState(const uint256& hashFork, const uint256& hashBl
         nPrevBlockTime = pIndexPrev->GetBlockTime();
     }
 
+    bool fMoStatus = false;
     SHP_BLOCK_STATE ptrBlockState = CreateBlockStateRoot(hashFork, block, hashPrevStateRoot, nPrevBlockTime, hashStateRoot, hashReceiptRoot,
-                                                         nBlockGasUsed, btBloomDataTemp, nTotalMintReward, mapAddressContext);
+                                                         hashCrosschainMerkleRoot, nBlockGasUsed, btBloomDataTemp, nTotalMintReward, fMoStatus, mapAddressContext);
     if (!ptrBlockState)
     {
-        StdLog("BlockBase", "Update block state: Create block state root fail, block: %s", block.GetHash().GetHex().c_str());
+        StdLog("BlockBase", "Update block state: Create block state root fail, block: %s", hashBlock.GetHex().c_str());
         return false;
     }
     if (block.hashStateRoot != 0 && block.hashStateRoot != hashStateRoot)
     {
         StdLog("BlockBase", "Update block state: Create state root error, block state root: %s, calc state root: %s, prev state root: %s, block: [type: %d] %s",
                block.hashStateRoot.GetHex().c_str(), hashStateRoot.GetHex().c_str(),
-               hashPrevStateRoot.GetHex().c_str(), block.nType, block.GetHash().GetHex().c_str());
+               hashPrevStateRoot.GetHex().c_str(), block.nType, hashBlock.GetHex().c_str());
         return false;
     }
     if (block.hashReceiptsRoot != hashReceiptRoot)
     {
-        StdLog("BlockBase", "Update block state: Create receipt root error, block receipt root: %s, calc receipt  root: %s, block: %s",
-               block.hashReceiptsRoot.GetHex().c_str(), hashReceiptRoot.GetHex().c_str(), block.GetHash().GetHex().c_str());
+        StdLog("BlockBase", "Update block state: Create receipt root error, block receipt root: %s, calc receipt root: %s, block: %s",
+               block.hashReceiptsRoot.GetHex().c_str(), hashReceiptRoot.GetHex().c_str(), hashBlock.GetHex().c_str());
         return false;
     }
+    if (block.hashCrosschainMerkleRoot != hashCrosschainMerkleRoot)
+    {
+        StdLog("BlockBase", "Update block state: Create receipt root error, block crosschain merkle root: %s, calc crosschain merkle root: %s, block: %s",
+               block.hashCrosschainMerkleRoot.GetHex().c_str(), hashCrosschainMerkleRoot.GetHex().c_str(), hashBlock.GetHex().c_str());
+        return false;
+    }
+
+    SHP_MERKLE_PROVE_DATA ptrMerkleProvePrevBlock = MAKE_SHARED_MERKLE_PROVE_DATA();
+    SHP_MERKLE_PROVE_DATA ptrMerkleProveRefBlock = MAKE_SHARED_MERKLE_PROVE_DATA();
+    SHP_MERKLE_PROVE_DATA ptrCrossMerkleProve = MAKE_SHARED_MERKLE_PROVE_DATA();
+    if (!ptrMerkleProvePrevBlock || !ptrMerkleProveRefBlock || !ptrCrossMerkleProve
+        || !block.GetMerkleProve(ptrMerkleProvePrevBlock, ptrMerkleProveRefBlock, ptrCrossMerkleProve))
+    {
+        StdLog("BlockBase", "Update block state: Get block prove fail, block: %s", hashBlock.GetHex().c_str());
+        return false;
+    }
+    ptrBlockState->UpdateCrosschainProveTail(block.hashPrev, *ptrMerkleProvePrevBlock, block.GetRefBlock(), *ptrMerkleProveRefBlock, *ptrCrossMerkleProve);
 
     CBlockRootStatus statusBlockRoot(block.nType, block.GetBlockTime(), block.txMint.GetToAddress());
     if (!dbBlock.AddBlockState(hashFork, hashPrevStateRoot, statusBlockRoot, ptrBlockState->mapBlockState, hashStateRoot))
     {
-        StdLog("BlockBase", "Update block state: Add block state fail, block: %s", block.GetHash().GetHex().c_str());
+        StdLog("BlockBase", "Update block state: Add block state fail, block: %s", hashBlock.GetHex().c_str());
         return false;
     }
     if (block.hashStateRoot != 0 && block.hashStateRoot != hashStateRoot)
     {
         StdLog("BlockBase", "Update block state: Add state root error, block state root: %s, calc state  root: %s, block: %s",
-               block.hashStateRoot.GetHex().c_str(), hashStateRoot.GetHex().c_str(), block.GetHash().GetHex().c_str());
+               block.hashStateRoot.GetHex().c_str(), hashStateRoot.GetHex().c_str(), hashBlock.GetHex().c_str());
         return false;
     }
     hashNewStateRoot = hashStateRoot;
@@ -5142,7 +6263,7 @@ bool CBlockBase::UpdateBlockState(const uint256& hashFork, const uint256& hashBl
     return true;
 }
 
-bool CBlockBase::UpdateBlockTxIndex(const uint256& hashFork, const CBlockEx& block, const uint32 nFile, const uint32 nOffset, const std::map<uint256, CTransactionReceipt>& mapBlockTxReceipts, uint256& hashNewRoot)
+bool CBlockBase::UpdateBlockTxIndex(const uint256& hashFork, const uint256& hashBlock, const CBlockEx& block, const uint32 nFile, const uint32 nOffset, const std::vector<CTransactionReceipt>& vBlockTxReceipts, uint256& hashNewRoot)
 {
     CBufStream ss;
     std::map<uint256, CTxIndex> mapBlockTxIndex;
@@ -5162,11 +6283,13 @@ bool CBlockBase::UpdateBlockTxIndex(const uint256& hashFork, const CBlockEx& blo
         nTxOffset += ss.GetSerializeSize(tx);
     }
 
-    if (!dbBlock.AddBlockTxIndexReceipt(hashFork, block.GetHash(), mapBlockTxIndex, mapBlockTxReceipts))
+    if (!dbBlock.AddBlockTxIndexReceipt(hashFork, hashBlock, mapBlockTxIndex, vBlockTxReceipts))
     {
-        StdLog("BlockBase", "Update block tx index: Add block tx index fail, block: %s", block.GetHash().GetHex().c_str());
+        StdLog("BlockBase", "Update block tx index: Add block tx index fail, block: %s", hashBlock.GetHex().c_str());
         return false;
     }
+
+    blockReceiptCache.AddBlockReceiptCache(hashBlock, vBlockTxReceipts);
     return true;
 }
 
@@ -5179,6 +6302,7 @@ bool CBlockBase::UpdateBlockAddressTxInfo(const uint256& hashFork, const uint256
     auto funcAddTxInfo = [&](const CTransaction& tx) {
         const uint256 txid = tx.GetHash();
 
+        if (!tx.IsMintTx())
         {
             uint256 nTxFeeUsed;
             auto it = mapBlockTxFeeUsedIn.find(txid);
@@ -5305,7 +6429,7 @@ bool CBlockBase::UpdateBlockAddressTxInfo(const uint256& hashFork, const uint256
                 mapAddressTxInfo[kv.first].push_back(destTxInfo);
 
                 StdDebug("BlockBase", "Update block address tx info: code reward: dest: %s, amount: %s, block: %s",
-                         kv.first.ToString().c_str(), CoinToTokenBigFloat(kv.second).c_str(), block.GetHash().GetHex().c_str());
+                         kv.first.ToString().c_str(), CoinToTokenBigFloat(kv.second).c_str(), hashBlock.GetHex().c_str());
             }
         }
     };
@@ -5313,12 +6437,15 @@ bool CBlockBase::UpdateBlockAddressTxInfo(const uint256& hashFork, const uint256
     funcAddTxInfo(block.txMint);
     for (size_t i = 0; i < block.vtx.size(); i++)
     {
-        funcAddTxInfo(block.vtx[i]);
+        if (!block.vtx[i].IsCertTx())
+        {
+            funcAddTxInfo(block.vtx[i]);
+        }
     }
 
     if (!dbBlock.AddAddressTxInfo(hashFork, block.hashPrev, hashBlock, block.nNumber, mapAddressTxInfo, hashNewRoot))
     {
-        StdLog("BlockBase", "Update block address tx info: Add block address tx info fail, block: %s", block.GetHash().GetHex().c_str());
+        StdLog("BlockBase", "Update block address tx info: Add block address tx info fail, block: %s", hashBlock.GetHex().c_str());
         return false;
     }
     return true;
@@ -5482,7 +6609,38 @@ bool CBlockBase::UpdateBlockAddress(const uint256& hashFork, const uint256& hash
         }
     }
 
-    if (!dbBlock.AddAddressContext(hashFork, block.hashPrev, hashBlock, mapAddAddress, nNewAddressCount, mapTimeVault, mapBlockFunctionAddressIn, hashNewRoot))
+    std::map<CDestination, uint384> mapBlsPubkeyContext;
+    if (hashFork == hashGenesisBlock)
+    {
+        for (auto& tx : block.vtx)
+        {
+            if (tx.IsCertTx())
+            {
+                uint384 blsPubkey;
+                if (!dbBlock.RetrieveBlsPubkeyContext(hashFork, block.hashPrev, tx.GetToAddress(), blsPubkey)
+                    && mapBlsPubkeyContext.count(tx.GetToAddress()) == 0)
+                {
+                    bytes btKeyData;
+                    if (tx.GetTxData(CTransaction::DF_BLSPUBKEY, btKeyData))
+                    {
+                        try
+                        {
+                            CBufStream ss(btKeyData);
+                            ss >> blsPubkey;
+                        }
+                        catch (std::exception& e)
+                        {
+                            StdLog("BlockBase", "Update Block Address: bls pubkey error, block: %s, txid: %s", hashBlock.GetHex().c_str(), tx.GetHash().GetHex().c_str());
+                            continue;
+                        }
+                        mapBlsPubkeyContext[tx.GetToAddress()] = blsPubkey;
+                    }
+                }
+            }
+        }
+    }
+
+    if (!dbBlock.AddAddressContext(hashFork, block.hashPrev, hashBlock, mapAddAddress, nNewAddressCount, mapTimeVault, mapBlockFunctionAddressIn, mapBlsPubkeyContext, hashNewRoot))
     {
         StdLog("BlockBase", "Update Block Address: Add address context fail, block: %s", hashBlock.GetHex().c_str());
         return false;
@@ -5605,6 +6763,41 @@ bool CBlockBase::UpdateBlockVoteReward(const uint256& hashFork, const uint32 nCh
     if (!dbBlock.AddVoteReward(hashFork, nChainId, block.hashPrev, hashBlock, block.GetBlockHeight(), mapVoteReward, hashNewRoot))
     {
         StdLog("BlockBase", "Update block vote reward: Add vote reward fail, block: %s", hashBlock.GetHex().c_str());
+        return false;
+    }
+    return true;
+}
+
+bool CBlockBase::UpdateBlockDexOrder(const uint256& hashFork, const uint256& hashRefBlock, const uint256& hashPrevBlock, const uint256& hashBlock, const CBlockEx& block, const std::map<CDexOrderHeader, CDexOrderBody>& mapDexOrder,
+                                     const CBlockStorageProve& proveBlockCrosschain, const std::map<uint256, uint256>& mapCoinPairCompletePrice, std::map<CDexOrderHeader, std::vector<CCompDexOrderRecord>>& mapCompDexOrderRecord, uint256& hashNewRoot)
+{
+    std::set<CChainId> setPeerCrossChainId;
+    std::map<CChainId, std::vector<CBlockCoinTransferProve>> mapCrossTransferProve;
+    for (const auto& kv : proveBlockCrosschain.mapCrossProve)
+    {
+        const CChainId nPeerChainId = kv.first;
+        const CBlockCrosschainProve& crossProve = kv.second.first;
+
+        if (crossProve.GetPrevProveBlock() == 0)
+        {
+            StdLog("BlockBase", "Update block dex order: Prev prove block is 0, peer chainid: %d, block: %s", nPeerChainId, hashBlock.GetBhString().c_str());
+            return false;
+        }
+
+        setPeerCrossChainId.insert(nPeerChainId);
+        if (!crossProve.GetCoinTransferProve().empty())
+        {
+            mapCrossTransferProve.insert(std::make_pair(nPeerChainId, crossProve.GetCoinTransferProve()));
+        }
+    }
+    if (!dbBlock.AddDexOrder(hashFork, hashRefBlock, hashPrevBlock, hashBlock, mapDexOrder, mapCrossTransferProve, mapCoinPairCompletePrice, setPeerCrossChainId, mapCompDexOrderRecord, block.mapProve, hashNewRoot))
+    {
+        StdLog("BlockBase", "Update block dex order: Add dex order fail, block: %s", hashBlock.GetBhString().c_str());
+        return false;
+    }
+    if (!dbBlock.AddBlockCrosschainProve(hashBlock, proveBlockCrosschain))
+    {
+        StdLog("BlockBase", "Update block dex order: Add crosschain prove fail, block: %s", hashBlock.GetBhString().c_str());
         return false;
     }
     return true;
@@ -5776,6 +6969,11 @@ bool CBlockBase::VerifyNewFunctionAddress(const uint256& hashBlock, const CDesti
     return true;
 }
 
+bool CBlockBase::RetrieveBlsPubkeyContext(const uint256& hashFork, const uint256& hashBlock, const CDestination& dest, uint384& blsPubkey)
+{
+    return dbBlock.RetrieveBlsPubkeyContext(hashFork, hashBlock, dest, blsPubkey);
+}
+
 bool CBlockBase::CallContractCode(const bool fEthCall, const uint256& hashFork, const CChainId& chainId, const uint256& nAgreement, const uint32 nHeight, const CDestination& destMint, const uint256& nBlockGasLimit,
                                   const CDestination& from, const CDestination& to, const uint256& nGasPrice, const uint256& nGasLimit, const uint256& nAmount,
                                   const bytes& data, const uint64 nTimeStamp, const uint256& hashPrevBlock, const uint256& hashPrevStateRoot, const uint64 nPrevBlockTime, uint64& nGasLeft, int& nStatus, bytes& btResult)
@@ -5873,48 +7071,48 @@ bool CBlockBase::CallContractCode(const bool fEthCall, const uint256& hashFork, 
         blockState.SetDestState(to, state);
     }
 
-    if (fEthCall)
-    {
-        StdDebug("BlockBase", "Call evm code: from: %s", from.ToString().c_str());
-        StdDebug("BlockBase", "Call evm code: to: %s", to.ToString().c_str());
-        StdDebug("BlockBase", "Call evm code: gas limit: %lu", nGasLimit.Get64());
+    // if (fEthCall)
+    // {
+    StdDebug("BlockBase", "Call evm code: from: %s", from.ToString().c_str());
+    StdDebug("BlockBase", "Call evm code: to: %s", to.ToString().c_str());
+    StdDebug("BlockBase", "Call evm code: gas limit: %lu", nGasLimit.Get64());
 
-        CContractHostDB dbHost(blockState, to, destCodeOwner, 0, 1);
-        CEvmExec vmExec(dbHost, hashFork, chainId, nAgreement);
-        CTxContractData txcd;
-        if (!vmExec.evmExec(from, to, to, destCodeOwner, nGasLimit.Get64(),
-                            nGasPrice, nAmount, destMint, nTimeStamp,
-                            nHeight, nBlockGasLimit.Get64(), btContractRunCode, data, txcd))
-        {
-            StdLog("BlockBase", "Call evm code: Exec fail2, to: %s", to.ToString().c_str());
-            nGasLeft = vmExec.nGasLeft;
-            nStatus = vmExec.nStatusCode;
-            btResult = vmExec.vResult;
-            return false;
-        }
+    CContractHostDB dbHost(blockState, to, destCodeOwner, 0, 1);
+    CEvmExec vmExec(dbHost, hashFork, chainId, nAgreement);
+    CTxContractData txcd;
+    if (!vmExec.evmExec(from, to, to, destCodeOwner, nGasLimit.Get64(),
+                        nGasPrice, nAmount, destMint, nTimeStamp,
+                        nHeight, nBlockGasLimit.Get64(), btContractRunCode, data, txcd))
+    {
+        StdLog("BlockBase", "Call evm code: Exec fail2, to: %s", to.ToString().c_str());
         nGasLeft = vmExec.nGasLeft;
         nStatus = vmExec.nStatusCode;
         btResult = vmExec.vResult;
+        return false;
     }
-    else
-    {
-        // CContractHostDB dbHost(blockState, to, destCodeOwner, 0, 1);
-        // CContractRun contractRun(dbHost, hashFork);
-        // CTxContractData txcd;
-        // if (!contractRun.RunContract(from, to, to, destCodeOwner, nGasLimit.Get64(),
-        //                              nGasPrice, nAmount, destMint, nTimeStamp,
-        //                              nHeight, nBlockGasLimit.Get64(), btContractRunCode, data, txcd))
-        // {
-        //     StdLog("BlockBase", "Call contract code: Run contract fail, to: %s", to.ToString().c_str());
-        // }
-        // nGasLeft = contractRun.nGasLeft;
-        // nStatus = contractRun.nStatusCode;
-        // btResult = contractRun.vResult;
+    nGasLeft = vmExec.nGasLeft;
+    nStatus = vmExec.nStatusCode;
+    btResult = vmExec.vResult;
+    // }
+    // else
+    // {
+    // CContractHostDB dbHost(blockState, to, destCodeOwner, 0, 1);
+    // CContractRun contractRun(dbHost, hashFork);
+    // CTxContractData txcd;
+    // if (!contractRun.RunContract(from, to, to, destCodeOwner, nGasLimit.Get64(),
+    //                              nGasPrice, nAmount, destMint, nTimeStamp,
+    //                              nHeight, nBlockGasLimit.Get64(), btContractRunCode, data, txcd))
+    // {
+    //     StdLog("BlockBase", "Call contract code: Run contract fail, to: %s", to.ToString().c_str());
+    // }
+    // nGasLeft = contractRun.nGasLeft;
+    // nStatus = contractRun.nStatusCode;
+    // btResult = contractRun.vResult;
 
-        nGasLeft = 0;
-        nStatus = -2; //EVMC_REJECTED
-        btResult = {};
-    }
+    //     nGasLeft = 0;
+    //     nStatus = -2; //EVMC_REJECTED
+    //     btResult = {};
+    // }
     return true;
 }
 
@@ -6709,6 +7907,74 @@ bool CBlockBase::VerifyValidBlock(CBlockIndex* pIndexGenesisLast, const CBlockIn
     return IsValidBlock(pIndexGenesisLast, hashRefBlock);
 }
 
+bool CBlockBase::VerifyBlockConfirmChain(const CBlockIndex* pNewIndex)
+{
+    if (!pNewIndex)
+    {
+        return false;
+    }
+    const uint256 hashFork = pNewIndex->GetOriginHash();
+    const CBlockIndex* pIndex = pNewIndex;
+    while (pIndex && !pIndex->IsOrigin())
+    {
+        if (pIndex->pNext && VerifyBlockConfirmNoLock(hashFork, pIndex->pNext->GetBlockHash()))
+        {
+            return false;
+        }
+        if (VerifyBlockConfirmNoLock(hashFork, pIndex->GetBlockHash()))
+        {
+            break;
+        }
+        pIndex = pIndex->pPrev;
+    }
+    return true;
+}
+
+bool CBlockBase::VerifyBlockConfirmNoLock(const uint256& hashFork, const uint256& hashBlock)
+{
+    if (hashBlock == 0)
+    {
+        return false;
+    }
+    if (hashBlock == hashFork)
+    {
+        return true;
+    }
+    uint256 hashLastConfirmBlock;
+    if (!dbBlock.GetLastConfirmBlock(hashFork, hashLastConfirmBlock))
+    {
+        return false;
+    }
+    if (!VerifySameChainNoLock(hashBlock, hashLastConfirmBlock))
+    {
+        return false;
+    }
+    return true;
+}
+
+bool CBlockBase::VerifySameChainNoLock(const uint256& hashPrevBlock, const uint256& hashAfterBlock)
+{
+    CBlockIndex* pPrevIndex = GetIndex(hashPrevBlock);
+    if (pPrevIndex == nullptr)
+    {
+        return false;
+    }
+    CBlockIndex* pAfterIndex = GetIndex(hashAfterBlock);
+    if (pAfterIndex == nullptr)
+    {
+        return false;
+    }
+    while (pAfterIndex->GetBlockHeight() >= pPrevIndex->GetBlockHeight())
+    {
+        if (pAfterIndex == pPrevIndex)
+        {
+            return true;
+        }
+        pAfterIndex = pAfterIndex->pPrev;
+    }
+    return false;
+}
+
 CBlockIndex* CBlockBase::GetLongChainLastBlock(const uint256& hashFork, int nStartHeight, CBlockIndex* pIndexGenesisLast, const std::set<uint256>& setInvalidHash)
 {
     auto it = mapForkHeightIndex.find(hashFork);
@@ -7403,49 +8669,34 @@ bool CBlockBase::GetTransactionReceipt(const uint256& hashFork, const uint256& t
     return true;
 }
 
-uint256 CBlockBase::AddLogsFilter(const uint256& hashClient, const uint256& hashFork, const CLogsFilter& logsFilter)
-{
-    return blockFilter.AddLogsFilter(hashClient, hashFork, logsFilter);
-}
-
-void CBlockBase::RemoveFilter(const uint256& nFilterId)
-{
-    blockFilter.RemoveFilter(nFilterId);
-}
-
-bool CBlockBase::GetTxReceiptLogsByFilterId(const uint256& nFilterId, const bool fAll, ReceiptLogsVec& receiptLogs)
-{
-    return blockFilter.GetTxReceiptLogsByFilterId(nFilterId, fAll, receiptLogs);
-}
-
-bool CBlockBase::GetTxReceiptsByLogsFilter(const uint256& hashFork, const CLogsFilter& logsFilter, ReceiptLogsVec& vReceiptLogs)
+bool CBlockBase::GetBlockReceiptsByBlock(const uint256& hashFork, const uint256& hashFromBlock, const uint256& hashToBlock, std::map<uint256, std::vector<CTransactionReceipt>, CustomBlockHashCompare>& mapBlockReceipts)
 {
     CBlockIndex* pIndexFrom = nullptr;
     CBlockIndex* pIndexTo = nullptr;
-    if (logsFilter.hashFromBlock == 0)
+    if (hashFromBlock == 0)
     {
         pIndexFrom = GetIndex(hashFork);
     }
     else
     {
-        pIndexFrom = GetIndex(logsFilter.hashFromBlock);
+        pIndexFrom = GetIndex(hashFromBlock);
     }
-    if (logsFilter.hashToBlock == 0)
+    if (hashToBlock == 0)
     {
         if (!RetrieveFork(hashFork, &pIndexTo))
         {
-            StdLog("CBlockBase", "Get tx receipts by logs filter: from or to block error, fork: %s", hashFork.ToString().c_str());
+            StdLog("CBlockBase", "Get block receipts by logs filter: from or to block error, fork: %s", hashFork.ToString().c_str());
             return false;
         }
     }
     else
     {
-        pIndexTo = GetIndex(logsFilter.hashToBlock);
+        pIndexTo = GetIndex(hashToBlock);
     }
     if (!pIndexFrom || !pIndexTo)
     {
-        StdLog("CBlockBase", "Get tx receipts by logs filter: from or to block error, from: %s, to: %s",
-               logsFilter.hashFromBlock.ToString().c_str(), logsFilter.hashToBlock.ToString().c_str());
+        StdLog("CBlockBase", "Get block receipts by logs filter: from or to block error, from: %s, to: %s",
+               hashFromBlock.ToString().c_str(), hashToBlock.ToString().c_str());
         return false;
     }
 
@@ -7458,72 +8709,35 @@ bool CBlockBase::GetTxReceiptsByLogsFilter(const uint256& hashFork, const CLogsF
 
     for (auto& hashBlock : vBlockHash)
     {
-        CBlockEx block;
-        if (!Retrieve(hashBlock, block))
+        std::vector<CTransactionReceipt> vTxReceipt;
+        if (!blockReceiptCache.GetBlockReceiptCache(hashBlock, vTxReceipt))
         {
-            StdLog("CBlockBase", "Get tx receipts by logs filter: Retrieve block failed, block: %s", hashBlock.ToString().c_str());
-            return false;
-        }
-        for (size_t i = 0; i < block.vtx.size(); ++i)
-        {
-            auto& tx = block.vtx[i];
-            uint256 txid = tx.GetHash();
-            CTransactionReceipt receipt;
-            if (!dbBlock.RetrieveTxReceipt(hashFork, txid, receipt))
+            CBlockEx block;
+            if (!Retrieve(hashBlock, block))
             {
-                StdLog("CBlockBase", "Get tx receipts by logs filter: Retrieve tx receipt failed, txid: %s, block: %s", txid.ToString().c_str(), hashBlock.ToString().c_str());
+                StdLog("CBlockBase", "Get block receipts by logs filter: Retrieve block failed, block: %s", hashBlock.ToString().c_str());
                 return false;
             }
-            MatchLogsVec vLogs;
-            logsFilter.matchesLogs(receipt, vLogs);
-            if (!vLogs.empty())
             {
-                CReceiptLogs r(vLogs);
-                r.nTxIndex = i + 1;
-                r.txid = txid;
-                r.nBlockNumber = block.GetBlockNumber();
-                r.hashBlock = hashBlock;
-                vReceiptLogs.push_back(r);
-
-                if (vReceiptLogs.size() > MAX_FILTER_CACHE_COUNT)
+                CTransactionReceipt receipt;
+                if (dbBlock.RetrieveTxReceipt(hashFork, block.txMint.GetHash(), receipt))
                 {
-                    StdLog("CBlockBase", "Get tx receipts by logs filter: Query returned more than %lu results", MAX_FILTER_CACHE_COUNT);
-                    return false;
+                    vTxReceipt.push_back(receipt);
                 }
             }
+            for (auto& tx : block.vtx)
+            {
+                CTransactionReceipt receipt;
+                if (dbBlock.RetrieveTxReceipt(hashFork, tx.GetHash(), receipt))
+                {
+                    vTxReceipt.push_back(receipt);
+                }
+            }
+            blockReceiptCache.AddBlockReceiptCache(hashBlock, vTxReceipt);
         }
+        mapBlockReceipts.insert(std::make_pair(hashBlock, vTxReceipt));
     }
     return true;
-}
-
-uint256 CBlockBase::AddBlockFilter(const uint256& hashClient, const uint256& hashFork)
-{
-    return blockFilter.AddBlockFilter(hashClient, hashFork);
-}
-
-bool CBlockBase::GetFilterBlockHashs(const uint256& hashFork, const uint256& nFilterId, const bool fAll, std::vector<uint256>& vBlockHash)
-{
-    CBlockIndex* pLastIndex = nullptr;
-    if (!RetrieveFork(hashFork, &pLastIndex))
-    {
-        return false;
-    }
-    return blockFilter.GetFilterBlockHashs(nFilterId, pLastIndex->GetBlockHash(), fAll, vBlockHash);
-}
-
-uint256 CBlockBase::AddPendingTxFilter(const uint256& hashClient, const uint256& hashFork)
-{
-    return blockFilter.AddPendingTxFilter(hashClient, hashFork);
-}
-
-void CBlockBase::AddPendingTx(const uint256& hashFork, const uint256& txid)
-{
-    blockFilter.AddPendingTx(hashFork, txid);
-}
-
-bool CBlockBase::GetFilterTxids(const uint256& hashFork, const uint256& nFilterId, const bool fAll, std::vector<uint256>& vTxid)
-{
-    return blockFilter.GetFilterTxids(hashFork, nFilterId, fAll, vTxid);
 }
 
 bool CBlockBase::GetCreateForkLockedAmount(const CDestination& dest, const uint256& hashPrevBlock, const bytes& btAddressData, uint256& nLockedAmount)
@@ -7623,6 +8837,67 @@ bool CBlockBase::GetAddressLockedAmount(const uint256& hashFork, const uint256& 
     return true;
 }
 
+bool CBlockBase::GetDexOrder(const uint256& hashBlock, const CDestination& destOrder, const CChainId nChainIdOwner, const std::string& strCoinSymbolOwner, const std::string& strCoinSymbolPeer, const uint64 nOrderNumber, CDexOrderBody& dexOrder)
+{
+    return dbBlock.GetDexOrder(hashBlock, destOrder, nChainIdOwner, strCoinSymbolOwner, strCoinSymbolPeer, nOrderNumber, dexOrder);
+}
+
+bool CBlockBase::GetDexCompletePrice(const uint256& hashBlock, const uint256& hashCoinPair, uint256& nCompletePrice)
+{
+    return dbBlock.GetDexCompletePrice(hashBlock, hashCoinPair, nCompletePrice);
+}
+
+bool CBlockBase::GetCompleteOrder(const uint256& hashBlock, const CDestination& destOrder, const CChainId nChainIdOwner, const std::string& strCoinSymbolOwner, const std::string& strCoinSymbolPeer, const uint64 nOrderNumber, uint256& nCompleteAmount, uint64& nCompleteOrderCount)
+{
+    return dbBlock.GetCompleteOrder(hashBlock, destOrder, nChainIdOwner, strCoinSymbolOwner, strCoinSymbolPeer, nOrderNumber, nCompleteAmount, nCompleteOrderCount);
+}
+
+bool CBlockBase::GetCompleteOrder(const uint256& hashBlock, const uint256& hashDexOrder, uint256& nCompleteAmount, uint64& nCompleteOrderCount)
+{
+    return dbBlock.GetCompleteOrder(hashBlock, hashDexOrder, nCompleteAmount, nCompleteOrderCount);
+}
+
+bool CBlockBase::ListAddressDexOrder(const uint256& hashBlock, const CDestination& destOrder, const std::string& strCoinSymbolOwner, const std::string& strCoinSymbolPeer,
+                                     const uint64 nBeginOrderNumber, const uint32 nGetCount, std::map<CDexOrderHeader, CDexOrderSave>& mapDexOrder)
+{
+    return dbBlock.ListAddressDexOrder(hashBlock, destOrder, strCoinSymbolOwner, strCoinSymbolPeer, nBeginOrderNumber, nGetCount, mapDexOrder);
+}
+
+bool CBlockBase::GetDexOrderMaxNumber(const uint256& hashBlock, const CDestination& destOrder, const std::string& strCoinSymbolOwner, const std::string& strCoinSymbolPeer, uint64& nMaxOrderNumber)
+{
+    return dbBlock.GetDexOrderMaxNumber(hashBlock, destOrder, strCoinSymbolOwner, strCoinSymbolPeer, nMaxOrderNumber);
+}
+
+bool CBlockBase::GetPeerCrossLastBlock(const uint256& hashBlock, const CChainId nPeerChainId, uint256& hashLastProveBlock)
+{
+    return dbBlock.GetPeerCrossLastBlock(hashBlock, nPeerChainId, hashLastProveBlock);
+}
+
+bool CBlockBase::GetMatchDexData(const uint256& hashBlock, std::map<uint256, CMatchOrderResult>& mapMatchResult)
+{
+    return dbBlock.GetMatchDexData(hashBlock, mapMatchResult);
+}
+
+bool CBlockBase::ListMatchDexOrder(const uint256& hashBlock, const std::string& strCoinSymbolSell, const std::string& strCoinSymbolBuy, const uint64 nGetCount, CRealtimeDexOrder& realDexOrder)
+{
+    return dbBlock.ListMatchDexOrder(hashBlock, strCoinSymbolSell, strCoinSymbolBuy, nGetCount, realDexOrder);
+}
+
+bool CBlockBase::GetCrosschainProveForPrevBlock(const CChainId nRecvChainId, const uint256& hashRecvPrevBlock, std::map<CChainId, CBlockProve>& mapBlockCrosschainProve)
+{
+    return dbBlock.GetCrosschainProveForPrevBlock(nRecvChainId, hashRecvPrevBlock, mapBlockCrosschainProve);
+}
+
+bool CBlockBase::AddRecvCrosschainProve(const CChainId nRecvChainId, const CBlockProve& blockProve)
+{
+    return dbBlock.AddRecvCrosschainProve(nRecvChainId, blockProve);
+}
+
+bool CBlockBase::GetRecvCrosschainProve(const CChainId nRecvChainId, const CChainId nSendChainId, const uint256& hashSendProvePrevBlock, CBlockProve& blockProve)
+{
+    return dbBlock.GetRecvCrosschainProve(nRecvChainId, nSendChainId, hashSendProvePrevBlock, blockProve);
+}
+
 bool CBlockBase::AddBlacklistAddress(const CDestination& dest)
 {
     return dbBlock.AddBlacklistAddress(dest);
@@ -7656,6 +8931,83 @@ uint256 CBlockBase::GetForkMintMinGasPrice(const uint256& hashFork)
         nMinGasPrice = MIN_GAS_PRICE;
     }
     return nMinGasPrice;
+}
+
+bool CBlockBase::AddBlockVoteResult(const uint256& hashBlock, const bool fLongChain, const bytes& btBitmap, const bytes& btAggSig, const bool fAtChain, const uint256& hashAtBlock)
+{
+    return dbBlock.AddBlockVoteResult(hashBlock, fLongChain, btBitmap, btAggSig, fAtChain, hashAtBlock);
+}
+
+bool CBlockBase::RemoveBlockVoteResult(const uint256& hashBlock)
+{
+    return dbBlock.RemoveBlockVoteResult(hashBlock);
+}
+
+bool CBlockBase::RetrieveBlockVoteResult(const uint256& hashBlock, bytes& btBitmap, bytes& btAggSig, bool& fAtChain, uint256& hashAtBlock)
+{
+    return dbBlock.RetrieveBlockVoteResult(hashBlock, btBitmap, btAggSig, fAtChain, hashAtBlock);
+}
+
+bool CBlockBase::GetMakerVoteBlock(const uint256& hashPrevBlock, bytes& btBitmap, bytes& btAggSig, uint256& hashVoteBlock)
+{
+    CBlockOutline outline;
+    if (!dbBlock.RetrieveBlockIndex(hashPrevBlock, outline))
+    {
+        return false;
+    }
+    uint256 hashLastVoteBlock;
+    bytes btVoteBitmap;
+    bytes btVoteAggSig;
+    bool fVoteAtChain = false;
+    uint256 hashVoteAtBlock;
+    if (!dbBlock.GetLastBlockVoteResult(outline.hashOrigin, hashLastVoteBlock, btVoteBitmap, btVoteAggSig, fVoteAtChain, hashVoteAtBlock))
+    {
+        return false;
+    }
+    if (fVoteAtChain)
+    {
+        return false;
+    }
+    if (!VerifySameChain(hashLastVoteBlock, hashPrevBlock))
+    {
+        return false;
+    }
+    hashVoteBlock = hashLastVoteBlock;
+    btBitmap = btVoteBitmap;
+    btAggSig = btVoteAggSig;
+    return true;
+}
+
+bool CBlockBase::IsBlockConfirm(const uint256& hashBlock)
+{
+    if (hashBlock == 0)
+    {
+        return false;
+    }
+    CBlockOutline outline;
+    if (!dbBlock.RetrieveBlockIndex(hashBlock, outline))
+    {
+        return false;
+    }
+    if (hashBlock == outline.hashOrigin)
+    {
+        return true;
+    }
+    uint256 hashLastConfirmBlock;
+    if (!dbBlock.GetLastConfirmBlock(outline.hashOrigin, hashLastConfirmBlock))
+    {
+        return false;
+    }
+    if (!VerifySameChain(hashBlock, hashLastConfirmBlock))
+    {
+        return false;
+    }
+    return true;
+}
+
+bool CBlockBase::AddBlockLocalVoteSignFlag(const uint256& hashBlock)
+{
+    return dbBlock.AddBlockLocalVoteSignFlag(hashBlock);
 }
 
 //----------------------------------------------------------------------------
@@ -7801,7 +9153,7 @@ bool CBlockBase::VerifyDB()
         }
 
         auto funcUpdateLongChain = [&](const uint256& hashForkIn, const uint256& hashForkLastBlockIn, const uint256& hashBlockIn, const CBlockEx& blockIn, const CBlockIndex* pIndexIn) -> bool {
-            CBlockChainUpdate update = CBlockChainUpdate(pIndexIn);
+            CBlockChainUpdate update = CBlockChainUpdate(pIndexIn, {});
             if (blockIn.IsOrigin())
             {
                 update.vBlockAddNew.push_back(blockIn);
@@ -7960,7 +9312,8 @@ bool CBlockBase::RepairBlockDB(const CBlockVerify& verifyBlock, CBlockRoot& bloc
         hashFork = pPrevIndex->GetOriginHash();
     }
 
-    if (!SaveBlock(hashFork, hashBlock, block, ppIndexNew, blockRoot, true))
+    std::vector<CTransactionReceipt> vBlockTxReceipts;
+    if (!SaveBlock(hashFork, hashBlock, block, ppIndexNew, blockRoot, vBlockTxReceipts, true))
     {
         StdError("BlockBase", "Repair block DB: Save block failed, block: [%d] %s", CBlock::GetBlockHeightByHash(hashBlock), hashBlock.ToString().c_str());
         return false;
@@ -8024,6 +9377,60 @@ bool CBlockBase::LoadBlockIndex(CBlockOutline& outline, CBlockIndex** ppIndexNew
     UpdateBlockHeightIndex(pIndexNew->GetOriginHash(), hashBlock, pIndexNew->nTimeStamp, CDestination(), pIndexNew->GetRefBlock());
 
     *ppIndexNew = pIndexNew;
+    return true;
+}
+
+bool CBlockBase::GetBlockBranchListNolock(const uint256& hashBlock, const uint256& hashForkLastBlock, const CBlockEx* pBlockex, std::vector<CBlockEx>& vRemoveBlockInvertedOrder, std::vector<CBlockEx>& vAddBlockPositiveOrder)
+{
+    CBlockIndex* pIndex = GetIndex(hashBlock);
+    if (pIndex == nullptr)
+    {
+        return false;
+    }
+
+    CBlockIndex* pForkLast = nullptr;
+    if (hashForkLastBlock == 0)
+    {
+        pForkLast = GetForkLastIndex(pIndex->GetOriginHash());
+    }
+    else
+    {
+        pForkLast = GetIndex(hashForkLastBlock);
+    }
+    if (pForkLast == nullptr)
+    {
+        return false;
+    }
+
+    vector<CBlockIndex*> vPath;
+    CBlockIndex* pBranch = GetBranch(pForkLast, pIndex, vPath);
+
+    for (CBlockIndex* p = pForkLast; p != pBranch; p = p->pPrev)
+    {
+        CBlockEx block;
+        if (!tsBlock.Read(block, p->nFile, p->nOffset, true, true))
+        {
+            return false;
+        }
+        vRemoveBlockInvertedOrder.push_back(block);
+    }
+
+    for (int i = vPath.size() - 1; i >= 0; i--)
+    {
+        if (pBlockex && vPath[i]->GetBlockHash() == hashBlock)
+        {
+            vAddBlockPositiveOrder.push_back(*pBlockex);
+        }
+        else
+        {
+            CBlockEx block;
+            if (!tsBlock.Read(block, vPath[i]->nFile, vPath[i]->nOffset, true, true))
+            {
+                return false;
+            }
+            vAddBlockPositiveOrder.push_back(block);
+        }
+    }
     return true;
 }
 

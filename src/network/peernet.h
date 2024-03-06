@@ -56,6 +56,24 @@ public:
     virtual void BroadcastUserTx(const uint64 nRecvNetNonce, const uint256& hashFork, const std::vector<CTransaction>& vtx) = 0;
 };
 
+class IBlockVoteChannel : public mtbase::IIOModule, virtual public CBbPeerEventListener
+{
+public:
+    IBlockVoteChannel(const uint32 nThreadCount = 1)
+      : IIOModule("blockvotechannel", nThreadCount) {}
+    virtual void SubscribeFork(const uint256& hashFork, const uint64 nNonce) = 0;
+    virtual void UpdateNewBlock(const uint256& hashFork, const uint256& hashBlock, const uint256& hashRefBlock, const int64 nBlockTime, const uint64 nNonce) = 0;
+};
+
+class IBlockCrossProveChannel : public mtbase::IIOModule, virtual public CBbPeerEventListener
+{
+public:
+    IBlockCrossProveChannel(const uint32 nThreadCount = 1)
+      : IIOModule("blockcrossprovechannel", nThreadCount) {}
+    virtual void SubscribeFork(const uint256& hashFork, const uint64 nNonce) = 0;
+    virtual void BroadcastBlockProve(const uint256& hashFork, const uint256& hashBlock, const uint64 nNonce, const std::map<CChainId, CBlockProve>& mapBlockProve) = 0;
+};
+
 class IDelegatedChannel : public mtbase::IIOModule, virtual public CBbPeerEventListener
 {
 public:
@@ -98,6 +116,10 @@ protected:
     bool HandleEvent(CEventPeerBlockSubscribe& eventSubscribe) override;
     bool HandleEvent(CEventPeerBlockUnsubscribe& eventUnsubscribe) override;
     bool HandleEvent(CEventPeerBlockBks& eventBks) override;
+    bool HandleEvent(CEventPeerBlockNextPrevBlock& eventData) override;
+    bool HandleEvent(CEventPeerBlockPrevBlocks& eventData) override;
+    bool HandleEvent(CEventPeerBlockGetBlockReq& eventData) override;
+    bool HandleEvent(CEventPeerBlockGetBlockRsp& eventData) override;
 
     bool HandleEvent(CEventPeerCerttxSubscribe& eventSubscribe) override;
     bool HandleEvent(CEventPeerCerttxUnsubscribe& eventUnsubscribe) override;
@@ -106,6 +128,10 @@ protected:
     bool HandleEvent(CEventPeerUsertxSubscribe& eventSubscribe) override;
     bool HandleEvent(CEventPeerUsertxUnsubscribe& eventUnsubscribe) override;
     bool HandleEvent(CEventPeerUsertxTxs& eventTxs) override;
+
+    bool HandleEvent(CEventPeerBlockVoteProtoData& eventBvp) override;
+
+    bool HandleEvent(CEventPeerBlockCrossProveData& eventBcp) override;
 
     bool HandleEvent(CEventPeerBulletin& eventBulletin) override;
     bool HandleEvent(CEventPeerGetDelegated& eventGetDelegated) override;
@@ -136,10 +162,12 @@ protected:
 
 protected:
     INetChannel* pNetChannel;
+    IDelegatedChannel* pDelegatedChannel;
     IBlockChannel* pBlockChannel;
     ICertTxChannel* pCertTxChannel;
     IUserTxChannel* pUserTxChannel;
-    IDelegatedChannel* pDelegatedChannel;
+    IBlockVoteChannel* pBlockVoteChannel;
+    IBlockCrossProveChannel* pBlockCrossProveChannel;
     uint32 nMagicNum;
     uint32 nVersion;
     uint64 nService;

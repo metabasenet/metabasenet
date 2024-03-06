@@ -1718,7 +1718,7 @@ namespace rpc
 #endif
 
 }  // namespace rpc
-} // namespace metabasenet
+}  // namespace metabasenet
 
 #endif  // METABASENET_RPC_AUTO_PROTOCOL_H
 ''')
@@ -1808,7 +1808,7 @@ namespace rpc
         # file bottom
         w.write('''
 }  // namespace rpc
-} // namespace metabasenet
+}  // namespace metabasenet
 
 ''')
 
@@ -1867,7 +1867,7 @@ namespace metabasenet
 
         # file bottom
         w.write('''
-} // namespace metabasenet
+}  // namespace metabasenet
 
 #endif  // METABASENET_MODE_AUTO_CONFIG_H
 ''')
@@ -1918,7 +1918,7 @@ namespace metabasenet
         
         # file bottom
         w.write('''
-} // namespace metabasenet
+}  // namespace metabasenet
 
 ''')
 

@@ -7,6 +7,7 @@
 #include <iostream>
 #include <sodium.h>
 
+#include "bls.hpp"
 #include "curve25519/curve25519.h"
 #include "devcommon/util.h"
 #include "keccak/Keccak.h"
@@ -15,6 +16,8 @@
 #include "util.h"
 
 using namespace std;
+using namespace bls;
+using namespace mtbase;
 
 namespace metabasenet
 {
@@ -356,6 +359,18 @@ bool GetEthTxData(const uint256& secret, const CEthTxSkeleton& ets, uint256& has
     }
     CryptoFree(pSecret);
     return true;
+}
+
+bytes MakeEthTxCallData(const std::string& strFunction, const std::vector<bytes>& vParamList)
+{
+    bytes btData;
+    bytes btFuncSign = CryptoKeccakSign(strFunction);
+    btData.insert(btData.end(), btFuncSign.begin(), btFuncSign.end());
+    for (auto& p : vParamList)
+    {
+        btData.insert(btData.end(), p.begin(), p.end());
+    }
+    return btData;
 }
 
 bool GetEthSignRsv(const bytes& btSigData, uint256& r, uint256& s, uint8& v)
@@ -789,6 +804,164 @@ bool CryptoDecryptSecret(int version, const CCryptoString& passphrase, const CCr
                                                  (const uint8*)&pubkey, 32,
                                                  (const uint8*)&cipher.nonce, &ek[0])
             == 0);
+}
+
+/////////////////////////////
+// bls sign & verify
+
+bool CryptoBlsMakeNewKey(CCryptoBlsKey& key)
+{
+    CCryptoKey skey;
+    if (CryptoMakeNewKey(skey).IsNull())
+    {
+        return false;
+    }
+    return CryptoBlsMakeNewKey(key, skey.secret);
+}
+
+bool CryptoBlsMakeNewKey(CCryptoBlsKey& key, const uint256& random)
+{
+    try
+    {
+        PrivateKey sk = PopSchemeMPL().KeyGen(random.GetBytes());
+        G1Element pk = sk.GetG1Element();
+        key.secret.SetBytes(sk.Serialize());
+        key.pubkey.SetBytes(pk.Serialize());
+    }
+    catch (exception& e)
+    {
+        StdError(__PRETTY_FUNCTION__, e.what());
+        return false;
+    }
+    return true;
+}
+
+bool CryptoBlsGetPubkey(const uint256& secret, uint384& pubkey)
+{
+    try
+    {
+        PrivateKey sk = PrivateKey::FromByteVector(secret.GetBytes());
+        pubkey.SetBytes(sk.GetG1Element().Serialize());
+    }
+    catch (exception& e)
+    {
+        StdError(__PRETTY_FUNCTION__, e.what());
+        return false;
+    }
+    return true;
+}
+
+bool CryptoBlsSign(const uint256& secret, const bytes& btData, bytes& btSig)
+{
+    try
+    {
+        btSig = PopSchemeMPL().Sign(PrivateKey::FromByteVector(secret.GetBytes()), btData).Serialize();
+        if (btSig.size() != 96)
+        {
+            StdError(__PRETTY_FUNCTION__, "Sign fail, sig size: %lu", btSig.size());
+            return false;
+        }
+    }
+    catch (exception& e)
+    {
+        StdError(__PRETTY_FUNCTION__, e.what());
+        return false;
+    }
+    return true;
+}
+
+bool CryptoBlsVerify(const uint384& pubkey, const bytes& btData, const bytes& btSig)
+{
+    try
+    {
+        return PopSchemeMPL().Verify(G1Element::FromByteVector(pubkey.GetBytes()), btData, G2Element::FromByteVector(btSig));
+    }
+    catch (exception& e)
+    {
+        StdError(__PRETTY_FUNCTION__, e.what());
+        return false;
+    }
+    return true;
+}
+
+bool CryptoBlsAggregateSig(const std::vector<bytes>& vSigs, bytes& btAggSig)
+{
+    if (vSigs.size() == 0)
+    {
+        StdError(__PRETTY_FUNCTION__, "param error");
+        return false;
+    }
+    try
+    {
+        vector<G2Element> sigs;
+        sigs.reserve(vSigs.size());
+        for (auto const& sig : vSigs)
+        {
+            sigs.emplace_back(G2Element::FromByteVector(sig));
+        }
+        btAggSig = PopSchemeMPL().Aggregate(sigs).Serialize();
+        if (btAggSig.size() != 96)
+        {
+            StdError(__PRETTY_FUNCTION__, "Aggregate fail, agg sig size: %lu", btAggSig.size());
+            return false;
+        }
+    }
+    catch (exception& e)
+    {
+        StdError(__PRETTY_FUNCTION__, e.what());
+        return false;
+    }
+    return true;
+}
+
+bool CryptoBlsAggregateVerify(const std::vector<uint384>& vPubkeys, const std::vector<bytes>& vDatas, const bytes& btAggSig)
+{
+    if (vPubkeys.size() == 0 || vDatas.size() != vPubkeys.size() || btAggSig.size() != 96)
+    {
+        StdError(__PRETTY_FUNCTION__, "param error");
+        return false;
+    }
+    try
+    {
+        vector<G1Element> pks;
+        pks.reserve(vPubkeys.size());
+        for (auto const& pk : vPubkeys)
+        {
+            pks.emplace_back(G1Element::FromByteVector(pk.GetBytes()));
+        }
+        return PopSchemeMPL().AggregateVerify(pks, vDatas, G2Element::FromByteVector(btAggSig));
+    }
+    catch (exception& e)
+    {
+        StdError(__PRETTY_FUNCTION__, e.what());
+        return false;
+    }
+    return true;
+}
+
+bool CryptoBlsFastAggregateVerify(const std::vector<uint384>& vPubkeys, const bytes& btData, const bytes& btAggSig)
+{
+    if (vPubkeys.size() == 0 || btData.size() == 0 || btAggSig.size() != 96)
+    {
+        StdError(__PRETTY_FUNCTION__, "param error");
+        return false;
+    }
+    try
+    {
+        vector<G1Element> pks;
+        pks.reserve(vPubkeys.size());
+        for (auto const& pk : vPubkeys)
+        {
+            pks.emplace_back(G1Element::FromByteVector(pk.GetBytes()));
+        }
+        return PopSchemeMPL().FastAggregateVerify(pks, btData, G2Element::FromByteVector(btAggSig));
+    }
+    catch (exception& e)
+    {
+        StdError(__PRETTY_FUNCTION__, e.what());
+        return false;
+    }
+    return true;
 }
 
 } // namespace crypto

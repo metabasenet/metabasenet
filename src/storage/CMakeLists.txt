@@ -24,6 +24,8 @@ set(sources
     statedb.cpp statedb.h
     addressdb.cpp addressdb.h
     addresstxinfodb.cpp addresstxinfodb.h
+    hdexdb.cpp hdexdb.h
+    matchdex.cpp matchdex.h
     verifydb.cpp verifydb.h
     contractdb.cpp contractdb.h
     addressblacklistdb.cpp addressblacklistdb.h

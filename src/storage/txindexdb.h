@@ -24,7 +24,7 @@ public:
     bool Initialize(const uint256& hashForkIn, const boost::filesystem::path& pathData);
     void Deinitialize();
 
-    bool AddBlockTxIndexReceipt(const uint256& hashBlock, const std::map<uint256, CTxIndex>& mapBlockTxIndex, const std::map<uint256, CTransactionReceipt>& mapBlockTxReceipts);
+    bool AddBlockTxIndexReceipt(const uint256& hashBlock, const std::map<uint256, CTxIndex>& mapBlockTxIndex, const std::vector<CTransactionReceipt>& vTxReceipts);
     bool UpdateBlockLongChain(const std::vector<uint256>& vRemoveTx, const std::map<uint256, uint256>& mapNewTx);
     bool RetrieveTxIndex(const uint256& txid, CTxIndex& txIndex);
     bool RetrieveTxReceipt(const uint256& txid, CTransactionReceipt& txReceipt);
@@ -48,7 +48,7 @@ public:
     bool AddNewFork(const uint256& hashFork);
     void Clear();
 
-    bool AddBlockTxIndexReceipt(const uint256& hashFork, const uint256& hashBlock, const std::map<uint256, CTxIndex>& mapBlockTxIndex, const std::map<uint256, CTransactionReceipt>& mapBlockTxReceipts);
+    bool AddBlockTxIndexReceipt(const uint256& hashFork, const uint256& hashBlock, const std::map<uint256, CTxIndex>& mapBlockTxIndex, const std::vector<CTransactionReceipt>& vTxReceipts);
     bool UpdateBlockLongChain(const uint256& hashFork, const std::vector<uint256>& vRemoveTx, const std::map<uint256, uint256>& mapNewTx);
     bool RetrieveTxIndex(const uint256& hashFork, const uint256& txid, CTxIndex& txIndex);
     bool RetrieveTxReceipt(const uint256& hashFork, const uint256& txid, CTransactionReceipt& txReceipt);

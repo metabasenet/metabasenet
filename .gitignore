@@ -26,3 +26,5 @@ CMakeSettings.json
 G*
 
 .vs/
+.VSCode*
+.testdata

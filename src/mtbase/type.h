@@ -6,7 +6,10 @@
 #define MTBASE_TYPE_H
 
 #include <boost/cstdint.hpp>
+#include <boost/thread/thread.hpp>
 #include <map>
+#include <tuple>
+#include <variant>
 #include <vector>
 
 typedef boost::int8_t int8;
@@ -22,6 +25,9 @@ using bytes = std::vector<uint8>;
 using bytesmap = std::map<bytes, bytes>;
 
 using CChainId = uint32;
+using ReadWriteLock = boost::shared_mutex;
+using writeSharedLock = boost::unique_lock<boost::shared_mutex>;
+using readSharedLock = boost::shared_lock<boost::shared_mutex>;
 
 #ifdef _MSC_VER
 

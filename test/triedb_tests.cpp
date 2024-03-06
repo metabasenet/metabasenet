@@ -1,4 +1,4 @@
-// Copyright (c) 2021-2023 The MetabaseNet developers
+// Copyright (c) 2022-2024 The MetabaseNet developers
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -6,6 +6,7 @@
 
 #include <boost/test/unit_test.hpp>
 
+#include "base_tests.h"
 #include "block.h"
 #include "destination.h"
 #include "test_big.h"
@@ -16,9 +17,9 @@ using namespace metabasenet;
 using namespace metabasenet::storage;
 using namespace boost::filesystem;
 
-//./build/test/test_big --log_level=all --run_test=triedb_tests/basetest
-//./build/test/test_big --log_level=all --run_test=triedb_tests/shorttest
-//./build/test/test_big --log_level=all --run_test=triedb_tests/stresstest
+//./build-release/test/test_big --log_level=all --run_test=triedb_tests/basetest
+//./build-release/test/test_big --log_level=all --run_test=triedb_tests/shorttest
+//./build-release/test/test_big --log_level=all --run_test=triedb_tests/stresstest
 
 BOOST_FIXTURE_TEST_SUITE(triedb_tests, BasicUtfSetup)
 
@@ -68,7 +69,7 @@ BOOST_AUTO_TEST_CASE(basetest)
 {
     cout << GetLocalTime() << "  triedb base test.........." << endl;
 
-    std::string fullpath = boost::filesystem::initial_path<boost::filesystem::path>().string() + "/test/trie";
+    std::string fullpath = GetOutPath("triedb_tests");
 
     CTrieDB db;
     BOOST_CHECK(db.Initialize(boost::filesystem::path(fullpath)));
@@ -152,7 +153,7 @@ BOOST_AUTO_TEST_CASE(shorttest)
 {
     cout << GetLocalTime() << "  triedb short test.........." << endl;
 
-    std::string fullpath = boost::filesystem::initial_path<boost::filesystem::path>().string() + "/test/trie";
+    std::string fullpath = GetOutPath("triedb_tests");
 
     CTrieDB db;
     BOOST_CHECK(db.Initialize(boost::filesystem::path(fullpath)));
@@ -214,7 +215,7 @@ BOOST_AUTO_TEST_CASE(stresstest)
 {
     cout << GetLocalTime() << "  triedb stress test.........." << endl;
 
-    std::string fullpath = boost::filesystem::initial_path<boost::filesystem::path>().string() + "/test/trie";
+    std::string fullpath = GetOutPath("triedb_tests");
 
     CTrieDB db;
     BOOST_CHECK(db.Initialize(boost::filesystem::path(fullpath)));
@@ -328,7 +329,7 @@ BOOST_AUTO_TEST_CASE(walkthroughtest)
 {
     cout << GetLocalTime() << "  triedb walk through test.........." << endl;
 
-    std::string fullpath = boost::filesystem::initial_path<boost::filesystem::path>().string() + "/test/trie";
+    std::string fullpath = GetOutPath("triedb_tests");
 
     CTrieDB db;
     BOOST_CHECK(db.Initialize(boost::filesystem::path(fullpath)));
@@ -421,7 +422,7 @@ BOOST_AUTO_TEST_CASE(stresstest2)
 {
     cout << GetLocalTime() << "  triedb stress test.........." << endl;
 
-    std::string fullpath = boost::filesystem::initial_path<boost::filesystem::path>().string() + "/test/trie";
+    std::string fullpath = GetOutPath("triedb_tests");
 
     CTrieDB db;
     BOOST_CHECK(db.Initialize(boost::filesystem::path(fullpath)));
@@ -476,7 +477,7 @@ BOOST_AUTO_TEST_CASE(stresstest3)
 {
     cout << GetLocalTime() << "  triedb stress test.........." << endl;
 
-    std::string fullpath = boost::filesystem::initial_path<boost::filesystem::path>().string() + "/test/trie";
+    std::string fullpath = GetOutPath("triedb_tests");
 
     CTrieDB db;
     BOOST_CHECK(db.Initialize(boost::filesystem::path(fullpath)));
@@ -530,7 +531,7 @@ BOOST_AUTO_TEST_CASE(stattest)
 {
     cout << GetLocalTime() << "  triedb stat node count test.........." << endl;
 
-    std::string fullpath = boost::filesystem::initial_path<boost::filesystem::path>().string() + "/test/trie";
+    std::string fullpath = GetOutPath("triedb_tests");
 
     CTrieDB db;
     BOOST_CHECK(db.Initialize(boost::filesystem::path(fullpath)));
@@ -577,7 +578,7 @@ BOOST_AUTO_TEST_CASE(stattrienode)
 {
     cout << GetLocalTime() << "  triedb stat trie node count test.........." << endl;
 
-    std::string fullpath = boost::filesystem::initial_path<boost::filesystem::path>().string() + "/test/trie";
+    std::string fullpath = GetOutPath("triedb_tests");
     cout << "fullpath: " << fullpath << endl;
 
     CTrieDB db;

@@ -24,6 +24,7 @@ public:
                        const std::vector<unsigned char>& vchPublish) override;
     void SetConsensus(const CAgreementBlock& agreeBlock) override;
     void CheckAllSubForkLastBlock() override;
+    void NotifyBlockVoteChnNewBlock(const uint256& hashBlock, const uint64 nNonce = 0) override;
 
 protected:
     bool HandleInitialize() override;
@@ -44,11 +45,14 @@ protected:
     IService* pService;
     IBlockMaker* pBlockMaker;
     network::INetChannel* pNetChannel;
+    network::IDelegatedChannel* pDelegatedChannel;
     network::IBlockChannel* pBlockChannel;
     network::ICertTxChannel* pCertTxChannel;
     network::IUserTxChannel* pUserTxChannel;
-    network::IDelegatedChannel* pDelegatedChannel;
+    network::IBlockVoteChannel* pBlockVoteChannel;
+    network::IBlockCrossProveChannel* pBlockCrossProveChannel;
     IDataStat* pDataStat;
+    IBlockFilter* pBlockFilter;
 };
 
 } // namespace metabasenet

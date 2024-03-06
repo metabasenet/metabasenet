@@ -1,4 +1,4 @@
-// Copyright (c) 2021-2023 The MetabaseNet developers
+// Copyright (c) 2022-2024 The MetabaseNet developers
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -463,7 +463,7 @@ BOOST_AUTO_TEST_CASE(evmcalltest)
 
 bool MemEvmExec(const bytes& btCode, const bytes& btData, const bool fCreate)
 {
-    if (!InitLog("/home/user/.metabasenet/testnet/logs", true, false, 1024 * 1024 * 200, 1024 * 1024 * 2000))
+    if (!InitLog("/home/cch/.metabasenet/testnet/logs", true, false, 1024 * 1024 * 200, 1024 * 1024 * 2000))
     {
         printf("Init log fail\n");
     }

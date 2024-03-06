@@ -22,6 +22,7 @@ const uint8 DB_ADDRESS_KEY_TYPE_TRIEROOT = 0x30;
 const uint8 DB_ADDRESS_KEY_TYPE_PREVROOT = 0x40;
 const uint8 DB_ADDRESS_KEY_TYPE_ADDRESSCOUNT = 0x50;
 const uint8 DB_ADDRESS_KEY_TYPE_FUNCTION_ADDRESS = 0x60;
+const uint8 DB_ADDRESS_KEY_TYPE_BLSPUBKEY = 0x70;
 
 #define DB_ADDRESS_KEY_ID_PREVROOT string("prevroot")
 
@@ -138,7 +139,7 @@ bool CForkAddressDB::RemoveAll()
 }
 
 bool CForkAddressDB::AddAddressContext(const uint256& hashPrevBlock, const uint256& hashBlock, const std::map<CDestination, CAddressContext>& mapAddress, const uint64 nNewAddressCount,
-                                       const std::map<CDestination, CTimeVault>& mapTimeVault, const std::map<uint32, CFunctionAddressContext>& mapFunctionAddress, uint256& hashNewRoot)
+                                       const std::map<CDestination, CTimeVault>& mapTimeVault, const std::map<uint32, CFunctionAddressContext>& mapFunctionAddress, const std::map<CDestination, uint384>& mapBlsPubkeyContext, uint256& hashNewRoot)
 {
     uint256 hashPrevRoot;
     if (hashBlock != hashFork)
@@ -184,6 +185,19 @@ bool CForkAddressDB::AddAddressContext(const uint256& hashPrevBlock, const uint2
         bytes btKey, btValue;
 
         ssKey << DB_ADDRESS_KEY_TYPE_FUNCTION_ADDRESS << kv.first;
+        ssKey.GetData(btKey);
+
+        ssValue << kv.second;
+        ssValue.GetData(btValue);
+
+        mapKv.insert(make_pair(btKey, btValue));
+    }
+    for (const auto& kv : mapBlsPubkeyContext)
+    {
+        mtbase::CBufStream ssKey, ssValue;
+        bytes btKey, btValue;
+
+        ssKey << DB_ADDRESS_KEY_TYPE_BLSPUBKEY << kv.first;
         ssKey.GetData(btKey);
 
         ssValue << kv.second;
@@ -295,8 +309,6 @@ bool CForkAddressDB::RetrieveTimeVault(const uint256& hashBlock, const CDestinat
     ssKey.GetData(btKey);
     if (!dbTrie.Retrieve(hashRoot, btKey, btValue))
     {
-        // StdLog("CForkAddressDB", "Retrieve time vault: Trie retrieve kv fail, root: %s, dest: %s, block: %s",
-        //        hashRoot.GetHex().c_str(), dest.ToString().c_str(), hashBlock.GetHex().c_str());
         return false;
     }
     try
@@ -382,6 +394,35 @@ bool CForkAddressDB::RetrieveFunctionAddress(const uint256& hashBlock, const uin
     {
         ssValue.Write((char*)(btValue.data()), btValue.size());
         ssValue >> ctxFuncAddress;
+    }
+    catch (std::exception& e)
+    {
+        mtbase::StdError(__PRETTY_FUNCTION__, e.what());
+        return false;
+    }
+    return true;
+}
+
+bool CForkAddressDB::RetrieveBlsPubkeyContext(const uint256& hashBlock, const CDestination& dest, uint384& blsPubkey)
+{
+    uint256 hashRoot;
+    if (!ReadTrieRoot(hashBlock, hashRoot))
+    {
+        StdLog("CForkAddressDB", "Retrieve bls pubkey context: Read trie root fail, block: %s", hashBlock.GetHex().c_str());
+        return false;
+    }
+    mtbase::CBufStream ssKey, ssValue;
+    bytes btKey, btValue;
+    ssKey << DB_ADDRESS_KEY_TYPE_BLSPUBKEY << dest;
+    ssKey.GetData(btKey);
+    if (!dbTrie.Retrieve(hashRoot, btKey, btValue))
+    {
+        return false;
+    }
+    try
+    {
+        ssValue.Write((char*)(btValue.data()), btValue.size());
+        ssValue >> blsPubkey;
     }
     catch (std::exception& e)
     {
@@ -673,14 +714,14 @@ void CAddressDB::Clear()
 }
 
 bool CAddressDB::AddAddressContext(const uint256& hashFork, const uint256& hashPrevBlock, const uint256& hashBlock, const std::map<CDestination, CAddressContext>& mapAddress, const uint64 nNewAddressCount,
-                                   const std::map<CDestination, CTimeVault>& mapTimeVault, const std::map<uint32, CFunctionAddressContext>& mapFunctionAddress, uint256& hashNewRoot)
+                                   const std::map<CDestination, CTimeVault>& mapTimeVault, const std::map<uint32, CFunctionAddressContext>& mapFunctionAddress, const std::map<CDestination, uint384>& mapBlsPubkeyContext, uint256& hashNewRoot)
 {
     CReadLock rlock(rwAccess);
 
     auto it = mapAddressDB.find(hashFork);
     if (it != mapAddressDB.end())
     {
-        return it->second->AddAddressContext(hashPrevBlock, hashBlock, mapAddress, nNewAddressCount, mapTimeVault, mapFunctionAddress, hashNewRoot);
+        return it->second->AddAddressContext(hashPrevBlock, hashBlock, mapAddress, nNewAddressCount, mapTimeVault, mapFunctionAddress, mapBlsPubkeyContext, hashNewRoot);
     }
     return false;
 }
@@ -753,6 +794,18 @@ bool CAddressDB::RetrieveFunctionAddress(const uint256& hashFork, const uint256&
     if (it != mapAddressDB.end())
     {
         return it->second->RetrieveFunctionAddress(hashBlock, nFuncId, ctxFuncAddress);
+    }
+    return false;
+}
+
+bool CAddressDB::RetrieveBlsPubkeyContext(const uint256& hashFork, const uint256& hashBlock, const CDestination& dest, uint384& blsPubkey)
+{
+    CReadLock rlock(rwAccess);
+
+    auto it = mapAddressDB.find(hashFork);
+    if (it != mapAddressDB.end())
+    {
+        return it->second->RetrieveBlsPubkeyContext(hashBlock, dest, blsPubkey);
     }
     return false;
 }

@@ -32,6 +32,7 @@ public:
     uint256 hashFork;
     uint256 hashPrevBlock;
     uint256 hashBlock;
+    uint256 hashRefBlock;
     uint64 nBlockTime;
     int nBlockHeight;
     uint16 nBlockSlot;
@@ -207,6 +208,28 @@ public:
     int64 nWaitTime;
     bool fCompleted;
     bool ret;
+};
+
+class CCacheBlsPubkey
+{
+public:
+    CCacheBlsPubkey()
+      : nCreateIndex(0) {}
+
+    bool AddBlsPubkey(const uint256& hashBlock, const std::vector<uint384>& vPubkey);
+    bool GetBlsPubkey(const uint256& hashBlock, std::vector<uint384>& vPubkey) const;
+
+protected:
+    enum
+    {
+        MAX_PUBKEY_CACHE_COUNT = 10000,
+        MAX_BLOCK_CACHE_COUNT = 100000,
+    };
+
+    uint64 nCreateIndex;
+    std::map<uint256, std::vector<uint384>> mapPubkey;
+    std::map<uint64, uint256> mapKeyIndex;
+    std::map<uint256, uint256> mapBlock;
 };
 
 /* Protocol & Event */

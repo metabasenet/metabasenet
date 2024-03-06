@@ -5,9 +5,12 @@
 #include "core.h"
 
 #include "bloomfilter/bloomfilter.h"
+#include "contractdb.h"
 #include "crypto.h"
 #include "destination.h"
 #include "param.h"
+#include "statedb.h"
+#include "structure/merkletree.h"
 #include "template/activatecode.h"
 #include "template/delegate.h"
 #include "template/fork.h"
@@ -132,6 +135,9 @@ void CCoreProtocol::CreateGenesisBlock(const bool fMainnet, const CChainId nChai
     block.nVersion = 1;
     block.nType = CBlock::BLOCK_GENESIS;
     block.SetBlockTime(1691539200);
+    block.nNumber = 0;
+    block.nHeight = 0;
+    block.nSlot = 0;
     block.hashPrev = 0;
 
     CTransaction& tx = block.txMint;
@@ -175,7 +181,7 @@ void CCoreProtocol::CreateGenesisBlock(const bool fMainnet, const CChainId nChai
     block.AddMintCoinProof(tx.GetAmount());
 
     block.hashStateRoot = CreateGenesisStateRoot(block.nType, block.GetBlockTime(), destOwner, tx.GetAmount());
-    block.hashMerkleRoot = block.CalcMerkleTreeRoot();
+    block.UpdateMerkleRoot();
 }
 
 void CCoreProtocol::GetGenesisBlock(CBlock& block)
@@ -356,6 +362,11 @@ Errno CCoreProtocol::ValidateBlock(const uint256& hashFork, const uint256& hashM
         return DEBUG(ERR_BLOCK_TIMESTAMP_OUT_OF_RANGE, "%ld", block.GetBlockTime());
     }
 
+    if (!block.VerifyBlockHeight())
+    {
+        return DEBUG(ERR_BLOCK_PROOF_OF_STAKE_INVALID, "block height error, height: %d, prev height: %d, block type: %d",
+                     block.nHeight, CBlock::GetBlockHeightByHash(block.hashPrev), block.nType);
+    }
     if (!block.VerifyBlockProof())
     {
         return DEBUG(ERR_BLOCK_PROOF_OF_STAKE_INVALID, "block proof error");
@@ -393,7 +404,7 @@ Errno CCoreProtocol::ValidateBlock(const uint256& hashFork, const uint256& hashM
         return DEBUG(ERR_BLOCK_TRANSACTIONS_INVALID, "origin block vtx is not empty");
     }
 
-    if (block.hashMerkleRoot != block.CalcMerkleTreeRoot())
+    if (!block.VerifyBlockMerkleTreeRoot())
     {
         return DEBUG(ERR_BLOCK_TXHASH_MISMATCH, "tx merkleroot mismatched");
     }
@@ -500,6 +511,10 @@ Errno CCoreProtocol::VerifyForkCreateTx(const uint256& hashTxAtFork, const CTran
     }
     else
     {
+        if (!fCreateUserForkEnable)
+        {
+            return DEBUG(ERR_BLOCK_INVALID_FORK, "disable create user fork");
+        }
         if (tx.GetAmount() < MORTGAGE_BASE)
         {
             return DEBUG(ERR_TRANSACTION_INVALID, "invalid tx amount");
@@ -563,6 +578,14 @@ Errno CCoreProtocol::ValidateOrigin(const CBlock& block, const CProfile& parentP
     {
         return DEBUG(ERR_BLOCK_INVALID_FORK, "invalid profile");
     }
+    if (forkProfile.strSymbol.empty() || forkProfile.strSymbol.size() > MAX_COIN_SYMBOL_SIZE)
+    {
+        return DEBUG(ERR_BLOCK_INVALID_FORK, "invalid symbol");
+    }
+    if (forkProfile.strName.empty() || forkProfile.strName.size() > MAX_FORK_NAME_SIZE)
+    {
+        return DEBUG(ERR_BLOCK_INVALID_FORK, "invalid name");
+    }
     if (!MoneyRange(forkProfile.nAmount))
     {
         return DEBUG(ERR_BLOCK_INVALID_FORK, "invalid fork amount");
@@ -574,6 +597,11 @@ Errno CCoreProtocol::ValidateOrigin(const CBlock& block, const CProfile& parentP
     if (block.txMint.GetToAddress() != forkProfile.destOwner)
     {
         return DEBUG(ERR_BLOCK_INVALID_FORK, "invalid fork to");
+    }
+    CBlockVoteSig proofVote;
+    if (block.GetBlockVoteSig(proofVote))
+    {
+        return DEBUG(ERR_BLOCK_INVALID_FORK, "invalid block vote");
     }
     if (forkProfile.nChainId != block.txMint.GetChainId())
     {
@@ -592,6 +620,13 @@ Errno CCoreProtocol::ValidateOrigin(const CBlock& block, const CProfile& parentP
         if (forkProfile.nMintReward != 0)
         {
             return DEBUG(ERR_BLOCK_INVALID_FORK, "invalid fork reward");
+        }
+    }
+    else
+    {
+        if (!fCreateUserForkEnable)
+        {
+            return DEBUG(ERR_BLOCK_INVALID_FORK, "disable create user fork");
         }
     }
     return OK;
@@ -913,7 +948,7 @@ bool CCoreProtocol::GetBlockTrust(const CBlock& block, uint256& nChainTrust, con
                 if (nChainTrust == 0)
                 {
                     nChainTrust = 1;
-                    StdLog("CoreProtocol", "Get Block Trust: Proof of work, nChainTrust is 0, set nChainTrust is 0");
+                    StdLog("CoreProtocol", "Get Block Trust: Proof of work, nChainTrust is 0, set nChainTrust is 1");
                 }
             }
         }
@@ -1084,11 +1119,12 @@ uint64 CCoreProtocol::GetNextBlockTimestamp(const uint64 nPrevTimeStamp)
 
 bool CCoreProtocol::CheckBlockSignature(const uint256& hashFork, const CBlock& block)
 {
-    if (block.GetHash() != GetGenesisBlockHash())
+    const uint256 hashBlock = block.GetHash();
+    if (hashBlock != GetGenesisBlockHash())
     {
         // if (!block.txMint.GetToAddress().IsTemplate())
         // {
-        //     StdLog("CoreProtocol", "Check Block Signature: txMint not template address, block: %s", block.GetHash().GetHex().c_str());
+        //     StdLog("CoreProtocol", "Check Block Signature: txMint not template address, block: %s", hashBlock.GetHex().c_str());
         //     return false;
         // }
 
@@ -1096,7 +1132,7 @@ bool CCoreProtocol::CheckBlockSignature(const uint256& hashFork, const CBlock& b
         {
             if (!block.VerifyBlockSignature(block.txMint.GetToAddress()))
             {
-                StdLog("CoreProtocol", "Check Block Signature: Verify block sign fail, block: %s", block.GetHash().GetHex().c_str());
+                StdLog("CoreProtocol", "Check Block Signature: Verify block sign fail, block: %s", hashBlock.GetHex().c_str());
                 return false;
             }
         }
@@ -1107,11 +1143,11 @@ bool CCoreProtocol::CheckBlockSignature(const uint256& hashFork, const CBlock& b
             {
                 if (!ptr)
                 {
-                    StdLog("CoreProtocol", "Check Block Signature: Get template fail, block: %s, to: %s", block.GetHash().GetHex().c_str(), block.txMint.GetToAddress().ToString().c_str());
+                    StdLog("CoreProtocol", "Check Block Signature: Get template fail, block: %s, to: %s", hashBlock.GetHex().c_str(), block.txMint.GetToAddress().ToString().c_str());
                 }
                 else
                 {
-                    StdLog("CoreProtocol", "Check Block Signature: Template error, template type: %d, block: %s, to: %s", ptr->GetTemplateType(), block.GetHash().GetHex().c_str(), block.txMint.GetToAddress().ToString().c_str());
+                    StdLog("CoreProtocol", "Check Block Signature: Template error, template type: %d, block: %s, to: %s", ptr->GetTemplateType(), hashBlock.GetHex().c_str(), block.txMint.GetToAddress().ToString().c_str());
                 }
                 return false;
             }
@@ -1121,7 +1157,7 @@ bool CCoreProtocol::CheckBlockSignature(const uint256& hashFork, const CBlock& b
             ptrMint->GetBlockSignDestination(destBlockSign);
             if (!block.VerifyBlockSignature(destBlockSign))
             {
-                StdLog("CoreProtocol", "Check Block Signature: Verify block sign fail, block: %s", block.GetHash().GetHex().c_str());
+                StdLog("CoreProtocol", "Check Block Signature: Verify block sign fail, block: %s", hashBlock.GetHex().c_str());
                 return false;
             }
         }

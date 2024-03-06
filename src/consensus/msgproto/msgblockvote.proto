@@ -1,0 +1,84 @@
+syntax = "proto3";
+
+package msgblockvote;
+
+message SubscribeReq
+{
+   uint32 version = 1;
+}
+
+message SubscribeRsp
+{
+   uint32 version = 1;
+   uint32 result = 2;
+}
+
+message PreVoteBitmapReq
+{
+   bytes blockhash = 1;
+}
+
+message PreVoteBitmapPush
+{
+   bytes blockhash = 1;
+   bytes bitmap = 2;
+}
+
+message PreVoteSignReq
+{
+   bytes blockhash = 1;
+   bytes getbitmap = 2;
+}
+
+message PreVoteSignPush
+{
+   message dataitem
+   {
+      bytes pubkeynode = 1;
+      bytes sig = 2;
+   }
+   bytes blockhash = 1;
+   repeated dataitem datalist = 2;
+}
+
+message CommitVoteBitmapReq
+{
+   bytes blockhash = 1;
+}
+
+message CommitVoteBitmapPush
+{
+   bytes blockhash = 1;
+   bytes bitmap = 2;
+}
+
+message CommitVoteSignReq
+{
+   bytes blockhash = 1;
+   bytes getbitmap = 2;
+}
+
+message CommitVoteSignPush
+{
+   message dataitem
+   {
+      bytes pubkeynode = 1;
+      bytes sig = 2;
+   }
+   bytes blockhash = 1;
+   bytes prevotebitmap = 2;
+   bytes prevoteaggsig = 3;
+   repeated dataitem datalist = 4;
+}
+
+message AggCommitVoteReq
+{
+   bytes blockhash = 1;
+}
+
+message AggCommitVotePush
+{
+   bytes blockhash = 1;
+   bytes commitvotebitmap = 2;
+   bytes commitvoteaggsig = 3;
+}
