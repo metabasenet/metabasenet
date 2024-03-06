@@ -312,6 +312,7 @@ void CHttpServer::HandleClientRecv(CHttpClient* pHttpClient, MAPIKeyValue& mapHe
 
     CHttpReq& req = pEventHttpReq->data;
 
+    req.nSourceType = REQ_SOURCE_TYPE_HTTP;
     req.nReqChainId = pHttpProfile->nProChainId;
     req.nListenPort = pHttpProfile->epHost.port();
     req.strPeerIp = pHttpClient->GetPeerIp();

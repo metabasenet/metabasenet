@@ -133,6 +133,73 @@ protected:
     void Serialize(mtbase::CStream& s, std::size_t& serSize) const;
 };
 
+class CCoinContext
+{
+    friend class mtbase::CStream;
+
+public:
+    CCoinContext()
+      : nCoinType(0) {}
+    CCoinContext(const uint256& hashAtForkIn, const uint8 nCoinTypeIn, const CDestination& destContractIn)
+      : hashAtFork(hashAtForkIn), nCoinType(nCoinTypeIn), destContract(destContractIn) {}
+
+    bool IsNull() const
+    {
+        return (nCoinType == 0);
+    }
+    void SetNull()
+    {
+        hashAtFork = 0;
+        nCoinType = 0;
+    }
+    bool IsForkCoin() const
+    {
+        return (nCoinType == CT_COIN_TYPE_FORK);
+    }
+    bool IsUserCoin() const
+    {
+        return (nCoinType == CT_COIN_TYPE_USER);
+    }
+    bool IsContractCoin() const
+    {
+        return (nCoinType == CT_COIN_TYPE_CONTRACT);
+    }
+    const std::string GetCoinTypeStr() const
+    {
+        switch (nCoinType)
+        {
+        case CT_COIN_TYPE_FORK:
+            return "forkcoin";
+        case CT_COIN_TYPE_USER:
+            return "usercoin";
+        case CT_COIN_TYPE_CONTRACT:
+            return "contractcoin";
+        }
+        return "non";
+    }
+
+public:
+    enum
+    {
+        CT_COIN_TYPE_FORK = 1,
+        CT_COIN_TYPE_USER = 2,
+        CT_COIN_TYPE_CONTRACT = 3
+    };
+
+    uint256 hashAtFork;
+    uint8 nCoinType;
+    CDestination destContract;
+
+protected:
+    template <typename O>
+    void Serialize(mtbase::CStream& s, O& opt)
+    {
+        s.Serialize(hashAtFork, opt);
+        s.Serialize(nCoinType, opt);
+        s.Serialize(destContract, opt);
+    }
+};
+
 } // namespace metabasenet
 
 #endif //COMMON_PROFILE_H

@@ -5,6 +5,7 @@
 #include "blockchain.h"
 
 #include "bloomfilter/bloomfilter.h"
+#include "consblockvote.h"
 #include "delegatecomm.h"
 #include "delegateverify.h"
 #include "mevm/evmexec.h"
@@ -303,13 +304,41 @@ bool CBlockChain::GetBlockStatus(const uint256& hashBlock, CBlockStatus& status)
     status.hashFork = pIndex->GetOriginHash();
     status.hashPrevBlock = pIndex->GetPrevHash();
     status.hashBlock = pIndex->GetBlockHash();
+    status.hashRefBlock = pIndex->GetRefBlock();
     status.nBlockTime = pIndex->GetBlockTime();
     status.nBlockHeight = pIndex->GetBlockHeight();
     status.nBlockSlot = pIndex->GetBlockSlot();
     status.nBlockNumber = pIndex->GetBlockNumber();
     status.nTotalTxCount = pIndex->GetTxCount();
-    status.nRewardTxCount = pIndex->GetRewardTxCount();
     status.nUserTxCount = pIndex->GetUserTxCount();
+    status.nRewardTxCount = pIndex->GetRewardTxCount();
+    status.nMoneySupply = pIndex->GetMoneySupply();
+    status.nMoneyDestroy = pIndex->GetMoneyDestroy();
+    status.nBlockType = pIndex->nType;
+    status.nMintType = pIndex->nMintType;
+    status.hashStateRoot = pIndex->GetStateRoot();
+    status.destMint = pIndex->destMint;
+    return true;
+}
+
+bool CBlockChain::GetLastBlockStatus(const uint256& hashFork, CBlockStatus& status)
+{
+    CBlockIndex* pIndex = nullptr;
+    if (!cntrBlock.RetrieveFork(hashFork, &pIndex))
+    {
+        return false;
+    }
+    status.hashFork = pIndex->GetOriginHash();
+    status.hashPrevBlock = pIndex->GetPrevHash();
+    status.hashBlock = pIndex->GetBlockHash();
+    status.hashRefBlock = pIndex->GetRefBlock();
+    status.nBlockTime = pIndex->GetBlockTime();
+    status.nBlockHeight = pIndex->GetBlockHeight();
+    status.nBlockSlot = pIndex->GetBlockSlot();
+    status.nBlockNumber = pIndex->GetBlockNumber();
+    status.nTotalTxCount = pIndex->GetTxCount();
+    status.nUserTxCount = pIndex->GetUserTxCount();
+    status.nRewardTxCount = pIndex->GetRewardTxCount();
     status.nMoneySupply = pIndex->GetMoneySupply();
     status.nMoneyDestroy = pIndex->GetMoneyDestroy();
     status.nBlockType = pIndex->nType;
@@ -357,32 +386,6 @@ bool CBlockChain::GetBlockHashOfRefBlock(const uint256& hashRefBlock, const int 
         return false;
     }
     hashBlock = pIndex->GetBlockHash();
-    return true;
-}
-
-bool CBlockChain::GetLastBlockStatus(const uint256& hashFork, CBlockStatus& status)
-{
-    CBlockIndex* pIndex = nullptr;
-    if (!cntrBlock.RetrieveFork(hashFork, &pIndex))
-    {
-        return false;
-    }
-    status.hashFork = pIndex->GetOriginHash();
-    status.hashPrevBlock = pIndex->GetPrevHash();
-    status.hashBlock = pIndex->GetBlockHash();
-    status.nBlockHeight = pIndex->GetBlockHeight();
-    status.nBlockSlot = pIndex->GetBlockSlot();
-    status.nBlockNumber = pIndex->GetBlockNumber();
-    status.nTotalTxCount = pIndex->GetTxCount();
-    status.nRewardTxCount = pIndex->GetRewardTxCount();
-    status.nUserTxCount = pIndex->GetUserTxCount();
-    status.nBlockTime = pIndex->GetBlockTime();
-    status.nMoneySupply = pIndex->GetMoneySupply();
-    status.nMoneyDestroy = pIndex->GetMoneyDestroy();
-    status.nBlockType = pIndex->nType;
-    status.nMintType = pIndex->nMintType;
-    status.hashStateRoot = pIndex->GetStateRoot();
-    status.destMint = pIndex->destMint;
     return true;
 }
 
@@ -463,9 +466,8 @@ bool CBlockChain::GetForkStorageMaxHeight(const uint256& hashFork, uint32& nMaxH
     return cntrBlock.GetForkStorageMaxHeight(hashFork, nMaxHeight);
 }
 
-Errno CBlockChain::AddNewBlock(const CBlock& block, CBlockChainUpdate& update)
+Errno CBlockChain::AddNewBlock(const uint256& hashBlock, const CBlock& block, uint256& hashFork, CBlockChainUpdate& update)
 {
-    uint256 hashBlock = block.GetHash();
     Errno err = OK;
 
     if (cntrBlock.Exists(hashBlock))
@@ -480,7 +482,7 @@ Errno CBlockChain::AddNewBlock(const CBlock& block, CBlockChainUpdate& update)
         StdLog("BlockChain", "Add new block: Retrieve prev index fail, prev block: %s", block.hashPrev.ToString().c_str());
         return ERR_SYS_STORAGE_ERROR;
     }
-    uint256 hashFork = pIndexPrev->GetOriginHash();
+    hashFork = pIndexPrev->GetOriginHash();
 
     err = pCoreProtocol->ValidateBlock(hashFork, pIndexPrev->GetRefBlock(), block);
     if (err != OK)
@@ -556,7 +558,7 @@ Errno CBlockChain::AddNewOrigin(const CBlock& block, CBlockChainUpdate& update)
         StdLog("BlockChain", "Add new origin: Retrieve prev index fail, prev block: %s", block.hashPrev.ToString().c_str());
         return ERR_SYS_STORAGE_ERROR;
     }
-    uint256 hashFork = block.GetHash();
+    uint256 hashFork = hashBlock;
 
     err = pCoreProtocol->ValidateBlock(hashFork, pIndexPrev->GetRefBlock(), block);
     if (err != OK)
@@ -749,7 +751,7 @@ bool CBlockChain::VerifyRepeatBlock(const uint256& hashFork, const uint256& hash
         if (!cntrBlock.RetrieveIndex(hashBlockRef, &pIndexRef))
         {
             StdLog("BlockChain", "Verify Repeat Block: RetrieveIndex fail, hashBlockRef: %s, block: %s",
-                   hashBlockRef.GetHex().c_str(), block.GetHash().GetHex().c_str());
+                   hashBlockRef.GetHex().c_str(), hashBlock.GetHex().c_str());
             return false;
         }
         if (block.IsSubsidiary())
@@ -757,7 +759,7 @@ bool CBlockChain::VerifyRepeatBlock(const uint256& hashFork, const uint256& hash
             if (block.GetBlockTime() != pIndexRef->GetBlockTime())
             {
                 StdLog("BlockChain", "Verify Repeat Block: Subsidiary block time error, block time: %lu, ref block time: %lu, hashBlockRef: %s, block: %s",
-                       block.GetBlockTime(), pIndexRef->GetBlockTime(), hashBlockRef.GetHex().c_str(), block.GetHash().GetHex().c_str());
+                       block.GetBlockTime(), pIndexRef->GetBlockTime(), hashBlockRef.GetHex().c_str(), hashBlock.GetHex().c_str());
                 return false;
             }
         }
@@ -768,7 +770,7 @@ bool CBlockChain::VerifyRepeatBlock(const uint256& hashFork, const uint256& hash
                 || ((block.GetBlockTime() - pIndexRef->GetBlockTime()) % EXTENDED_BLOCK_SPACING) != 0)
             {
                 StdLog("BlockChain", "Verify Repeat Block: Extended block time error, block time: %lu, ref block time: %lu, hashBlockRef: %s, block: %s",
-                       block.GetBlockTime(), pIndexRef->GetBlockTime(), hashBlockRef.GetHex().c_str(), block.GetHash().GetHex().c_str());
+                       block.GetBlockTime(), pIndexRef->GetBlockTime(), hashBlockRef.GetHex().c_str(), hashBlock.GetHex().c_str());
                 return false;
             }
         }
@@ -1016,6 +1018,28 @@ bool CBlockChain::GetBlockDelegateAgreement(const uint256& hashBlock, const CBlo
     return true;
 }
 
+bool CBlockChain::GetBlockDelegateVoteAddress(const uint256& hashBlock, std::set<CDestination>& setVoteAddress)
+{
+    std::map<CDestination, uint256> mapVote;
+    if (!cntrBlock.GetBlockDelegateVote(hashBlock, mapVote))
+    {
+        StdLog("BlockChain", "Get block delegate vote address: Get delegate vote fail, block: %s", hashBlock.GetBhString().c_str());
+        return false;
+    }
+
+    std::map<std::pair<uint256, CDestination>, CDestination> mapVoteSort;
+    for (auto& kv : mapVote)
+    {
+        mapVoteSort.insert(std::make_pair(std::make_pair(kv.second, kv.first), kv.first));
+    }
+    for (auto it = mapVoteSort.rbegin(); it != mapVoteSort.rend() && setVoteAddress.size() < MAX_DELEGATE_BLOCK_VOTE; ++it)
+    {
+        //StdDebug("BlockChain", "Get block delegate vote address: vote amount: %s, address: %s", CoinToTokenBigFloat(it->first.first).c_str(), it->second.ToString().c_str());
+        setVoteAddress.insert(it->second);
+    }
+    return true;
+}
+
 uint256 CBlockChain::GetBlockMoneySupply(const uint256& hashBlock)
 {
     CBlockIndex* pIndex = nullptr;
@@ -1145,7 +1169,7 @@ bool CBlockChain::CheckForkValidLast(const uint256& hashFork, CBlockChainUpdate&
            hashOldLastBlock.ToString().c_str(), pValidLastIndex->GetBlockHash().ToString().c_str(),
            pValidLastIndex->hashRefBlock.ToString().c_str(), hashFork.GetHex().c_str());
 
-    update = CBlockChainUpdate(pValidLastIndex);
+    update = CBlockChainUpdate(pValidLastIndex, {});
     if (!cntrBlock.GetBlockBranchList(pValidLastIndex->GetBlockHash(), update.vBlockRemove, update.vBlockAddNew))
     {
         StdError("BlockChain", "Check Fork Valid Last: get block branch list fail, last block: %s, fork: %s",
@@ -1212,13 +1236,14 @@ bool CBlockChain::IsVacantBlockBeforeCreatedForkHeight(const uint256& hashFork, 
     }
     else
     {
-        CBlockIndex* pPrevIndex;
-        if (!cntrBlock.RetrieveIndex(block.hashPrev, &pPrevIndex))
-        {
-            StdLog("BlockChain", "Check created fork height: Get prev block index fail, prev block: %s", block.hashPrev.ToString().c_str());
-            return false;
-        }
-        hashPrimaryRefBlock = pPrevIndex->hashRefBlock;
+        // CBlockIndex* pPrevIndex;
+        // if (!cntrBlock.RetrieveIndex(block.hashPrev, &pPrevIndex))
+        // {
+        //     StdLog("BlockChain", "Check created fork height: Get prev block index fail, prev block: %s", block.hashPrev.ToString().c_str());
+        //     return false;
+        // }
+        // hashPrimaryRefBlock = pPrevIndex->hashRefBlock;
+        hashPrimaryRefBlock = block.GetRefBlock();
     }
     int nCreatedHeight = cntrBlock.GetForkCreatedHeight(hashFork, hashPrimaryRefBlock);
     if (nCreatedHeight < 0)
@@ -1298,7 +1323,7 @@ Errno CBlockChain::VerifyBlock(const uint256& hashBlock, const CBlock& block, CB
             return ERR_BLOCK_INVALID_FORK;
         }
 
-        if (!VerifyBlockCertTx(block))
+        if (!VerifyBlockCertTx(hashBlock, block))
         {
             StdLog("BlockChain", "Verify block: Verify cert tx fail, block: %s", hashBlock.GetHex().c_str());
             return ERR_BLOCK_CERTTX_OUT_OF_BOUND;
@@ -1314,6 +1339,20 @@ Errno CBlockChain::VerifyBlock(const uint256& hashBlock, const CBlock& block, CB
         {
             StdLog("BlockChain", "Verify block: Get mint reward fail, block: %s", hashBlock.GetHex().c_str());
             return ERR_BLOCK_COINBASE_INVALID;
+        }
+
+        if (!VerifyBlockVoteResult(hashBlock, block))
+        {
+            StdLog("BlockChain", "Verify block: Verify block vote fail, prev: %s, block: %s",
+                   pIndexPrev->GetBlockHash().GetHex().c_str(), hashBlock.GetHex().c_str());
+            return ERR_BLOCK_INVALID_FORK;
+        }
+
+        if (!VerifyBlockCrosschainProve(hashBlock, block))
+        {
+            StdLog("BlockChain", "Verify block: Verify block crosschain prove fail, prev: %s, block: %s",
+                   pIndexPrev->GetBlockHash().GetHex().c_str(), hashBlock.GetHex().c_str());
+            return ERR_BLOCK_INVALID_FORK;
         }
 
         if (agreement.IsProofOfWork())
@@ -1416,6 +1455,20 @@ Errno CBlockChain::VerifyBlock(const uint256& hashBlock, const CBlock& block, CB
             }
         }
 
+        if (!VerifyBlockVoteResult(hashBlock, block))
+        {
+            StdLog("BlockChain", "Verify block: SubFork verify block vote fail, prev: %s, block: %s",
+                   pIndexPrev->GetBlockHash().GetHex().c_str(), hashBlock.GetHex().c_str());
+            return ERR_BLOCK_INVALID_FORK;
+        }
+
+        if (!VerifyBlockCrosschainProve(hashBlock, block))
+        {
+            StdLog("BlockChain", "Verify block: SubFork verify block crosschain prove fail, prev: %s, block: %s",
+                   pIndexPrev->GetBlockHash().GetHex().c_str(), hashBlock.GetHex().c_str());
+            return ERR_BLOCK_INVALID_FORK;
+        }
+
         return pCoreProtocol->VerifySubsidiary(block, pIndexPrev, *ppIndexRef, agreement);
     }
     else if (block.IsVacant())
@@ -1508,6 +1561,14 @@ Errno CBlockChain::VerifyBlock(const uint256& hashBlock, const CBlock& block, CB
                 return ERR_BLOCK_TIMESTAMP_OUT_OF_RANGE;
             }
         }
+
+        CBlockVoteSig proofVote;
+        if (block.GetBlockVoteSig(proofVote))
+        {
+            StdLog("BlockChain", "Verify block: Vacant block vote not empty, prev: %s, block: %s",
+                   pIndexPrev->GetBlockHash().GetHex().c_str(), hashBlock.GetHex().c_str());
+            return ERR_BLOCK_INVALID_FORK;
+        }
     }
     else
     {
@@ -1518,7 +1579,7 @@ Errno CBlockChain::VerifyBlock(const uint256& hashBlock, const CBlock& block, CB
     return OK;
 }
 
-bool CBlockChain::VerifyBlockCertTx(const CBlock& block)
+bool CBlockChain::VerifyBlockCertTx(const uint256& hashBlock, const CBlock& block)
 {
     set<pair<CDestination, int>> setDelegateEnroll;
     for (const auto& tx : block.vtx)
@@ -1541,16 +1602,224 @@ bool CBlockChain::VerifyBlockCertTx(const CBlock& block)
             {
                 StdLog("BlockChain", "Verify block cert tx: Delegate is enrolled, enroll height: %d, delegate address: %s, txid: %s, prev: [%d] %s, block: %s",
                        (int)(tx.GetNonce()), tx.GetToAddress().ToString().c_str(), tx.GetHash().ToString().c_str(), CBlock::GetBlockHeightByHash(block.hashPrev),
-                       block.hashPrev.ToString().c_str(), block.GetHash().ToString().c_str());
+                       block.hashPrev.ToString().c_str(), hashBlock.ToString().c_str());
                 return false;
             }
             if (setDelegateEnroll.find(make_pair(tx.GetToAddress(), (int)(tx.GetNonce()))) != setDelegateEnroll.end())
             {
                 StdLog("BlockChain", "Verify block cert tx: Duplicate cert tx, enroll height: %d, delegate address: %s, txid: %s, block: %s",
-                       (int)(tx.GetNonce()), tx.GetToAddress().ToString().c_str(), tx.GetHash().ToString().c_str(), block.GetHash().ToString().c_str());
+                       (int)(tx.GetNonce()), tx.GetToAddress().ToString().c_str(), tx.GetHash().ToString().c_str(), hashBlock.ToString().c_str());
                 return false;
             }
             setDelegateEnroll.insert(make_pair(tx.GetToAddress(), (int)(tx.GetNonce())));
+        }
+    }
+    return true;
+}
+
+bool CBlockChain::VerifyBlockVoteResult(const uint256& hashBlock, const CBlock& block)
+{
+    CBlockVoteSig proofVote;
+    if (block.GetBlockVoteSig(proofVote) && !proofVote.IsNull())
+    {
+        CBlockStatus statusVoteBlock;
+        if (!GetBlockStatus(proofVote.hashBlockVote, statusVoteBlock))
+        {
+            StdLog("BlockChain", "Verify block vote result: Get block status fail, vote block: %s, block: %s",
+                   proofVote.hashBlockVote.ToString().c_str(), hashBlock.ToString().c_str());
+            return false;
+        }
+        if (statusVoteBlock.nBlockNumber >= block.GetBlockNumber())
+        {
+            StdLog("BlockChain", "Verify block vote result: Vote block number error, vote block number: %lu, local block number: %lu, vote block: %s, block: %s",
+                   statusVoteBlock.nBlockNumber, block.GetBlockNumber(),
+                   proofVote.hashBlockVote.ToString().c_str(), hashBlock.ToString().c_str());
+            return false;
+        }
+        if (block.IsPrimary())
+        {
+            if (proofVote.hashBlockVote != block.hashPrev)
+            {
+                StdLog("BlockChain", "Verify block vote result: Primary chain block vote error, vote block: %s, block: %s",
+                       proofVote.hashBlockVote.ToString().c_str(), hashBlock.ToString().c_str());
+                return false;
+            }
+        }
+        else
+        {
+            if (proofVote.hashBlockVote != block.hashPrev && !cntrBlock.VerifySameChain(proofVote.hashBlockVote, block.hashPrev))
+            {
+                StdLog("BlockChain", "Verify block vote result: Vote block not at chain, vote block number: %lu, local block number: %lu, prev block: %s, vote block: %s, block: %s",
+                       statusVoteBlock.nBlockNumber, block.GetBlockNumber(), block.hashPrev.ToString().c_str(),
+                       proofVote.hashBlockVote.ToString().c_str(), hashBlock.ToString().c_str());
+                return false;
+            }
+        }
+
+        // bytes btTempBitmap;
+        // bytes btTempAggSig;
+        // bool fTempAtChain = false;
+        // uint256 hashTempAtBlock;
+        // if (cntrBlock.RetrieveBlockVoteResult(proofVote.hashBlockVote, btTempBitmap, btTempAggSig, fTempAtChain, hashTempAtBlock) && fTempAtChain)
+        // {
+        //     StdLog("BlockChain", "Verify block vote result: Vote is already on the chain, vote block: %s, block: %s",
+        //            proofVote.hashBlockVote.ToString().c_str(), hashBlock.ToString().c_str());
+        //     return false;
+        // }
+
+        if (!VerifyBlockCommitVoteAggSig(proofVote.hashBlockVote, proofVote.btBlockVoteBitmap, proofVote.btBlockVoteAggSig))
+        {
+            StdLog("BlockChain", "Verify block vote result: Verify commit vote fail, vote block: %s, block: %s",
+                   proofVote.hashBlockVote.ToString().c_str(), hashBlock.ToString().c_str());
+            return false;
+        }
+    }
+    else
+    {
+        if (block.IsPrimary() && block.hashPrev != pCoreProtocol->GetGenesisBlockHash())
+        {
+            bool fNeedProve = true;
+            do
+            {
+                std::vector<uint384> vCandidatePubkey;
+                if (!GetPrevBlockCandidatePubkey(block.hashPrev, vCandidatePubkey))
+                {
+                    StdLog("BlockChain", "Verify block vote result: Get prev block candidate pubkey fail, prev block: %s", block.hashPrev.GetBhString().c_str());
+                    break;
+                }
+                if (!vCandidatePubkey.empty())
+                {
+                    break;
+                }
+                CBlockStatus status;
+                if (!GetBlockStatus(block.hashPrev, status))
+                {
+                    StdLog("BlockChain", "Verify block vote result: Get block status fail, prev block: %s", block.hashPrev.GetBhString().c_str());
+                    break;
+                }
+                if (status.nMintType == CTransaction::TX_WORK)
+                {
+                    fNeedProve = false;
+                }
+            } while (0);
+
+            if (fNeedProve)
+            {
+                StdLog("BlockChain", "Verify block vote result: Primary chain is not block vote sig, prev block: %s, block: %s",
+                       block.hashPrev.GetBhString().c_str(), hashBlock.GetBhString().c_str());
+                return false;
+            }
+        }
+    }
+    return true;
+}
+
+bool CBlockChain::VerifyBlockCrosschainProve(const uint256& hashBlock, const CBlock& block)
+{
+    const CChainId nLocalChainId = CBlock::GetBlockChainIdByHash(hashBlock);
+    const CChainId nGenesisChainId = CBlock::GetBlockChainIdByHash(pCoreProtocol->GetGenesisBlockHash());
+
+    for (const auto& kv : block.mapProve)
+    {
+        const CChainId nPeerChainId = kv.first;
+        const CBlockProve& blockProve = kv.second;
+
+        if (nPeerChainId == nLocalChainId)
+        {
+            StdLog("BlockChain", "Verify block crosschain prove: Peer chainid iequal to local chainid, peer chainid: %u, block: %s", nPeerChainId, hashBlock.ToString().c_str());
+            return false;
+        }
+        if (blockProve.hashBlock == 0)
+        {
+            StdLog("BlockChain", "Verify block crosschain prove: Prove block is empty, local chainid: %d, peer chainid: %d, block: %s", nLocalChainId, nPeerChainId, hashBlock.ToString().c_str());
+            return false;
+        }
+        if (blockProve.btAggSigBitmap.empty())
+        {
+            StdLog("BlockChain", "Verify block crosschain prove: Prove agg bitmap is empty, block: %s", hashBlock.ToString().c_str());
+            return false;
+        }
+        if (blockProve.btAggSigData.empty())
+        {
+            StdLog("BlockChain", "Verify block crosschain prove: Prove agg sig is empty, block: %s", hashBlock.ToString().c_str());
+            return false;
+        }
+
+        uint256 hashRefBlock;
+        if (nPeerChainId == nGenesisChainId)
+        {
+            // if (blockProve.hashRefBlock != 0 || !blockProve.vRefBlockMerkleProve.empty())
+            // {
+            //     return false;
+            // }
+            hashRefBlock = blockProve.hashBlock;
+        }
+        else
+        {
+            if (blockProve.hashRefBlock == 0 || blockProve.vRefBlockMerkleProve.empty())
+            {
+                StdLog("BlockChain", "Verify block crosschain prove: Prove ref block or merkle prove is empty, block: %s", hashBlock.ToString().c_str());
+                return false;
+            }
+            if (!CBlock::VerifyBlockMerkleProve(blockProve.hashBlock, blockProve.vRefBlockMerkleProve, blockProve.hashRefBlock))
+            {
+                StdLog("BlockChain", "Verify block crosschain prove: Verify ref block merkle prove fail, verify block: %s, ref block: %s, block: %s",
+                       blockProve.hashBlock.ToString().c_str(), blockProve.hashRefBlock.ToString().c_str(), hashBlock.ToString().c_str());
+                return false;
+            }
+            hashRefBlock = blockProve.hashRefBlock;
+        }
+
+        if (!VerifyBlockCommitVoteAggSig(blockProve.hashBlock, hashRefBlock, blockProve.btAggSigBitmap, blockProve.btAggSigData))
+        {
+            StdLog("BlockChain", "Verify block crosschain prove: Verify commit vote fail, vote block: %s, ref block: %s, block: %s",
+                   blockProve.hashBlock.ToString().c_str(), hashRefBlock.ToString().c_str(), hashBlock.ToString().c_str());
+            return false;
+        }
+
+        if (blockProve.hashPrevBlock != 0 && !blockProve.vPrevBlockMerkleProve.empty())
+        {
+            if (!CBlock::VerifyBlockMerkleProve(blockProve.hashBlock, blockProve.vPrevBlockMerkleProve, blockProve.hashPrevBlock))
+            {
+                StdLog("BlockChain", "Verify block crosschain prove: Verify prev block merkle prove fail, prev block: %s, block: %s",
+                       blockProve.hashPrevBlock.ToString().c_str(), hashBlock.ToString().c_str());
+                return false;
+            }
+        }
+        if (!blockProve.proveCrosschain.IsNull() && !blockProve.vCrosschainMerkleProve.empty())
+        {
+            if (!CBlock::VerifyBlockMerkleProve(blockProve.hashBlock, blockProve.vCrosschainMerkleProve, blockProve.proveCrosschain.GetHash()))
+            {
+                StdLog("BlockChain", "Verify block crosschain prove: Verify crosschain merkle prove fail, block: %s", hashBlock.ToString().c_str());
+                return false;
+            }
+        }
+
+        if (blockProve.hashPrevBlock != 0 && !blockProve.vPrevBlockCcProve.empty())
+        {
+            uint256 hashAtBlock = blockProve.hashPrevBlock;
+            for (const CBlockPrevProve& prevProve : blockProve.vPrevBlockCcProve)
+            {
+                if (prevProve.hashPrevBlock != 0 && !prevProve.vPrevBlockMerkleProve.empty())
+                {
+                    if (!CBlock::VerifyBlockMerkleProve(hashAtBlock, prevProve.vPrevBlockMerkleProve, prevProve.hashPrevBlock))
+                    {
+                        StdLog("BlockChain", "Verify block crosschain prove: Verify prev block merkle prove fail, at block: %s, merkle prove size: %lu, prev block: %s, block: %s",
+                               hashAtBlock.GetBhString().c_str(), prevProve.vPrevBlockMerkleProve.size(), prevProve.hashPrevBlock.GetBhString().c_str(), hashBlock.GetBhString().c_str());
+                        return false;
+                    }
+                }
+                if (!prevProve.proveCrosschain.IsNull() && !prevProve.vCrosschainMerkleProve.empty())
+                {
+                    if (!CBlock::VerifyBlockMerkleProve(hashAtBlock, prevProve.vCrosschainMerkleProve, prevProve.proveCrosschain.GetHash()))
+                    {
+                        StdLog("BlockChain", "Verify block crosschain prove: Verify crosschain merkle prove fail, at block: %s, block: %s",
+                               hashAtBlock.ToString().c_str(), hashBlock.ToString().c_str());
+                        return false;
+                    }
+                }
+                hashAtBlock = prevProve.hashPrevBlock;
+            }
         }
     }
     return true;
@@ -1780,6 +2049,11 @@ bool CBlockChain::RetrieveTimeVault(const uint256& hashFork, const uint256& hash
     return cntrBlock.RetrieveTimeVault(hashFork, hashBlock, dest, tv);
 }
 
+bool CBlockChain::RetrieveBlsPubkeyContext(const uint256& hashFork, const uint256& hashBlock, const CDestination& dest, uint384& blsPubkey)
+{
+    return cntrBlock.RetrieveBlsPubkeyContext(hashFork, hashBlock, dest, blsPubkey);
+}
+
 bool CBlockChain::GetAddressCount(const uint256& hashFork, const uint256& hashBlock, uint64& nAddressCount, uint64& nNewAddressCount)
 {
     return cntrBlock.GetAddressCount(hashFork, hashBlock, nAddressCount, nNewAddressCount);
@@ -1848,31 +2122,39 @@ bool CBlockChain::GetAddressLockedAmount(const uint256& hashFork, const uint256&
     return cntrBlock.GetAddressLockedAmount(hashFork, hashPrevBlock, dest, ctxAddress, nBalance, nLockedAmount);
 }
 
-bool CBlockChain::VerifyForkNameAndChainId(const uint256& hashFork, const CChainId nChainIdIn, const std::string& strForkName, const uint256& hashBlock)
+bool CBlockChain::VerifyForkFlag(const uint256& hashNewFork, const CChainId nChainIdIn, const std::string& strForkSymbol, const std::string& strForkName, const uint256& hashBlock)
 {
-    CForkContext ctxt;
-    if (!cntrBlock.RetrieveForkContext(hashFork, ctxt, hashBlock))
-    {
-        StdLog("BlockChain", "Verify fork name: Fork id existed, fork: %s", hashFork.GetHex().c_str());
-        return false;
-    }
-    uint256 hashTempFork;
-    if (cntrBlock.GetForkHashByForkName(strForkName, hashTempFork, hashBlock))
-    {
-        StdLog("BlockChain", "Verify fork name: Fork name existed, name: %s", strForkName.c_str());
-        return false;
-    }
-    if (cntrBlock.GetForkHashByChainId(nChainIdIn, hashTempFork, hashBlock))
-    {
-        StdLog("BlockChain", "Verify fork name: Chainid existed, chainid: %d", nChainIdIn);
-        return false;
-    }
-    return true;
+    return cntrBlock.VerifyForkFlag(hashNewFork, nChainIdIn, strForkSymbol, strForkName, hashBlock);
 }
 
-bool CBlockChain::GetForkHashByChainId(const CChainId nChainId, uint256& hashFork, const uint256& hashBlock)
+bool CBlockChain::GetForkCoinCtxByForkSymbol(const std::string& strForkSymbol, CCoinContext& ctxCoin, const uint256& hashMainChainRefBlock)
 {
-    return cntrBlock.GetForkHashByChainId(nChainId, hashFork, hashBlock);
+    return cntrBlock.GetForkCoinCtxByForkSymbol(strForkSymbol, ctxCoin, hashMainChainRefBlock);
+}
+
+bool CBlockChain::GetForkHashByChainId(const CChainId nChainId, uint256& hashFork, const uint256& hashMainChainRefBlock)
+{
+    return cntrBlock.GetForkHashByChainId(nChainId, hashFork, hashMainChainRefBlock);
+}
+
+bool CBlockChain::ListCoinContext(std::map<std::string, CCoinContext>& mapSymbolCoin, const uint256& hashMainChainRefBlock)
+{
+    return cntrBlock.ListCoinContext(mapSymbolCoin, hashMainChainRefBlock);
+}
+
+bool CBlockChain::GetDexCoinPairBySymbolPair(const std::string& strSymbol1, const std::string& strSymbol2, uint32& nCoinPair, const uint256& hashMainChainRefBlock)
+{
+    return cntrBlock.GetDexCoinPairBySymbolPair(strSymbol1, strSymbol2, nCoinPair, hashMainChainRefBlock);
+}
+
+bool CBlockChain::GetSymbolPairByDexCoinPair(const uint32 nCoinPair, std::string& strSymbol1, std::string& strSymbol2, const uint256& hashMainChainRefBlock)
+{
+    return cntrBlock.GetSymbolPairByDexCoinPair(nCoinPair, strSymbol1, strSymbol2, hashMainChainRefBlock);
+}
+
+bool CBlockChain::ListDexCoinPair(const uint32 nCoinPair, const std::string& strCoinSymbol, std::map<uint32, std::pair<std::string, std::string>>& mapDexCoinPair, const uint256& hashMainChainRefBlock)
+{
+    return cntrBlock.ListDexCoinPair(nCoinPair, strCoinSymbol, mapDexCoinPair, hashMainChainRefBlock);
 }
 
 bool CBlockChain::RetrieveContractKvValue(const uint256& hashFork, const uint256& hashBlock, const CDestination& dest, const uint256& key, bytes& value)
@@ -1892,49 +2174,19 @@ bool CBlockChain::RetrieveContractKvValue(const uint256& hashFork, const uint256
     return cntrBlock.RetrieveContractKvValue(hashFork, state.GetStorageRoot(), hash, value);
 }
 
-uint256 CBlockChain::AddLogsFilter(const uint256& hashClient, const uint256& hashFork, const CLogsFilter& logsFilter)
+bool CBlockChain::GetBlockReceiptsByBlock(const uint256& hashFork, const uint256& hashFromBlock, const uint256& hashToBlock, std::map<uint256, std::vector<CTransactionReceipt>, CustomBlockHashCompare>& mapBlockReceipts)
 {
-    return cntrBlock.AddLogsFilter(hashClient, hashFork, logsFilter);
+    return cntrBlock.GetBlockReceiptsByBlock(hashFork, hashFromBlock, hashToBlock, mapBlockReceipts);
 }
 
-void CBlockChain::RemoveFilter(const uint256& nFilterId)
+bool CBlockChain::VerifySameChain(const uint256& hashPrevBlock, const uint256& hashAfterBlock)
 {
-    cntrBlock.RemoveFilter(nFilterId);
+    return cntrBlock.VerifySameChain(hashPrevBlock, hashAfterBlock);
 }
 
-bool CBlockChain::GetTxReceiptLogsByFilterId(const uint256& nFilterId, const bool fAll, ReceiptLogsVec& receiptLogs)
+bool CBlockChain::GetPrevBlockHashList(const uint256& hashBlock, const uint32 nGetCount, std::vector<uint256>& vPrevBlockhash)
 {
-    return cntrBlock.GetTxReceiptLogsByFilterId(nFilterId, fAll, receiptLogs);
-}
-
-bool CBlockChain::GetTxReceiptsByLogsFilter(const uint256& hashFork, const CLogsFilter& logsFilter, ReceiptLogsVec& vReceiptLogs)
-{
-    return cntrBlock.GetTxReceiptsByLogsFilter(hashFork, logsFilter, vReceiptLogs);
-}
-
-uint256 CBlockChain::AddBlockFilter(const uint256& hashClient, const uint256& hashFork)
-{
-    return cntrBlock.AddBlockFilter(hashClient, hashFork);
-}
-
-bool CBlockChain::GetFilterBlockHashs(const uint256& hashFork, const uint256& nFilterId, const bool fAll, std::vector<uint256>& vBlockHash)
-{
-    return cntrBlock.GetFilterBlockHashs(hashFork, nFilterId, fAll, vBlockHash);
-}
-
-uint256 CBlockChain::AddPendingTxFilter(const uint256& hashClient, const uint256& hashFork)
-{
-    return cntrBlock.AddPendingTxFilter(hashClient, hashFork);
-}
-
-void CBlockChain::AddPendingTx(const uint256& hashFork, const uint256& txid)
-{
-    cntrBlock.AddPendingTx(hashFork, txid);
-}
-
-bool CBlockChain::GetFilterTxids(const uint256& hashFork, const uint256& nFilterId, const bool fAll, std::vector<uint256>& vTxid)
-{
-    return cntrBlock.GetFilterTxids(hashFork, nFilterId, fAll, vTxid);
+    return cntrBlock.GetPrevBlockHashList(hashBlock, nGetCount, vPrevBlockhash);
 }
 
 bool CBlockChain::CalcBlockVoteRewardTx(const uint256& hashPrev, const uint16 nBlockType, const int nBlockHeight, const uint32 nBlockTime, vector<CTransaction>& vVoteRewardTx)
@@ -1970,8 +2222,8 @@ bool CBlockChain::CalcBlockVoteRewardTx(const uint256& hashPrev, const uint16 nB
     }
     if (pIndex->GetOriginHash() != hashFork)
     {
-        StdLog("BlockChain", "Get distribute vote reward tx: Fork error, calc fork: %s, prev fork: %s, hashPrev: %s",
-               pIndex->GetOriginHash().GetHex().c_str(), hashFork.GetHex().c_str(), hashPrev.GetHex().c_str());
+        StdDebug("BlockChain", "Get distribute vote reward tx: Fork error, calc fork: %s, prev fork: %s, hashPrev: %s",
+                 pIndex->GetOriginHash().GetHex().c_str(), hashFork.GetHex().c_str(), hashPrev.GetHex().c_str());
         return true;
     }
     const uint256 hashCalcEndBlock = pIndex->GetBlockHash();
@@ -2082,7 +2334,7 @@ uint256 CBlockChain::GetPrimaryBlockReward(const uint256& hashPrev)
 }
 
 bool CBlockChain::CreateBlockStateRoot(const uint256& hashFork, const CBlock& block, uint256& hashStateRoot, uint256& hashReceiptRoot,
-                                       uint256& nBlockGasUsed, bytes& btBloomDataOut, uint256& nTotalMintRewardOut)
+                                       uint256& hashCrosschainMerkleRoot, uint256& nBlockGasUsed, bytes& btBloomDataOut, uint256& nTotalMintRewardOut, bool& fMoStatus)
 {
     uint256 hashPrevStateRoot;
     uint32 nPrevBlockTime = 0;
@@ -2106,7 +2358,7 @@ bool CBlockChain::CreateBlockStateRoot(const uint256& hashFork, const CBlock& bl
     }
 
     return (cntrBlock.CreateBlockStateRoot(hashFork, block, hashPrevStateRoot, nPrevBlockTime, hashStateRoot, hashReceiptRoot,
-                                           nBlockGasUsed, btBloomDataOut, nTotalMintRewardOut, mapAddressContext)
+                                           hashCrosschainMerkleRoot, nBlockGasUsed, btBloomDataOut, nTotalMintRewardOut, fMoStatus, mapAddressContext)
             != nullptr);
 }
 
@@ -2213,6 +2465,42 @@ bool CBlockChain::CallContract(const bool fEthCall, const uint256& hashFork, con
     return true;
 }
 
+bool CBlockChain::GetContractBalance(const bool fEthCall, const uint256& hashFork, const uint256& hashBlock, const CDestination& destContract, const CDestination& destUser, uint256& nBalance)
+{
+    const CDestination& from = destUser;
+    const CDestination& to = destContract;
+    const uint256 nAmount = 0;
+    const uint256 nGasPrice = MIN_GAS_PRICE;
+    const uint256 nGas = DEF_TX_GAS_LIMIT;
+    uint256 nUsedGas;
+    uint64 nGasLeft = 0;
+    int nStatus = 0;
+    bytes btResult;
+
+    //function balanceOf(address tokenOwner) external view returns (uint);
+
+    std::vector<bytes> vParamList;
+    vParamList.push_back(destUser.ToHash().GetBytes());
+
+    bytes btContractParam = MakeEthTxCallData("balanceOf(address)", vParamList);
+
+    if (!CallContract(fEthCall, hashFork, hashBlock, from, to, nAmount, nGasPrice,
+                      nGas, btContractParam, nUsedGas, nGasLeft, nStatus, btResult))
+    {
+        StdLog("BlockChain", "Get contract balance: Call contract fail, contract address: %s, user address: %s, fork: %s",
+               destContract.ToString().c_str(), destUser.ToString().c_str(), hashFork.GetHex().c_str());
+        return false;
+    }
+    if (btResult.size() != 32)
+    {
+        StdLog("BlockChain", "Get contract balance: Result error, result: %s, contract address: %s, user address: %s, fork: %s",
+               ToHexString(btResult).c_str(), destContract.ToString().c_str(), destUser.ToString().c_str(), hashFork.GetHex().c_str());
+        return false;
+    }
+    nBalance.FromBigEndian(btResult.data(), 32);
+    return true;
+}
+
 bool CBlockChain::VerifyContractAddress(const uint256& hashFork, const uint256& hashBlock, const CDestination& destContract)
 {
     return cntrBlock.VerifyContractAddress(hashFork, hashBlock, destContract);
@@ -2221,6 +2509,43 @@ bool CBlockChain::VerifyContractAddress(const uint256& hashFork, const uint256& 
 bool CBlockChain::VerifyCreateCodeTx(const uint256& hashFork, const uint256& hashBlock, const CTransaction& tx)
 {
     return cntrBlock.VerifyCreateCodeTx(hashFork, hashBlock, tx);
+}
+
+bool CBlockChain::GetCompleteOrder(const uint256& hashBlock, const CDestination& destOrder, const CChainId nChainIdOwner, const std::string& strCoinSymbolOwner,
+                                   const std::string& strCoinSymbolPeer, const uint64 nOrderNumber, uint256& nCompleteAmount, uint64& nCompleteOrderCount)
+{
+    return cntrBlock.GetCompleteOrder(hashBlock, destOrder, nChainIdOwner, strCoinSymbolOwner, strCoinSymbolPeer, nOrderNumber, nCompleteAmount, nCompleteOrderCount);
+}
+
+bool CBlockChain::GetCompleteOrder(const uint256& hashBlock, const uint256& hashDexOrder, uint256& nCompleteAmount, uint64& nCompleteOrderCount)
+{
+    return cntrBlock.GetCompleteOrder(hashBlock, hashDexOrder, nCompleteAmount, nCompleteOrderCount);
+}
+
+bool CBlockChain::ListAddressDexOrder(const uint256& hashBlock, const CDestination& destOrder, const std::string& strCoinSymbolOwner, const std::string& strCoinSymbolPeer,
+                                      const uint64 nBeginOrderNumber, const uint32 nGetCount, std::map<CDexOrderHeader, CDexOrderSave>& mapDexOrder)
+{
+    return cntrBlock.ListAddressDexOrder(hashBlock, destOrder, strCoinSymbolOwner, strCoinSymbolPeer, nBeginOrderNumber, nGetCount, mapDexOrder);
+}
+
+bool CBlockChain::ListMatchDexOrder(const uint256& hashBlock, const std::string& strCoinSymbolSell, const std::string& strCoinSymbolBuy, const uint64 nGetCount, CRealtimeDexOrder& realDexOrder)
+{
+    return cntrBlock.ListMatchDexOrder(hashBlock, strCoinSymbolSell, strCoinSymbolBuy, nGetCount, realDexOrder);
+}
+
+bool CBlockChain::GetCrosschainProveForPrevBlock(const CChainId nRecvChainId, const uint256& hashRecvPrevBlock, std::map<CChainId, CBlockProve>& mapBlockCrosschainProve)
+{
+    return cntrBlock.GetCrosschainProveForPrevBlock(nRecvChainId, hashRecvPrevBlock, mapBlockCrosschainProve);
+}
+
+bool CBlockChain::AddRecvCrosschainProve(const CChainId nRecvChainId, const CBlockProve& blockProve)
+{
+    return cntrBlock.AddRecvCrosschainProve(nRecvChainId, blockProve);
+}
+
+bool CBlockChain::GetRecvCrosschainProve(const CChainId nRecvChainId, const CChainId nSendChainId, const uint256& hashSendProvePrevBlock, CBlockProve& blockProve)
+{
+    return cntrBlock.GetRecvCrosschainProve(nRecvChainId, nSendChainId, hashSendProvePrevBlock, blockProve);
 }
 
 bool CBlockChain::AddBlacklistAddress(const CDestination& dest)
@@ -2271,6 +2596,159 @@ bool CBlockChain::UpdateForkMintMinGasPrice(const uint256& hashFork, const uint2
 uint256 CBlockChain::GetForkMintMinGasPrice(const uint256& hashFork)
 {
     return cntrBlock.GetForkMintMinGasPrice(hashFork);
+}
+
+bool CBlockChain::GetCandidatePubkey(const uint256& hashPrimaryBlock, std::vector<uint384>& vCandidatePubkey)
+{
+    boost::unique_lock<boost::mutex> lock(mutexBlsPubkey);
+    if (!cacheBlsPubkey.GetBlsPubkey(hashPrimaryBlock, vCandidatePubkey))
+    {
+        std::set<CDestination> setVoteAddress;
+        if (!GetBlockDelegateVoteAddress(hashPrimaryBlock, setVoteAddress))
+        {
+            StdLog("CBlockChain", "Get candidate pubkey: Get block delegate vote address fail, block: %s", hashPrimaryBlock.GetBhString().c_str());
+            return false;
+        }
+        vCandidatePubkey.clear();
+        for (const CDestination& dest : setVoteAddress)
+        {
+            uint384 pubkey;
+            if (cntrBlock.RetrieveBlsPubkeyContext(pCoreProtocol->GetGenesisBlockHash(), hashPrimaryBlock, dest, pubkey))
+            {
+                vCandidatePubkey.push_back(pubkey);
+            }
+        }
+        StdDebug("CBlockChain", "Get candidate pubkey: Candidate pubkey count: %lu, Vote address count: %lu, block: %s",
+                 vCandidatePubkey.size(), setVoteAddress.size(), hashPrimaryBlock.GetBhString().c_str());
+        cacheBlsPubkey.AddBlsPubkey(hashPrimaryBlock, vCandidatePubkey);
+    }
+    return true;
+}
+
+bool CBlockChain::GetPrevBlockCandidatePubkey(const uint256& hashBlock, std::vector<uint384>& vCandidatePubkey)
+{
+    CBlockStatus status;
+    if (!GetBlockStatus(hashBlock, status))
+    {
+        StdLog("CBlockChain", "Get prev block candidate pubkey: Get block status fail, block: %s", hashBlock.GetHex().c_str());
+        return false;
+    }
+    uint256 hashPrevPrimaryBlock;
+    if (status.hashFork == pCoreProtocol->GetGenesisBlockHash())
+    {
+        hashPrevPrimaryBlock = status.hashPrevBlock;
+    }
+    else
+    {
+        CBlockStatus statusRefBlock;
+        if (!GetBlockStatus(status.hashRefBlock, statusRefBlock))
+        {
+            StdLog("CBlockChain", "Get prev block candidate pubkey: Get ref block status fail, ref block: %s, block: %s", status.hashRefBlock.GetHex().c_str(), hashBlock.GetHex().c_str());
+            return false;
+        }
+        hashPrevPrimaryBlock = statusRefBlock.hashPrevBlock;
+    }
+    if (!GetCandidatePubkey(hashPrevPrimaryBlock, vCandidatePubkey))
+    {
+        StdLog("CBlockChain", "Get prev block candidate pubkey: Get candidate pubkey fail, block: %s", hashBlock.GetHex().c_str());
+        return false;
+    }
+    return true;
+}
+
+bool CBlockChain::VerifyBlockCommitVoteAggSig(const uint256& hashBlock, const bytes& btAggBitmap, const bytes& btAggSig)
+{
+    vector<uint384> vCandidatePubkeys;
+    if (!GetPrevBlockCandidatePubkey(hashBlock, vCandidatePubkeys))
+    {
+        StdLog("BlockChain", "Verify block commit vote aggsig: Get candidate pubkey fail, vote block: %s", hashBlock.ToString().c_str());
+        return false;
+    }
+    if (!consensus::consblockvote::CConsBlockVote::VerifyCommitVoteAggSig(hashBlock, btAggBitmap, btAggSig, vCandidatePubkeys))
+    {
+        StdLog("BlockChain", "Verify block commit vote aggsig: Verify commit vote fail, vote block: %s", hashBlock.ToString().c_str());
+        return false;
+    }
+    return true;
+}
+
+bool CBlockChain::VerifyBlockCommitVoteAggSig(const uint256& hashVoteBlock, const uint256& hashRefBlock, const bytes& btAggBitmap, const bytes& btAggSig)
+{
+    vector<uint384> vCandidatePubkeys;
+    if (!GetCandidatePubkey(hashRefBlock, vCandidatePubkeys))
+    {
+        StdLog("BlockChain", "Verify block commit vote aggsig: Get candidate pubkey fail, ref block: %s", hashRefBlock.ToString().c_str());
+        return false;
+    }
+    if (!consensus::consblockvote::CConsBlockVote::VerifyCommitVoteAggSig(hashVoteBlock, btAggBitmap, btAggSig, vCandidatePubkeys))
+    {
+        StdLog("BlockChain", "Verify block commit vote aggsig: Verify commit vote fail, vote block: %s", hashVoteBlock.ToString().c_str());
+        return false;
+    }
+    return true;
+}
+
+bool CBlockChain::AddBlockVoteResult(const uint256& hashBlock, const bool fLongChain, const bytes& btBitmap, const bytes& btAggSig, const bool fAtChain, const uint256& hashAtBlock)
+{
+    return cntrBlock.AddBlockVoteResult(hashBlock, fLongChain, btBitmap, btAggSig, fAtChain, hashAtBlock);
+}
+
+bool CBlockChain::RetrieveBlockVoteResult(const uint256& hashBlock, bytes& btBitmap, bytes& btAggSig, bool& fAtChain, uint256& hashAtBlock)
+{
+    return cntrBlock.RetrieveBlockVoteResult(hashBlock, btBitmap, btAggSig, fAtChain, hashAtBlock);
+}
+
+bool CBlockChain::GetMakerVoteBlock(const uint256& hashPrevBlock, bytes& btBitmap, bytes& btAggSig, uint256& hashVoteBlock)
+{
+    return cntrBlock.GetMakerVoteBlock(hashPrevBlock, btBitmap, btAggSig, hashVoteBlock);
+}
+
+bool CBlockChain::IsBlockConfirm(const uint256& hashBlock)
+{
+    return cntrBlock.IsBlockConfirm(hashBlock);
+}
+
+bool CBlockChain::AddBlockLocalVoteSignFlag(const uint256& hashBlock)
+{
+    return cntrBlock.AddBlockLocalVoteSignFlag(hashBlock);
+}
+
+bool CBlockChain::VerifyPrimaryBlockConfirm(const uint256& hashBlock)
+{
+    if (hashBlock == pCoreProtocol->GetGenesisBlockHash())
+    {
+        return true;
+    }
+
+    std::vector<uint384> vCandidatePubkey;
+    if (!GetPrevBlockCandidatePubkey(hashBlock, vCandidatePubkey))
+    {
+        StdLog("BlockChain", "Verify primary block confirm: Get prev block candidate pubkey fail, block: %s", hashBlock.GetHex().c_str());
+        return false;
+    }
+    if (vCandidatePubkey.empty())
+    {
+        CBlockStatus status;
+        if (!GetBlockStatus(hashBlock, status))
+        {
+            StdLog("BlockChain", "Verify primary block confirm: Get block status fail, block: %s", hashBlock.GetHex().c_str());
+            return false;
+        }
+        if (status.nMintType == CTransaction::TX_WORK)
+        {
+            return true;
+        }
+    }
+
+    bytes btDbBitmap;
+    bytes btDbAggSig;
+    bool fDbAtChain = false;
+    uint256 hashDbAtBlock;
+    if (!RetrieveBlockVoteResult(hashBlock, btDbBitmap, btDbAggSig, fDbAtChain, hashDbAtBlock) && !fDbAtChain)
+    {
+        return false;
+    }
+    return true;
 }
 
 //------------------------------------------------------------------------------------------

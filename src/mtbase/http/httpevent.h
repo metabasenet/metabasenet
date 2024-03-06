@@ -38,6 +38,7 @@ class CHttpEventListener : virtual public CEventListener
 {
 public:
     virtual ~CHttpEventListener() {}
+
     DECLARE_EVENTHANDLER(CEventHttpReq);
     DECLARE_EVENTHANDLER(CEventHttpRsp);
     DECLARE_EVENTHANDLER(CEventHttpAbort);

@@ -147,6 +147,7 @@ public:
 };
 
 bool GetEthTxData(const uint256& secret, const CEthTxSkeleton& ets, uint256& hashTx, bytes& btEthTxData);
+bytes MakeEthTxCallData(const std::string& strFunction, const std::vector<bytes>& vParamList);
 bool GetEthSignRsv(const bytes& btSigData, uint256& r, uint256& s, uint8& v);
 
 // assume:
@@ -197,6 +198,22 @@ struct CCryptoCipher
 void CryptoKeyFromPassphrase(int version, const CCryptoString& passphrase, const uint256& salt, CCryptoKeyData& key);
 bool CryptoEncryptSecret(int version, const CCryptoString& passphrase, const CCryptoKey& key, CCryptoCipher& cipher);
 bool CryptoDecryptSecret(int version, const CCryptoString& passphrase, const CCryptoCipher& cipher, CCryptoKey& key);
+
+// bls sign & verify
+struct CCryptoBlsKey
+{
+    uint256 secret;
+    uint384 pubkey;
+};
+
+bool CryptoBlsMakeNewKey(CCryptoBlsKey& key);
+bool CryptoBlsMakeNewKey(CCryptoBlsKey& key, const uint256& random);
+bool CryptoBlsGetPubkey(const uint256& secret, uint384& pubkey);
+bool CryptoBlsSign(const uint256& secret, const bytes& btData, bytes& btSig);
+bool CryptoBlsVerify(const uint384& pubkey, const bytes& btData, const bytes& btSig);
+bool CryptoBlsAggregateSig(const std::vector<bytes>& vSigs, bytes& btAggSig);
+bool CryptoBlsAggregateVerify(const std::vector<uint384>& vPubkeys, const std::vector<bytes>& vDatas, const bytes& btAggSig);
+bool CryptoBlsFastAggregateVerify(const std::vector<uint384>& vPubkeys, const bytes& btData, const bytes& btAggSig);
 
 } // namespace crypto
 } // namespace metabasenet

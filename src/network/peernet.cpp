@@ -38,10 +38,12 @@ CBbPeerNet::CBbPeerNet()
     nService = 0;
     fEnclosed = false;
     pNetChannel = nullptr;
+    pDelegatedChannel = nullptr;
     pBlockChannel = nullptr;
     pCertTxChannel = nullptr;
     pUserTxChannel = nullptr;
-    pDelegatedChannel = nullptr;
+    pBlockVoteChannel = nullptr;
+    pBlockCrossProveChannel = nullptr;
     nSeqCreate = (GetTimeMillis() << 32) | (GetTime() & 0xFFFFFFFF);
 }
 
@@ -53,31 +55,43 @@ bool CBbPeerNet::HandleInitialize()
 {
     if (!GetObject("netchannel", pNetChannel))
     {
-        Error("Failed to request peer net netchannel\n");
-        return false;
-    }
-
-    if (!GetObject("blockchannel", pBlockChannel))
-    {
-        Error("Failed to request peer net blockchannel\n");
-        return false;
-    }
-
-    if (!GetObject("certtxchannel", pCertTxChannel))
-    {
-        Error("Failed to request peer net certtxchannel\n");
-        return false;
-    }
-
-    if (!GetObject("usertxchannel", pUserTxChannel))
-    {
-        Error("Failed to request peer net usertxchannel\n");
+        Error("Failed to request peer net netchannel");
         return false;
     }
 
     if (!GetObject("delegatedchannel", pDelegatedChannel))
     {
-        Error("Failed to request delegated delegatedchannel\n");
+        Error("Failed to request delegated delegatedchannel");
+        return false;
+    }
+
+    if (!GetObject("blockchannel", pBlockChannel))
+    {
+        Error("Failed to request peer net blockchannel");
+        return false;
+    }
+
+    if (!GetObject("certtxchannel", pCertTxChannel))
+    {
+        Error("Failed to request peer net certtxchannel");
+        return false;
+    }
+
+    if (!GetObject("usertxchannel", pUserTxChannel))
+    {
+        Error("Failed to request peer net usertxchannel");
+        return false;
+    }
+
+    if (!GetObject("blockvotechannel", pBlockVoteChannel))
+    {
+        Error("Failed to request peer net blockvotechannel");
+        return false;
+    }
+
+    if (!GetObject("blockcrossprovechannel", pBlockCrossProveChannel))
+    {
+        Error("Failed to request peer net blockcrossprovechannel");
         return false;
     }
     return true;
@@ -87,10 +101,12 @@ void CBbPeerNet::HandleDeinitialize()
 {
     setDNSeed.clear();
     pNetChannel = nullptr;
+    pDelegatedChannel = nullptr;
     pBlockChannel = nullptr;
     pCertTxChannel = nullptr;
     pUserTxChannel = nullptr;
-    pDelegatedChannel = nullptr;
+    pBlockVoteChannel = nullptr;
+    pBlockCrossProveChannel = nullptr;
 }
 
 bool CBbPeerNet::HandleEvent(CEventPeerSubscribe& eventSubscribe)
@@ -188,6 +204,34 @@ bool CBbPeerNet::HandleEvent(CEventPeerBlockBks& eventBks)
     return SendChannelMessage(PROTO_CHN_BLOCK, eventBks.nNonce, PROTO_CMD_BLOCK_BKS, ssPayload);
 }
 
+bool CBbPeerNet::HandleEvent(CEventPeerBlockNextPrevBlock& eventData)
+{
+    CBufStream ssPayload;
+    ssPayload << eventData;
+    return SendChannelMessage(PROTO_CHN_BLOCK, eventData.nNonce, PROTO_CMD_BLOCK_NEXT_PREVBLOCK, ssPayload);
+}
+
+bool CBbPeerNet::HandleEvent(CEventPeerBlockPrevBlocks& eventData)
+{
+    CBufStream ssPayload;
+    ssPayload << eventData;
+    return SendChannelMessage(PROTO_CHN_BLOCK, eventData.nNonce, PROTO_CMD_BLOCK_PREV_BLOCKS, ssPayload);
+}
+
+bool CBbPeerNet::HandleEvent(CEventPeerBlockGetBlockReq& eventData)
+{
+    CBufStream ssPayload;
+    ssPayload << eventData;
+    return SendChannelMessage(PROTO_CHN_BLOCK, eventData.nNonce, PROTO_CMD_BLOCK_GET_BLOCK_REQ, ssPayload);
+}
+
+bool CBbPeerNet::HandleEvent(CEventPeerBlockGetBlockRsp& eventData)
+{
+    CBufStream ssPayload;
+    ssPayload << eventData;
+    return SendChannelMessage(PROTO_CHN_BLOCK, eventData.nNonce, PROTO_CMD_BLOCK_GET_BLOCK_RSP, ssPayload);
+}
+
 //-----------------------------------------------------------------------
 bool CBbPeerNet::HandleEvent(CEventPeerCerttxSubscribe& eventSubscribe)
 {
@@ -230,6 +274,21 @@ bool CBbPeerNet::HandleEvent(CEventPeerUsertxTxs& eventTxs)
     CBufStream ssPayload;
     ssPayload << eventTxs;
     return SendChannelMessage(PROTO_CHN_USER_TX, eventTxs.nNonce, PROTO_CMD_USERTX_TXS, ssPayload);
+}
+
+//-----------------------------------------------------------------------
+bool CBbPeerNet::HandleEvent(CEventPeerBlockVoteProtoData& eventBvp)
+{
+    CBufStream ssPayload;
+    ssPayload << eventBvp;
+    return SendChannelMessage(PROTO_CHN_BLOCK_VOTE, eventBvp.nNonce, PROTO_CMD_BLOCKVOTE_DATA, ssPayload);
+}
+
+bool CBbPeerNet::HandleEvent(CEventPeerBlockCrossProveData& eventBcp)
+{
+    CBufStream ssPayload;
+    ssPayload << eventBcp;
+    return SendChannelMessage(PROTO_CHN_BLOCK_CROSS_PROVE, eventBcp.nNonce, PROTO_CMD_BLOCK_CROSS_PROVE_DATA, ssPayload);
 }
 
 //-----------------------------------------------------------------------
@@ -299,6 +358,8 @@ void CBbPeerNet::DestroyPeer(CPeer* pPeer)
             CEventPeerDeactive* pEventDeactiveBlock = new CEventPeerDeactive(*pEventDeactive);
             CEventPeerDeactive* pEventDeactiveCertTx = new CEventPeerDeactive(*pEventDeactive);
             CEventPeerDeactive* pEventDeactiveUserTx = new CEventPeerDeactive(*pEventDeactive);
+            CEventPeerDeactive* pEventDeactiveBlockVote = new CEventPeerDeactive(*pEventDeactive);
+            CEventPeerDeactive* pEventDeactiveBlockCrossProve = new CEventPeerDeactive(*pEventDeactive);
 
             pNetChannel->PostEvent(pEventDeactive);
             if (pEventDeactiveDelegated)
@@ -316,6 +377,14 @@ void CBbPeerNet::DestroyPeer(CPeer* pPeer)
             if (pEventDeactiveUserTx)
             {
                 pUserTxChannel->PostEvent(pEventDeactiveUserTx);
+            }
+            if (pEventDeactiveBlockVote)
+            {
+                pBlockVoteChannel->PostEvent(pEventDeactiveBlockVote);
+            }
+            if (pEventDeactiveBlockCrossProve)
+            {
+                pBlockCrossProveChannel->PostEvent(pEventDeactiveBlockCrossProve);
             }
         }
     }
@@ -498,6 +567,8 @@ bool CBbPeerNet::HandlePeerHandshaked(CPeer* pPeer, uint32 nTimerId)
         CEventPeerActive* pEventActiveBlock = new CEventPeerActive(*pEventActive);
         CEventPeerActive* pEventActiveCertTx = new CEventPeerActive(*pEventActive);
         CEventPeerActive* pEventActiveUserTx = new CEventPeerActive(*pEventActive);
+        CEventPeerActive* pEventActiveBlockVote = new CEventPeerActive(*pEventActive);
+        CEventPeerActive* pEventActiveBlockCrossProve = new CEventPeerActive(*pEventActive);
 
         pNetChannel->PostEvent(pEventActive);
         if (pEventActiveDelegated)
@@ -515,6 +586,14 @@ bool CBbPeerNet::HandlePeerHandshaked(CPeer* pPeer, uint32 nTimerId)
         if (pEventActiveUserTx)
         {
             pUserTxChannel->PostEvent(pEventActiveUserTx);
+        }
+        if (pEventActiveBlockVote)
+        {
+            pBlockVoteChannel->PostEvent(pEventActiveBlockVote);
+        }
+        if (pEventActiveBlockCrossProve)
+        {
+            pBlockCrossProveChannel->PostEvent(pEventActiveBlockCrossProve);
         }
 
         pBbPeer->nPingTimerId = SetPingTimer(0, pBbPeer->GetNonce(), PING_TIMER_DURATION);
@@ -628,6 +707,75 @@ bool CBbPeerNet::HandlePeerRecvMessage(CPeer* pPeer, int nChannel, int nCommand,
             }
             return true;
         }
+        default:
+            break;
+        }
+    }
+    else if (nChannel == PROTO_CHN_DELEGATE)
+    {
+        uint256 hashAnchor;
+        ssPayload >> hashAnchor;
+        switch (nCommand)
+        {
+        case PROTO_CMD_BULLETIN:
+        {
+            CEventPeerBulletin* pEvent = new CEventPeerBulletin(pBbPeer->GetNonce(), hashAnchor);
+            if (pEvent != nullptr)
+            {
+                ssPayload >> pEvent->data;
+                pDelegatedChannel->PostEvent(pEvent);
+                return true;
+            }
+        }
+        break;
+        case PROTO_CMD_GETDELEGATED:
+        {
+            CEventPeerGetDelegated* pEvent = new CEventPeerGetDelegated(pBbPeer->GetNonce(), hashAnchor);
+            if (pEvent != nullptr)
+            {
+                ssPayload >> pEvent->data;
+                pDelegatedChannel->PostEvent(pEvent);
+                return true;
+            }
+        }
+        break;
+        case PROTO_CMD_DISTRIBUTE:
+        {
+            CEventPeerDistribute* pEvent = new CEventPeerDistribute(pBbPeer->GetNonce(), hashAnchor);
+            if (pEvent != nullptr)
+            {
+                ssPayload >> pEvent->data;
+
+                CBufStream ss;
+                ss << hashAnchor << (pEvent->data.destDelegate);
+                uint256 hash = crypto::CryptoHash(ss.GetData(), ss.GetSize());
+                CInv inv(CInv::MSG_DISTRIBUTE, hash);
+                CancelTimer(pBbPeer->Responded(inv));
+
+                pDelegatedChannel->PostEvent(pEvent);
+
+                return true;
+            }
+        }
+        break;
+        case PROTO_CMD_PUBLISH:
+        {
+            CEventPeerPublish* pEvent = new CEventPeerPublish(pBbPeer->GetNonce(), hashAnchor);
+            if (pEvent != nullptr)
+            {
+                ssPayload >> pEvent->data;
+
+                CBufStream ss;
+                ss << hashAnchor << (pEvent->data.destDelegate);
+                uint256 hash = crypto::CryptoHash(ss.GetData(), ss.GetSize());
+                CInv inv(CInv::MSG_PUBLISH, hash);
+                CancelTimer(pBbPeer->Responded(inv));
+
+                pDelegatedChannel->PostEvent(pEvent);
+                return true;
+            }
+        }
+        break;
         default:
             break;
         }
@@ -786,6 +934,50 @@ bool CBbPeerNet::HandlePeerRecvMessage(CPeer* pPeer, int nChannel, int nCommand,
             }
         }
         break;
+        case PROTO_CMD_BLOCK_NEXT_PREVBLOCK:
+        {
+            CEventPeerBlockNextPrevBlock* pEvent = new CEventPeerBlockNextPrevBlock(pBbPeer->GetNonce(), hashFork);
+            if (pEvent != nullptr)
+            {
+                ssPayload >> pEvent->data;
+                pBlockChannel->PostEvent(pEvent);
+                return true;
+            }
+        }
+        break;
+        case PROTO_CMD_BLOCK_PREV_BLOCKS:
+        {
+            CEventPeerBlockPrevBlocks* pEvent = new CEventPeerBlockPrevBlocks(pBbPeer->GetNonce(), hashFork);
+            if (pEvent != nullptr)
+            {
+                ssPayload >> pEvent->data;
+                pBlockChannel->PostEvent(pEvent);
+                return true;
+            }
+        }
+        break;
+        case PROTO_CMD_BLOCK_GET_BLOCK_REQ:
+        {
+            CEventPeerBlockGetBlockReq* pEvent = new CEventPeerBlockGetBlockReq(pBbPeer->GetNonce(), hashFork);
+            if (pEvent != nullptr)
+            {
+                ssPayload >> pEvent->data;
+                pBlockChannel->PostEvent(pEvent);
+                return true;
+            }
+        }
+        break;
+        case PROTO_CMD_BLOCK_GET_BLOCK_RSP:
+        {
+            CEventPeerBlockGetBlockRsp* pEvent = new CEventPeerBlockGetBlockRsp(pBbPeer->GetNonce(), hashFork);
+            if (pEvent != nullptr)
+            {
+                ssPayload >> pEvent->data;
+                pBlockChannel->PostEvent(pEvent);
+                return true;
+            }
+        }
+        break;
         }
     }
     else if (nChannel == PROTO_CHN_CERT_TX)
@@ -870,73 +1062,42 @@ bool CBbPeerNet::HandlePeerRecvMessage(CPeer* pPeer, int nChannel, int nCommand,
         break;
         }
     }
-    else if (nChannel == PROTO_CHN_DELEGATE)
+    else if (nChannel == PROTO_CHN_BLOCK_VOTE)
     {
-        uint256 hashAnchor;
-        ssPayload >> hashAnchor;
+        uint256 hashFork;
+        ssPayload >> hashFork;
         switch (nCommand)
         {
-        case PROTO_CMD_BULLETIN:
+        case PROTO_CMD_BLOCKVOTE_DATA:
         {
-            CEventPeerBulletin* pEvent = new CEventPeerBulletin(pBbPeer->GetNonce(), hashAnchor);
+            CEventPeerBlockVoteProtoData* pEvent = new CEventPeerBlockVoteProtoData(pBbPeer->GetNonce(), hashFork);
             if (pEvent != nullptr)
             {
                 ssPayload >> pEvent->data;
-                pDelegatedChannel->PostEvent(pEvent);
+                pBlockVoteChannel->PostEvent(pEvent);
                 return true;
             }
         }
         break;
-        case PROTO_CMD_GETDELEGATED:
+        }
+    }
+    else if (nChannel == PROTO_CHN_BLOCK_CROSS_PROVE)
+    {
+        uint256 hashFork;
+        ssPayload >> hashFork;
+        switch (nCommand)
         {
-            CEventPeerGetDelegated* pEvent = new CEventPeerGetDelegated(pBbPeer->GetNonce(), hashAnchor);
+        case PROTO_CMD_BLOCK_CROSS_PROVE_DATA:
+        {
+            CEventPeerBlockCrossProveData* pEvent = new CEventPeerBlockCrossProveData(pBbPeer->GetNonce(), hashFork);
             if (pEvent != nullptr)
             {
                 ssPayload >> pEvent->data;
-                pDelegatedChannel->PostEvent(pEvent);
+                pBlockCrossProveChannel->PostEvent(pEvent);
                 return true;
             }
         }
         break;
-        case PROTO_CMD_DISTRIBUTE:
-        {
-            CEventPeerDistribute* pEvent = new CEventPeerDistribute(pBbPeer->GetNonce(), hashAnchor);
-            if (pEvent != nullptr)
-            {
-                ssPayload >> pEvent->data;
-
-                CBufStream ss;
-                ss << hashAnchor << (pEvent->data.destDelegate);
-                uint256 hash = crypto::CryptoHash(ss.GetData(), ss.GetSize());
-                CInv inv(CInv::MSG_DISTRIBUTE, hash);
-                CancelTimer(pBbPeer->Responded(inv));
-
-                pDelegatedChannel->PostEvent(pEvent);
-
-                return true;
-            }
-        }
-        break;
-        case PROTO_CMD_PUBLISH:
-        {
-            CEventPeerPublish* pEvent = new CEventPeerPublish(pBbPeer->GetNonce(), hashAnchor);
-            if (pEvent != nullptr)
-            {
-                ssPayload >> pEvent->data;
-
-                CBufStream ss;
-                ss << hashAnchor << (pEvent->data.destDelegate);
-                uint256 hash = crypto::CryptoHash(ss.GetData(), ss.GetSize());
-                CInv inv(CInv::MSG_PUBLISH, hash);
-                CancelTimer(pBbPeer->Responded(inv));
-
-                pDelegatedChannel->PostEvent(pEvent);
-                return true;
-            }
-        }
-        break;
-        default:
-            break;
         }
     }
     return false;

@@ -32,39 +32,50 @@ bytes getFunctionContractRuntimeCode()
 //////////////////////////////
 std::string CoinToTokenBigFloat(const uint256& nCoin)
 {
-    boost::multiprecision::uint256_t mc((uint64)std::pow(10, TOKEN_DECIMAL_DIGIT));
-    boost::multiprecision::uint256_t n = nCoin.GetMuint256();
-    boost::multiprecision::uint256_t nInteger = n / mc;
-    boost::multiprecision::uint256_t nDecimal = n % mc;
-    std::string strInt = nInteger.str();
-    std::string strDec = nDecimal.str();
-    int nDecCount = (int)strDec.size();
-    for (int i = nDecCount - 1; i >= 0; --i)
+    try
     {
-        if (strDec[i] != '0')
+        if (nCoin == 0)
         {
-            break;
+            return std::string("0.0");
         }
-        nDecCount--;
+        boost::multiprecision::uint256_t mc((uint64)std::pow(10, TOKEN_DECIMAL_DIGIT));
+        boost::multiprecision::uint256_t n = nCoin.GetMuint256();
+        boost::multiprecision::uint256_t nInteger = n / mc;
+        boost::multiprecision::uint256_t nDecimal = n % mc;
+        std::string strInt = nInteger.str();
+        std::string strDec = nDecimal.str();
+        int nDecCount = (int)strDec.size();
+        for (int i = nDecCount - 1; i >= 0; --i)
+        {
+            if (strDec[i] != '0')
+            {
+                break;
+            }
+            nDecCount--;
+        }
+        if (nDecCount == 0)
+        {
+            return strInt + std::string(".0");
+        }
+        std::string strDecimalZero;
+        if (strDec.size() < TOKEN_DECIMAL_DIGIT)
+        {
+            strDecimalZero.resize(TOKEN_DECIMAL_DIGIT - strDec.size(), '0');
+        }
+        if (nDecCount == (int)strDec.size())
+        {
+            strDecimalZero += strDec;
+        }
+        else
+        {
+            strDecimalZero += strDec.substr(0, nDecCount);
+        }
+        return (strInt + std::string(".") + strDecimalZero);
     }
-    if (nDecCount == 0)
+    catch (std::exception& e)
     {
-        return strInt + std::string(".0");
+        return std::string("0.00");
     }
-    std::string strDecimalZero;
-    if (strDec.size() < TOKEN_DECIMAL_DIGIT)
-    {
-        strDecimalZero.resize(TOKEN_DECIMAL_DIGIT - strDec.size(), '0');
-    }
-    if (nDecCount == (int)strDec.size())
-    {
-        strDecimalZero += strDec;
-    }
-    else
-    {
-        strDecimalZero += strDec.substr(0, nDecCount);
-    }
-    return (strInt + std::string(".") + strDecimalZero);
 }
 
 bool TokenBigFloatToCoin(const std::string& strToken, uint256& nCoin)
@@ -135,6 +146,16 @@ bool TokenBigFloatToCoin(const std::string& strToken, uint256& nCoin)
 
     nCoin.SetMuint256(nInt);
     return true;
+}
+
+uint256 TokenBigFloatToCoin(const std::string& strToken)
+{
+    uint256 out;
+    if (TokenBigFloatToCoin(strToken, out))
+    {
+        return out;
+    }
+    return 0;
 }
 
 } // namespace metabasenet

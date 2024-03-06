@@ -1,9 +1,10 @@
-// Copyright (c) 2021-2023 The MetabaseNet developers
+// Copyright (c) 2022-2024 The MetabaseNet developers
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include <boost/test/unit_test.hpp>
 
+#include "base_tests.h"
 #include "crypto.h"
 #include "ctsdb.h"
 #include "mtbase.h"
@@ -43,7 +44,7 @@ BOOST_AUTO_TEST_CASE(ctsdb)
 {
     CMetaDB db;
 
-    std::string fullpath = boost::filesystem::initial_path<boost::filesystem::path>().string() + "/dbpath";
+    std::string fullpath = GetOutPath("dbpath_tests");
     std::cout << "init path: " << fullpath << std::endl;
     BOOST_CHECK(db.Initialize(boost::filesystem::path(fullpath)));
 

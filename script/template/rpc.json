@@ -753,6 +753,14 @@
                 "type": "uint",
                 "desc": "block slot"
             },
+            "confirm": {
+                "type": "bool",
+                "desc": "if confirm block"
+            },
+            "prevconfirmblock": {
+                "type": "string",
+                "desc": "prev confirm block"
+            },
             "reward": {
                 "type": "string",
                 "desc": "block reward"
@@ -828,6 +836,10 @@
             "slot": {
                 "type": "uint",
                 "desc": "block slot"
+            },
+            "confirm": {
+                "type": "bool",
+                "desc": "if confirm block"
             },
             "reward": {
                 "type": "string",
@@ -1337,6 +1349,10 @@
                         "lastblock": {
                             "type": "string",
                             "desc": "last block hash"
+                        },
+                        "lastconfirm": {
+                            "type": "bool",
+                            "desc": "last block confirm"
                         },
                         "totaltxcount": {
                             "type": "uint",
@@ -3049,6 +3065,12 @@
                     "required": false,
                     "opt": "f"
                 },
+                "coinsymbol": {
+                    "type": "string",
+                    "desc": "coin symbol",
+                    "required": false,
+                    "opt": "c"
+                },
                 "address": {
                     "type": "string",
                     "desc": "address, default is all",
@@ -3092,6 +3114,10 @@
                         "type": {
                             "type": "string",
                             "desc": "address type"
+                        },
+                        "coinsymbol": {
+                            "type": "string",
+                            "desc": "coin symbol"
                         },
                         "nonce": {
                             "type": "uint",
@@ -3294,6 +3320,12 @@
                     "desc": "contract param",
                     "required": false,
                     "opt": "cp"
+                },
+                "coinsymbol": {
+                    "type": "string",
+                    "desc": "coin symbol",
+                    "required": false,
+                    "opt": "cs"
                 }
             }
         },
@@ -3554,6 +3586,892 @@
             "{\"code\":-4,\"message\":\"Unknown key\"}",
             "{\"code\":-405,\"message\":\"Key is locked\"}",
             "{\"code\":-401,\"message\":\"Failed to sign message\"}"
+        ]
+    },
+    "addusercoin": {
+        "type": "command",
+        "name": "AddUserCoin",
+        "desc": "Add user coin",
+        "request": {
+            "type": "object",
+            "content": {
+                "from": {
+                    "type": "string",
+                    "desc": "from address"
+                },
+                "symbol": {
+                    "type": "string",
+                    "desc": "coin symbol"
+                },
+                "chainid": {
+                    "type": "uint",
+                    "desc": "at chainid"
+                }
+            }
+        },
+        "response": {
+            "type": "string",
+            "name": "txid",
+            "desc": "txid"
+        },
+        "example": [
+            {
+                "request": "metabasenet-cli addusercoin 0xb955034fcefb66112bab47483c8d243b86cb2c1d ABC 202",
+                "response": "0x4646c445d31e313764db47c894b3372d72e23b9d58ada120b7229cf4ea6b1d6f"
+            },
+            {
+                "request": "curl -d '{\"id\":1,\"method\":\"addusercoin\",\"jsonrpc\":\"2.0\",\"params\":{\"from\":\"0xb955034fcefb66112bab47483c8d243b86cb2c1d\",\"symbol\":\"ABC\",\"chainid\":202}}' http://127.0.0.1:8812",
+                "response": "{\"id\":0,\"jsonrpc\":\"2.0\",\"result\":\"0x4646c445d31e313764db47c894b3372d72e23b9d58ada120b7229cf4ea6b1d6f\"}"
+            }
+        ],
+        "error": [
+            "{\"code\":-6,\"message\":\"Invalid from\"}",
+            "{\"code\":-6,\"message\":\"Invalid symbol\"}",
+            "{\"code\":-6,\"message\":\"Invalid chainid\"}",
+            "{\"code\":-4,\"message\":\"Unknown chainid\"}"
+        ]
+    },
+    "addcontractcoin": {
+        "type": "command",
+        "name": "AddContractCoin",
+        "desc": "Add contract coin",
+        "request": {
+            "type": "object",
+            "content": {
+                "from": {
+                    "type": "string",
+                    "desc": "from address"
+                },
+                "symbol": {
+                    "type": "string",
+                    "desc": "coin symbol"
+                },
+                "chainid": {
+                    "type": "uint",
+                    "desc": "at chainid"
+                },
+                "contractaddress": {
+                    "type": "string",
+                    "desc": "contract address"
+                }
+            }
+        },
+        "response": {
+            "type": "string",
+            "name": "txid",
+            "desc": "txid"
+        },
+        "example": [
+            {
+                "request": "metabasenet-cli addcontractcoin 0xb955034fcefb66112bab47483c8d243b86cb2c1d ABC 202 0x3e80fb38ae4e71beaccb053b716921eb6b03519f",
+                "response": "0x4646c445d31e313764db47c894b3372d72e23b9d58ada120b7229cf4ea6b1d6f"
+            },
+            {
+                "request": "curl -d '{\"id\":1,\"method\":\"addcontractcoin\",\"jsonrpc\":\"2.0\",\"params\":{\"from\":\"0xb955034fcefb66112bab47483c8d243b86cb2c1d\",\"symbol\":\"ABC\",\"chainid\":202,\"contractaddress\":\"0x3e80fb38ae4e71beaccb053b716921eb6b03519f\"}}' http://127.0.0.1:8812",
+                "response": "{\"id\":0,\"jsonrpc\":\"2.0\",\"result\":\"0x4646c445d31e313764db47c894b3372d72e23b9d58ada120b7229cf4ea6b1d6f\"}"
+            }
+        ],
+        "error": [
+            "{\"code\":-6,\"message\":\"Invalid from\"}",
+            "{\"code\":-6,\"message\":\"Invalid symbol\"}",
+            "{\"code\":-6,\"message\":\"Invalid contractaddress\"}",
+            "{\"code\":-6,\"message\":\"Invalid chainid\"}",
+            "{\"code\":-4,\"message\":\"Unknown chainid\"}"
+        ]
+    },
+    "getcoininfo": {
+        "type": "command",
+        "name": "GetCoinInfo",
+        "desc": "Get coin information by symbol",
+        "request": {
+            "type": "object",
+            "content": {
+                "symbol": {
+                    "type": "string",
+                    "desc": "coin symbol"
+                },
+                "block": {
+                    "type": "string",
+                    "desc": "block hash",
+                    "required": false,
+                    "opt": "b"
+                }
+            }
+        },
+        "response": {
+            "type": "object",
+            "name": "coininfo",
+            "content": {
+                "coinsymbol": {
+                    "type": "string",
+                    "desc": "coin symbol"
+                },
+                "cointype": {
+                    "type": "string",
+                    "desc": "coin type"
+                },
+                "fork": {
+                    "type": "string",
+                    "desc": "at fork hash"
+                },
+                "chainid": {
+                    "type": "uint",
+                    "desc": "at fork chainid"
+                }
+            }
+        },
+        "example": [
+            {
+                "request": "metabasenet-cli getcoininfo HAH",
+                "response": "{\"coinsymbol\":\"HAH\",\"cointype\":\"forkcoin\",\"fork\":\"0xc9f7f76ed1f265880a269080b5a115470fc36b06717346c44c72caca03dddcc0\",\"chainid\":201}"
+            },
+            {
+                "request": "curl -d '{\"id\":1,\"method\":\"getcoininfo\",\"jsonrpc\":\"2.0\",\"params\":{\"symbol\":\"HAH\"}}' http://127.0.0.1:8812",
+                "response": "{\"id\":0,\"jsonrpc\":\"2.0\",\"result\":{\"coinsymbol\":\"HAH\",\"cointype\":\"forkcoin\",\"fork\":\"0xc9f7f76ed1f265880a269080b5a115470fc36b06717346c44c72caca03dddcc0\",\"chainid\":201}}"
+            }
+        ],
+        "error": [
+            "{\"code\":-6,\"message\":\"Invalid symbol\"}",
+            "{\"code\":-6,\"message\":\"Invalid block\"}",
+            "{\"code\":-4,\"message\":\"Unknown symbol\"}"
+        ]
+    },
+    "listcoininfo": {
+        "type": "command",
+        "name": "ListCoinInfo",
+        "desc": "List coin information",
+        "request": {
+            "type": "object",
+            "content": {
+                "block": {
+                    "type": "string",
+                    "desc": "block hash",
+                    "required": false,
+                    "opt": "b"
+                }
+            }
+        },
+        "response": {
+            "type": "array",
+            "name": "coindata",
+            "content": {
+                "coindata": {
+                    "type": "object",
+                    "desc": "coin data",
+                    "content": {
+                        "coinsymbol": {
+                            "type": "string",
+                            "desc": "coin symbol"
+                        },
+                        "cointype": {
+                            "type": "string",
+                            "desc": "coin type"
+                        },
+                        "fork": {
+                            "type": "string",
+                            "desc": "at fork hash"
+                        },
+                        "chainid": {
+                            "type": "uint",
+                            "desc": "at fork chainid"
+                        },
+                        "contractaddress": {
+                            "type": "string",
+                            "desc": "at contract address"
+                        }
+                    }
+                }
+            }
+        },
+        "example": [
+            {
+                "request": "metabasenet-cli listcoininfo",
+                "response": "[{\"coinsymbol\":\"HAH\",\"cointype\":\"forkcoin\",\"fork\":\"0xc9f7f76ed1f265880a269080b5a115470fc36b06717346c44c72caca03dddcc0\",\"chainid\":201,\"contractaddress\":\"\"}]"
+            },
+            {
+                "request": "curl -d '{\"id\":1,\"method\":\"listcoininfo\",\"jsonrpc\":\"2.0\",\"params\":{}}' http://127.0.0.1:8812",
+                "response": "{\"id\":0,\"jsonrpc\":\"2.0\",\"result\":[{\"coinsymbol\":\"HAH\",\"cointype\":\"forkcoin\",\"fork\":\"0xc9f7f76ed1f265880a269080b5a115470fc36b06717346c44c72caca03dddcc0\",\"chainid\":201,\"contractaddress\":\"\"}]}"
+            }
+        ],
+        "error": [
+            "{\"code\":-6,\"message\":\"Invalid block\"}",
+            "{\"code\":-7,\"message\":\"Get coin fail\"}"
+        ]
+    },
+    "getdexcoinpair": {
+        "type": "command",
+        "name": "GetDexCoinPair",
+        "desc": "Get dex coin pair by symbol pair",
+        "request": {
+            "type": "object",
+            "content": {
+                "symbol1": {
+                    "type": "string",
+                    "desc": "coin symbol1"
+                },
+                "symbol2": {
+                    "type": "string",
+                    "desc": "coin symbol2"
+                },
+                "block": {
+                    "type": "string",
+                    "desc": "block hash",
+                    "required": false,
+                    "opt": "b"
+                }
+            }
+        },
+        "response": {
+            "type": "uint",
+            "name": "coinpair",
+            "desc": "coin pair"
+        },
+        "example": [
+            {
+                "request": "metabasenet-cli getdexcoinpair HAH YUS",
+                "response": "1"
+            },
+            {
+                "request": "curl -d '{\"id\":1,\"method\":\"getdexcoinpair\",\"jsonrpc\":\"2.0\",\"params\":{\"symbol1\":\"HAH\",\"symbol1\":\"YUS\"}}' http://127.0.0.1:8812",
+                "response": "{\"id\":0,\"jsonrpc\":\"2.0\",\"result\":1}"
+            }
+        ],
+        "error": [
+            "{\"code\":-6,\"message\":\"Invalid symbol1\"}",
+            "{\"code\":-6,\"message\":\"Invalid symbol2\"}",
+            "{\"code\":-6,\"message\":\"Invalid block\"}",
+            "{\"code\":-4,\"message\":\"Unknown symbol\"}"
+        ]
+    },
+    "listdexcoinpair": {
+        "type": "command",
+        "name": "ListDexCoinPair",
+        "desc": "List dex coin pair",
+        "request": {
+            "type": "object",
+            "content": {
+                "coinpair": {
+                    "type": "uint",
+                    "desc": "coin pair",
+                    "required": false,
+                    "opt": "c"
+                },
+                "coinsymbol": {
+                    "type": "string",
+                    "desc": "coin symbol",
+                    "required": false,
+                    "opt": "s"
+                },
+                "block": {
+                    "type": "string",
+                    "desc": "block hash",
+                    "required": false,
+                    "opt": "b"
+                }
+            }
+        },
+        "response": {
+            "type": "array",
+            "name": "coinpairdata",
+            "content": {
+                "coinpairdata": {
+                    "type": "object",
+                    "desc": "coin pair data",
+                    "content": {
+                        "coinpair": {
+                            "type": "uint",
+                            "desc": "coin pair"
+                        },
+                        "coin1": {
+                            "type": "object",
+                            "desc": "coin1",
+                            "content": {
+                                "coinsymbol": {
+                                    "type": "string",
+                                    "desc": "coin symbol"
+                                },
+                                "cointype": {
+                                    "type": "string",
+                                    "desc": "coin type"
+                                },
+                                "fork": {
+                                    "type": "string",
+                                    "desc": "at fork hash"
+                                },
+                                "chainid": {
+                                    "type": "uint",
+                                    "desc": "at fork chainid"
+                                }
+                            }
+                        },
+                        "coin2": {
+                            "type": "object",
+                            "desc": "coin2",
+                            "content": {
+                                "coinsymbol": {
+                                    "type": "string",
+                                    "desc": "coin symbol"
+                                },
+                                "cointype": {
+                                    "type": "string",
+                                    "desc": "coin type"
+                                },
+                                "fork": {
+                                    "type": "string",
+                                    "desc": "at fork hash"
+                                },
+                                "chainid": {
+                                    "type": "uint",
+                                    "desc": "at fork chainid"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "example": [
+            {
+                "request": "metabasenet-cli listdexcoinpair",
+                "response": "[{\"coinpair\":1,\"coin1\":{\"coinsymbol\":\"HAHT\",\"cointype\":\"forkcoin\",\"fork\":\"0xc9f7f76ed1f265880a269080b5a115470fc36b06717346c44c72caca03dddcc0\",\"chainid\":201},\"coin2\":{\"coinsymbol\":\"SY202\",\"cointype\":\"forkcoin\",\"fork\":\"0xcab0f744f00351c05d9035b22f737325596a3b94337542dbecf623f054a6172a\",\"chainid\":202}}]"
+            },
+            {
+                "request": "curl -d '{\"id\":1,\"method\":\"listdexcoinpair\",\"jsonrpc\":\"2.0\",\"params\":{}}' http://127.0.0.1:8812",
+                "response": "{\"id\":0,\"jsonrpc\":\"2.0\",\"result\":[{\"coinpair\":1,\"coin1\":{\"coinsymbol\":\"HAHT\",\"cointype\":\"forkcoin\",\"fork\":\"0xc9f7f76ed1f265880a269080b5a115470fc36b06717346c44c72caca03dddcc0\",\"chainid\":201},\"coin2\":{\"coinsymbol\":\"SY202\",\"cointype\":\"forkcoin\",\"fork\":\"0xcab0f744f00351c05d9035b22f737325596a3b94337542dbecf623f054a6172a\",\"chainid\":202}}]}"
+            }
+        ],
+        "error": [
+            "{\"code\":-6,\"message\":\"Invalid block\"}",
+            "{\"code\":-7,\"message\":\"Get coin pair fail\"}",
+            "{\"code\":-7,\"message\":\"Get coin context fail\"}"
+        ]
+    },
+    "senddexordertx": {
+        "type": "command",
+        "name": "SendDexOrderTx",
+        "desc": "Send dexorder transaction",
+        "request": {
+            "type": "object",
+            "content": {
+                "from": {
+                    "type": "string",
+                    "desc": "from address"
+                },
+                "coinsymbolowner": {
+                    "type": "string",
+                    "desc": "coin symbol owner"
+                },
+                "coinsymbolpeer": {
+                    "type": "string",
+                    "desc": "coin symbol peer"
+                },
+                "amount": {
+                    "type": "string",
+                    "desc": "order amount (big float)"
+                },
+                "price": {
+                    "type": "string",
+                    "desc": "order amount (big float)"
+                },
+                "ordernumber": {
+                    "type": "uint",
+                    "desc": "order number, default is 0",
+                    "required": false,
+                    "opt": "n"
+                },
+                "fork": {
+                    "type": "string",
+                    "desc": "fork hash or chainid, default is local fork",
+                    "required": false,
+                    "opt": "f"
+                }
+            }
+        },
+        "response": {
+            "type": "string",
+            "name": "result",
+            "desc": "transaction hash"
+        },
+        "example": [
+            {
+                "request": "metabasenet-cli senddexordertx 0xc0f0ddde81c1dff508e038d20295d8001493d8bc AAA BBB 11 0 234.98 1.23",
+                "response": "0x45b154d2ab82eac6e79b8babd97abaebe2b4ae7194f3afd946dd1419f012dd3f"
+            },
+            {
+                "request": "curl -d '{\"id\":4,\"method\":\"senddexordertx\",\"jsonrpc\":\"2.0\",\"params\":{\"from\":\"0xc0f0ddde81c1dff508e038d20295d8001493d8bc\",\"coinsymbolowner\":\"AAA\",\"coinsymbolpeer\":\"BBB\",\"ordernumber\":0,\"amount\":\"234.98\",\"price\":\"1.23\"}}' http://127.0.0.1:8812",
+                "response": "{\"id\":4,\"jsonrpc\":\"2.0\",\"result\":\"0x45b154d2ab82eac6e79b8babd97abaebe2b4ae7194f3afd946dd1419f012dd3f\"}"
+            }
+        ],
+        "error": [
+            "{\"code\":-6,\"message\":\"Invalid from\"}",
+            "{\"code\":-6,\"message\":\"Invalid coinsymbolowner\"}",
+            "{\"code\":-6,\"message\":\"Invalid coinsymbolpeer\"}",
+            "{\"code\":-6,\"message\":\"Invalid ordernumber\"}",
+            "{\"code\":-6,\"message\":\"Invalid amount\"}",
+            "{\"code\":-6,\"message\":\"Invalid price\"}",
+            "{\"code\":-6,\"message\":\"Invalid fork\"}",
+            "{\"code\":-6,\"message\":\"Unknown fork\"}",
+            "{\"code\":-4,\"message\":\"Get tx nonce fail\"}",
+            "{\"code\":-401,\"message\":\"Failed to sign transaction\"}",
+            "{\"code\":-10,\"message\":\"Tx rejected : xxx\"}"
+        ]
+    },
+    "listdexorder": {
+        "type": "command",
+        "name": "ListDexOrder",
+        "desc": "List dex order",
+        "request": {
+            "type": "object",
+            "content": {
+                "address": {
+                    "type": "string",
+                    "desc": "order address"
+                },
+                "coinsymbolowner": {
+                    "type": "string",
+                    "desc": "coin symbol owner",
+                    "required": false,
+                    "opt": "co"
+                },
+                "coinsymbolpeer": {
+                    "type": "string",
+                    "desc": "coin symbol owner",
+                    "required": false,
+                    "opt": "cp"
+                },
+                "beginnumber": {
+                    "type": "uint",
+                    "desc": "begin order number",
+                    "default": 0,
+                    "required": false,
+                    "opt": "b"
+                },
+                "count": {
+                    "type": "uint",
+                    "desc": "count, default is 1000",
+                    "default": 1000,
+                    "required": false,
+                    "opt": "n"
+                },
+                "fork": {
+                    "type": "string",
+                    "desc": "fork hash or chainid",
+                    "required": false,
+                    "opt": "f"
+                },
+                "block": {
+                    "type": "string",
+                    "desc": "block hash",
+                    "required": false,
+                    "opt": "h"
+                }
+            }
+        },
+        "response": {
+            "type": "array",
+            "name": "dexorderdata",
+            "content": {
+                "dexorderdata": {
+                    "type": "object",
+                    "desc": "dex order data",
+                    "content": {
+                        "ordernumber": {
+                            "type": "uint",
+                            "desc": "order number"
+                        },
+                        "coinsymbolowner": {
+                            "type": "string",
+                            "desc": "coin symbol owner"
+                        },
+                        "coinsymbolpeer": {
+                            "type": "string",
+                            "desc": "coin symbol peer"
+                        },
+                        "amount": {
+                            "type": "string",
+                            "desc": "order amount (big float)"
+                        },
+                        "price": {
+                            "type": "string",
+                            "desc": "order amount (big float)"
+                        },
+                        "surplusamount": {
+                            "type": "string",
+                            "desc": "surplus amount (big float)"
+                        },
+                        "completeamount": {
+                            "type": "string",
+                            "desc": "complete amount (big float)"
+                        },
+                        "completecount": {
+                            "type": "uint",
+                            "desc": "complete count"
+                        },
+                        "height": {
+                            "type": "uint",
+                            "desc": "at height"
+                        },
+                        "slot": {
+                            "type": "uint",
+                            "desc": "at slot"
+                        }
+                    }
+                }
+            }
+        },
+        "example": [
+            {
+                "request": "metabasenet-cli listdexorder 0xb955034fcefb66112bab47483c8d243b86cb2c1d",
+                "response": "[{\"ordernumber\":1,\"coinsymbolowner\":\"AAA\",\"coinsymbolpeer\":\"BBB\",\"amount\":\"100.45\",\"price\":\"0.5\",\"surplusamount\":\"30.0\",\"completeamount\":\"70.5\",\"completecount\":2,\"height\":398,\"slot\":0}]"
+            },
+            {
+                "request": "curl -d '{\"id\":1,\"method\":\"listdexorder\",\"jsonrpc\":\"2.0\",\"params\":{\"address\":\"0xb955034fcefb66112bab47483c8d243b86cb2c1d\"}}' http://127.0.0.1:8812",
+                "response": "{\"id\":0,\"jsonrpc\":\"2.0\",\"result\":[{\"ordernumber\":1,\"coinsymbolowner\":\"AAA\",\"coinsymbolpeer\":\"BBB\",\"amount\":\"100.45\",\"price\":\"0.5\",\"surplusamount\":\"30.0\",\"completeamount\":\"70.5\",\"completecount\":2,\"height\":398,\"slot\":0}]}"
+            }
+        ],
+        "error": [
+            "{\"code\":-6,\"message\":\"Invalid address\"}",
+            "{\"code\":-6,\"message\":\"Invalid fork\"}",
+            "{\"code\":-6,\"message\":\"Unknown fork\"}",
+            "{\"code\":-7,\"message\":\"Query fail\"}"
+        ]
+    },
+    "getdexsymboltype": {
+        "type": "command",
+        "name": "GetDexSymbolType",
+        "desc": "Get dex symbol type, sell symbol and buy symbol",
+        "request": {
+            "type": "object",
+            "content": {
+                "coinsymbol1": {
+                    "type": "string",
+                    "desc": "coin symbol1"
+                },
+                "coinsymbol2": {
+                    "type": "string",
+                    "desc": "coin symbol2"
+                }
+            }
+        },
+        "response": {
+            "type": "object",
+            "name": "symboltype",
+            "content": {
+                "coinsymbol1": {
+                    "type": "string",
+                    "desc": "coin symbol1"
+                },
+                "type1": {
+                    "type": "string",
+                    "desc": "type1: SELL or BUY"
+                },
+                "coinsymbol2": {
+                    "type": "string",
+                    "desc": "coin symbol2"
+                },
+                "type2": {
+                    "type": "string",
+                    "desc": "type2: SELL or BUY"
+                }
+            }
+        },
+        "example": [
+            {
+                "request": "metabasenet-cli getdexsymboltype AAA BBB",
+                "response": "{\"coinsymbol1\":\"AAA\",\"type1\":\"SELL\",\"coinsymbol2\":\"BBB\",\"type2\":\"BUY\"}"
+            },
+            {
+                "request": "curl -d '{\"id\":1,\"method\":\"getdexsymboltype\",\"jsonrpc\":\"2.0\",\"params\":{\"coinsymbol1\":\"AAA\",\"coinsymbol2\":\"BBB\"}}' http://127.0.0.1:8812",
+                "response": "{\"id\":0,\"jsonrpc\":\"2.0\",\"result\":{\"coinsymbol1\":\"AAA\",\"type1\":\"SELL\",\"coinsymbol2\":\"BBB\",\"type2\":\"BUY\"}}]}"
+            }
+        ],
+        "error": [
+            "{\"code\":-6,\"message\":\"Invalid coinsymbol1\"}",
+            "{\"code\":-6,\"message\":\"Invalid coinsymbol2\"}"
+        ]
+    },
+    "listrealtimedexorder": {
+        "type": "command",
+        "name": "ListRealtimeDexOrder",
+        "desc": "List realtime dex order",
+        "request": {
+            "type": "object",
+            "content": {
+                "coinsymbolsell": {
+                    "type": "string",
+                    "desc": "coin symbol sell"
+                },
+                "coinsymbolbuy": {
+                    "type": "string",
+                    "desc": "coin symbol buy"
+                },
+                "count": {
+                    "type": "uint",
+                    "desc": "count, default is 1000",
+                    "default": 1000,
+                    "required": false,
+                    "opt": "n"
+                },
+                "detail": {
+                    "type": "bool",
+                    "desc": "detail order, default is false",
+                    "default": false,
+                    "required": false,
+                    "opt": "d"
+                },
+                "fork": {
+                    "type": "string",
+                    "desc": "fork hash or chainid",
+                    "required": false,
+                    "opt": "f"
+                },
+                "block": {
+                    "type": "string",
+                    "desc": "block hash",
+                    "required": false,
+                    "opt": "h"
+                }
+            }
+        },
+        "response": {
+            "type": "object",
+            "name": "symboltype",
+            "content": {
+                "coinsymbolsell": {
+                    "type": "string",
+                    "desc": "coin symbol sell"
+                },
+                "coinsymbolbuy": {
+                    "type": "string",
+                    "desc": "coin symbol buy"
+                },
+                "prevcompleteprice": {
+                    "type": "string",
+                    "desc": "previous complete price"
+                },
+                "sellchainid": {
+                    "type": "uint",
+                    "desc": "sell chain id"
+                },
+                "buychainid": {
+                    "type": "uint",
+                    "desc": "buy chain id"
+                },
+                "maxmatchheight": {
+                    "type": "uint",
+                    "desc": "max match height"
+                },
+                "maxmatchslot": {
+                    "type": "uint",
+                    "desc": "max match slot"
+                },
+                "sellorder": {
+                    "type": "array",
+                    "desc": "sell order",
+                    "content": {
+                        "order": {
+                            "type": "object",
+                            "desc": "order struct",
+                            "content": {
+                                "price": {
+                                    "type": "string",
+                                    "desc": "price"
+                                },
+                                "orderamount": {
+                                    "type": "string",
+                                    "desc": "order amount"
+                                },
+                                "dealamount": {
+                                    "type": "string",
+                                    "desc": "deal amount"
+                                },
+                                "orderaddress": {
+                                    "type": "string",
+                                    "desc": "order address",
+                                    "required": false
+                                },
+                                "ordernumber": {
+                                    "type": "uint",
+                                    "desc": "order number",
+                                    "required": false
+                                },
+                                "oriorderamount": {
+                                    "type": "string",
+                                    "desc": "original order amount",
+                                    "required": false
+                                },
+                                "height": {
+                                    "type": "uint",
+                                    "desc": "at height",
+                                    "required": false
+                                },
+                                "slot": {
+                                    "type": "uint",
+                                    "desc": "at slot",
+                                    "required": false
+                                }
+                            }
+                        }
+                    }
+                },
+                "buyorder": {
+                    "type": "array",
+                    "desc": "buy order",
+                    "content": {
+                        "order": {
+                            "type": "object",
+                            "desc": "order struct",
+                            "content": {
+                                "price": {
+                                    "type": "string",
+                                    "desc": "price"
+                                },
+                                "orderamount": {
+                                    "type": "string",
+                                    "desc": "order amount"
+                                },
+                                "dealamount": {
+                                    "type": "string",
+                                    "desc": "deal amount"
+                                },
+                                "orderaddress": {
+                                    "type": "string",
+                                    "desc": "order address",
+                                    "required": false
+                                },
+                                "ordernumber": {
+                                    "type": "uint",
+                                    "desc": "order number",
+                                    "required": false
+                                },
+                                "oriorderamount": {
+                                    "type": "string",
+                                    "desc": "original order amount",
+                                    "required": false
+                                },
+                                "height": {
+                                    "type": "uint",
+                                    "desc": "at height",
+                                    "required": false
+                                },
+                                "slot": {
+                                    "type": "uint",
+                                    "desc": "at slot",
+                                    "required": false
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "example": [
+            {
+                "request": "metabasenet-cli listrealtimedexorder AAA BBB",
+                "response": "{\"coinsymbolsell\":\"AAA\",\"coinsymbolbuy\":\"BBB\",\"prevcompleteprice\":\"1.2\",\"sellorder\":[{\"price\":\"1.2\",\"orderamount\":\"66.666666666666666667\",\"dealamount\":\"80.0\"}],\"buyorder\":[]}"
+            },
+            {
+                "request": "curl -d '{\"id\":1,\"method\":\"listrealtimedexorder\",\"jsonrpc\":\"2.0\",\"params\":{\"coinsymbolsell\":\"AAA\",\"coinsymbolbuy\":\"BBB\"}}' http://127.0.0.1:8812",
+                "response": "{\"id\":0,\"jsonrpc\":\"2.0\",\"result\":{\"coinsymbolsell\":\"AAA\",\"coinsymbolbuy\":\"BBB\",\"prevcompleteprice\":\"1.2\",\"sellorder\":[{\"price\":\"1.2\",\"orderamount\":\"66.666666666666666667\",\"dealamount\":\"80.0\"}],\"buyorder\":[]}}]}"
+            }
+        ],
+        "error": [
+            "{\"code\":-6,\"message\":\"Invalid coinsymbolsell\"}",
+            "{\"code\":-6,\"message\":\"Invalid coinsymbolbuy\"}",
+            "{\"code\":-6,\"message\":\"Invalid fork\"}",
+            "{\"code\":-6,\"message\":\"Unknown fork\"}",
+            "{\"code\":-7,\"message\":\"Query fail\"}"
+        ]
+    },
+    "sendcrosstransfertx": {
+        "type": "command",
+        "name": "SendCrossTransferTx",
+        "desc": "Send crosschain transfer transaction",
+        "request": {
+            "type": "object",
+            "content": {
+                "address": {
+                    "type": "string",
+                    "desc": "transfer address"
+                },
+                "peerchainid": {
+                    "type": "uint",
+                    "desc": "peer chainid"
+                },
+                "amount": {
+                    "type": "string",
+                    "desc": "transfer amount (big float)"
+                },
+                "fork": {
+                    "type": "string",
+                    "desc": "fork hash or chainid",
+                    "required": false,
+                    "opt": "f"
+                }
+            }
+        },
+        "response": {
+            "type": "string",
+            "name": "result",
+            "desc": "transaction hash"
+        },
+        "example": [
+            {
+                "request": "metabasenet-cli sendcrosstransfertx 0xcc963a4ca2a9032e41668756cc4ccb7c59f112be 201 33.67",
+                "response": "0x45b154d2ab82eac6e79b8babd97abaebe2b4ae7194f3afd946dd1419f012dd3f"
+            },
+            {
+                "request": "curl -d '{\"id\":1,\"method\":\"sendcrosstransfertx\",\"jsonrpc\":\"2.0\",\"params\":{\"address\":\"0xcc963a4ca2a9032e41668756cc4ccb7c59f112be\",\"peerchainid\":201,\"amount\":\"33.67\"}}' http://127.0.0.1:8812",
+                "response": "{\"id\":0,\"jsonrpc\":\"2.0\",\"result\":\"0x45b154d2ab82eac6e79b8babd97abaebe2b4ae7194f3afd946dd1419f012dd3f\"}]}"
+            }
+        ],
+        "error": [
+            "{\"code\":-6,\"message\":\"Invalid address\"}",
+            "{\"code\":-6,\"message\":\"Invalid peerchainid\"}",
+            "{\"code\":-6,\"message\":\"Invalid amount\"}",
+            "{\"code\":-6,\"message\":\"Invalid fork\"}",
+            "{\"code\":-6,\"message\":\"Unknown fork\"}"
+        ]
+    },
+    "getcrosstransferamount": {
+        "type": "command",
+        "name": "GetCrossTransferAmount",
+        "desc": "Get crosschain transfer amount",
+        "request": {
+            "type": "object",
+            "content": {
+                "fork": {
+                    "type": "string",
+                    "desc": "fork hash or chainid",
+                    "required": false,
+                    "opt": "f"
+                },
+                "block": {
+                    "type": "string",
+                    "desc": "block hash",
+                    "required": false,
+                    "opt": "h"
+                }
+            }
+        },
+        "response": {
+            "type": "string",
+            "name": "result",
+            "desc": "transfer amount (big float)"
+        },
+        "example": [
+            {
+                "request": "metabasenet-cli getcrosstransferamount",
+                "response": "8845.987"
+            },
+            {
+                "request": "curl -d '{\"id\":1,\"method\":\"sendcrosstransfertx\",\"jsonrpc\":\"2.0\",\"params\":{}}' http://127.0.0.1:8812",
+                "response": "{\"id\":0,\"jsonrpc\":\"2.0\",\"result\":\"8845.987\"}]}"
+            }
+        ],
+        "error": [
+            "{\"code\":-6,\"message\":\"Invalid fork\"}",
+            "{\"code\":-6,\"message\":\"Unknown fork\"}"
         ]
     },
     "listaddress": {
@@ -6591,16 +7509,16 @@
                     "desc": "transaction hash"
                 },
                 "transactionIndex": {
-                    "type": "uint",
-                    "desc": "transaction index"
+                    "type": "string",
+                    "desc": "transaction index(hex)"
                 },
                 "blockHash": {
                     "type": "string",
                     "desc": "block hash"
                 },
                 "blockNumber": {
-                    "type": "uint",
-                    "desc": "block number"
+                    "type": "string",
+                    "desc": "block number(hex)"
                 },
                 "from": {
                     "type": "string",
@@ -6612,11 +7530,11 @@
                 },
                 "cumulativeGasUsed": {
                     "type": "string",
-                    "desc": "cumulative gas used"
+                    "desc": "cumulative gas used(hex)"
                 },
                 "gasUsed": {
                     "type": "string",
-                    "desc": "gas used"
+                    "desc": "gas used(hex)"
                 },
                 "contractAddress": {
                     "type": "string",
@@ -6637,13 +7555,13 @@
                                     "required": false
                                 },
                                 "logIndex": {
-                                    "type": "uint",
-                                    "desc": "log index",
+                                    "type": "string",
+                                    "desc": "log index(hex)",
                                     "required": false
                                 },
                                 "transactionIndex": {
-                                    "type": "uint",
-                                    "desc": "transaction index",
+                                    "type": "string",
+                                    "desc": "transaction index(hex)",
                                     "required": false
                                 },
                                 "transactionHash": {
@@ -6657,8 +7575,8 @@
                                     "required": false
                                 },
                                 "blockNumber": {
-                                    "type": "uint",
-                                    "desc": "block number",
+                                    "type": "string",
+                                    "desc": "block number(hex)",
                                     "required": false
                                 },
                                 "address": {
@@ -6711,7 +7629,7 @@
                 },
                 "effectiveGasPrice": {
                     "type": "string",
-                    "desc": "effective gas price"
+                    "desc": "effective gas price(hex)"
                 }
             }
         },
@@ -7079,6 +7997,73 @@
         ],
         "error": [
             "{\"code\":-15,\"message\":\"Requested function is obsolete\"}"
+        ]
+    },
+    "eth_subscribe": {
+        "type": "command",
+        "name": "eth_subscribe",
+        "desc": "[ETH] subscribe",
+        "request": {
+            "type": "array",
+            "name": "paramlist",
+            "content": {
+                "param": {
+                    "type": "string",
+                    "desc": "subscribe name"
+                }
+            }
+        },
+        "response": {
+            "type": "string",
+            "name": "result",
+            "desc": "subscribe id"
+        },
+        "example": [
+            {
+                "request": "metabasenet-cli eth_subscribe [\"newHeads\"]",
+                "response": "{\"0x5cef478723ff08bf67fde6c64013153e\"}"
+            },
+            {
+                "request": "curl -d '{\"id\":3,\"method\":\"eth_subscribe\",\"jsonrpc\":\"2.0\",\"params\":[\"newHeads\"]}' http://127.0.0.1:8812",
+                "response": "{\"id\":3,\"jsonrpc\":\"2.0\",\"result\":{\"0x5cef478723ff08bf67fde6c64013153e\"}}"
+            }
+        ],
+        "error": [
+            "{\"code\":-15,\"message\":\"No websocket\"}"
+        ]
+    },
+    "eth_unsubscribe": {
+        "type": "command",
+        "name": "eth_unsubscribe",
+        "desc": "[ETH] unsubscribe",
+        "request": {
+            "type": "array",
+            "name": "paramlist",
+            "content": {
+                "param": {
+                    "type": "string",
+                    "desc": "subscribe id"
+                }
+            }
+        },
+        "response": {
+            "type": "bool",
+            "name": "result",
+            "desc": "unsubscribe result"
+        },
+        "example": [
+            {
+                "request": "metabasenet-cli eth_unsubscribe [\"0x5cef478723ff08bf67fde6c64013153e\"]",
+                "response": "true"
+            },
+            {
+                "request": "curl -d '{\"id\":3,\"method\":\"eth_unsubscribe\",\"jsonrpc\":\"2.0\",\"params\":[\"0x5cef478723ff08bf67fde6c64013153e\"]}' http://127.0.0.1:8812",
+                "response": "{\"id\":3,\"jsonrpc\":\"2.0\",\"result\": true}"
+            }
+        ],
+        "error": [
+            "{\"code\":-15,\"message\":\"No websocket\"}",
+            "{\"code\":-15,\"message\":\"No subscribe id\"}"
         ]
     }
 }

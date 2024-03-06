@@ -21,10 +21,15 @@ const string DB_BLOCKINDEX_KEY_ID_PREVROOT("prevroot");
 
 const uint8 DB_BLOCKINDEX_ROOT_TYPE_BLOCK_INDEX = 0x10;
 const uint8 DB_BLOCKINDEX_ROOT_TYPE_BLOCK_NUMBER = 0x20;
+const uint8 DB_BLOCKINDEX_ROOT_TYPE_BLOCK_VOTE_RESULT = 0x30;
 
 const uint8 DB_BLOCKINDEX_KEY_TYPE_BLOCK_INDEX = DB_BLOCKINDEX_ROOT_TYPE_BLOCK_INDEX | 0x01;
 
 const uint8 DB_BLOCKINDEX_KEY_TYPE_BLOCK_NUMBER = DB_BLOCKINDEX_ROOT_TYPE_BLOCK_NUMBER | 0x01;
+
+const uint8 DB_BLOCKINDEX_KEY_TYPE_BLOCK_VOTE_RESULT = DB_BLOCKINDEX_ROOT_TYPE_BLOCK_VOTE_RESULT | 0x01;
+const uint8 DB_BLOCKINDEX_KEY_TYPE_LAST_BLOCK_VOTE = DB_BLOCKINDEX_ROOT_TYPE_BLOCK_VOTE_RESULT | 0x02;
+const uint8 DB_BLOCKINDEX_KEY_TYPE_BLOCK_LOCAL_SIGN_FLAG = DB_BLOCKINDEX_ROOT_TYPE_BLOCK_VOTE_RESULT | 0x03;
 
 //////////////////////////////
 // CBlockIndexDB
@@ -68,7 +73,7 @@ bool CBlockIndexDB::AddNewBlockIndex(const CBlockOutline& outline)
     ssValue << outline;
     if (!dbTrie.WriteExtKv(ssKey, ssValue))
     {
-        StdLog("CBlockIndexDB", "Add new block index: Set value node fail, hashBlock: %s", outline.GetBlockHash().GetHex().c_str());
+        StdLog("CBlockIndexDB", "Add new block index: Write ext kv fail, block: %s", outline.GetBlockHash().GetHex().c_str());
         return false;
     }
     return true;
@@ -244,6 +249,181 @@ bool CBlockIndexDB::VerifyBlockNumberContext(const uint256& hashFork, const uint
 }
 
 ///////////////////////////////////
+// block vote result
+
+bool CBlockIndexDB::AddBlockVoteResult(const uint256& hashBlock, const bool fLongChain, const bytes& btBitmap, const bytes& btAggSig, const bool fAtChain, const uint256& hashAtBlock)
+{
+    CWriteLock wlock(rwAccess);
+
+    {
+        CBufStream ssKey, ssValue;
+        ssKey << DB_BLOCKINDEX_KEY_TYPE_BLOCK_VOTE_RESULT << hashBlock;
+        ssValue << btBitmap << btAggSig << fAtChain << hashAtBlock;
+        if (!dbTrie.WriteExtKv(ssKey, ssValue))
+        {
+            StdLog("CBlockIndexDB", "Add block vote result: Write ext kv fail, block: %s", hashBlock.GetHex().c_str());
+            return false;
+        }
+    }
+
+    if (fLongChain)
+    {
+        CBlockOutline outline;
+        if (!RetrieveBlockIndex(hashBlock, outline))
+        {
+            StdLog("CBlockIndexDB", "Add block vote result: Retrieve block index fail, block: %s", hashBlock.GetHex().c_str());
+            return false;
+        }
+
+        uint256 hashLastBlock;
+        uint64 nLastNumber;
+        bool fLastAtChain = false;
+        {
+            CBufStream ssKey, ssValue;
+            ssKey << DB_BLOCKINDEX_KEY_TYPE_LAST_BLOCK_VOTE << outline.hashOrigin;
+            if (dbTrie.ReadExtKv(ssKey, ssValue))
+            {
+                try
+                {
+                    bytes btTempBitmap;
+                    bytes btTempAggSig;
+                    uint256 hashLastAtBlock;
+                    ssValue >> hashLastBlock >> nLastNumber >> btTempBitmap >> btTempAggSig >> fLastAtChain >> hashLastAtBlock;
+                }
+                catch (std::exception& e)
+                {
+                    mtbase::StdError(__PRETTY_FUNCTION__, e.what());
+                    hashLastBlock = 0;
+                }
+            }
+        }
+
+        bool fWriteLast = false;
+        do
+        {
+            if (hashLastBlock.IsNull())
+            {
+                fWriteLast = true;
+                break;
+            }
+            if (!hashLastBlock.IsNull() && hashLastBlock == hashBlock && !fLastAtChain && fAtChain)
+            {
+                fWriteLast = true;
+                break;
+            }
+            if (CBlock::GetBlockHeightByHash(hashLastBlock) <= CBlock::GetBlockHeightByHash(hashBlock) && nLastNumber < outline.GetBlockNumber())
+            {
+                fWriteLast = true;
+                break;
+            }
+        } while (0);
+
+        if (fWriteLast)
+        {
+            CBufStream ssKey, ssValue;
+            ssKey << DB_BLOCKINDEX_KEY_TYPE_LAST_BLOCK_VOTE << outline.hashOrigin;
+            ssValue << hashBlock << outline.GetBlockNumber() << btBitmap << btAggSig << fAtChain << hashAtBlock;
+            if (!dbTrie.WriteExtKv(ssKey, ssValue))
+            {
+                StdLog("CBlockIndexDB", "Add block vote result: Write ext kv fail, block: %s", hashBlock.GetHex().c_str());
+                return false;
+            }
+        }
+    }
+    return true;
+}
+
+bool CBlockIndexDB::RemoveBlockVoteResult(const uint256& hashBlock)
+{
+    CWriteLock wlock(rwAccess);
+    CBufStream ssKey;
+    ssKey << DB_BLOCKINDEX_KEY_TYPE_BLOCK_VOTE_RESULT << hashBlock;
+    return dbTrie.RemoveExtKv(ssKey);
+}
+
+bool CBlockIndexDB::RetrieveBlockVoteResult(const uint256& hashBlock, bytes& btBitmap, bytes& btAggSig, bool& fAtChain, uint256& hashAtBlock)
+{
+    CReadLock rlock(rwAccess);
+    CBufStream ssKey, ssValue;
+    ssKey << DB_BLOCKINDEX_KEY_TYPE_BLOCK_VOTE_RESULT << hashBlock;
+    if (!dbTrie.ReadExtKv(ssKey, ssValue))
+    {
+        return false;
+    }
+    try
+    {
+        ssValue >> btBitmap >> btAggSig >> fAtChain >> hashAtBlock;
+    }
+    catch (std::exception& e)
+    {
+        mtbase::StdError(__PRETTY_FUNCTION__, e.what());
+        return false;
+    }
+    return true;
+}
+
+bool CBlockIndexDB::GetLastBlockVoteResult(const uint256& hashFork, uint256& hashLastBlock, bytes& btBitmap, bytes& btAggSig, bool& fAtChain, uint256& hashAtBlock)
+{
+    CReadLock rlock(rwAccess);
+    CBufStream ssKey, ssValue;
+    ssKey << DB_BLOCKINDEX_KEY_TYPE_LAST_BLOCK_VOTE << hashFork;
+    if (!dbTrie.ReadExtKv(ssKey, ssValue))
+    {
+        return false;
+    }
+    try
+    {
+        uint64 nLastNumber = 0;
+        ssValue >> hashLastBlock >> nLastNumber >> btBitmap >> btAggSig >> fAtChain >> hashAtBlock;
+    }
+    catch (std::exception& e)
+    {
+        mtbase::StdError(__PRETTY_FUNCTION__, e.what());
+        return false;
+    }
+    return true;
+}
+
+bool CBlockIndexDB::GetLastConfirmBlock(const uint256& hashFork, uint256& hashLastConfirmBlock)
+{
+    CReadLock rlock(rwAccess);
+    CBufStream ssKey, ssValue;
+    ssKey << DB_BLOCKINDEX_KEY_TYPE_LAST_BLOCK_VOTE << hashFork;
+    if (!dbTrie.ReadExtKv(ssKey, ssValue))
+    {
+        return false;
+    }
+    try
+    {
+        ssValue >> hashLastConfirmBlock;
+    }
+    catch (std::exception& e)
+    {
+        mtbase::StdError(__PRETTY_FUNCTION__, e.what());
+        return false;
+    }
+    return true;
+}
+
+bool CBlockIndexDB::AddBlockLocalVoteSignFlag(const uint256& hashBlock)
+{
+    CWriteLock wlock(rwAccess);
+
+    uint256 hashBlockDb;
+    if (GetBlockLocalSignFlagDb(CBlock::GetBlockChainIdByHash(hashBlock), CBlock::GetBlockHeightByHash(hashBlock), CBlock::GetBlockSlotByHash(hashBlock), hashBlockDb))
+    {
+        return hashBlockDb == hashBlock;
+    }
+    return AddBlockLocalSignFlagDb(hashBlock);
+}
+
+bool CBlockIndexDB::GetBlockLocalSignFlag(const CChainId nChainId, const uint32 nHeight, const uint16 nSlot, uint256& hashBlock)
+{
+    CReadLock rlock(rwAccess);
+    return GetBlockLocalSignFlagDb(nChainId, nHeight, nSlot, hashBlock);
+}
+
+///////////////////////////////////
 bool CBlockIndexDB::WriteTrieRoot(const uint8 nRootType, const uint256& hashBlock, const uint256& hashTrieRoot)
 {
     mtbase::CBufStream ssKey, ssValue;
@@ -307,6 +487,38 @@ bool CBlockIndexDB::GetPrevRoot(const uint8 nRootType, const uint256& hashRoot, 
     {
         ssValue.Write((char*)(btValue.data()), btValue.size());
         ssValue >> hashPrevRoot >> hashBlock;
+    }
+    catch (std::exception& e)
+    {
+        mtbase::StdError(__PRETTY_FUNCTION__, e.what());
+        return false;
+    }
+    return true;
+}
+
+bool CBlockIndexDB::AddBlockLocalSignFlagDb(const uint256& hashBlock)
+{
+    const CChainId nChainId = CBlock::GetBlockChainIdByHash(hashBlock);
+    const uint32 nHeight = CBlock::GetBlockHeightByHash(hashBlock);
+    const uint16 nSlot = CBlock::GetBlockSlotByHash(hashBlock);
+
+    CBufStream ssKey, ssValue;
+    ssKey << DB_BLOCKINDEX_KEY_TYPE_BLOCK_LOCAL_SIGN_FLAG << nChainId << nHeight << nSlot;
+    ssValue << hashBlock;
+    return dbTrie.WriteExtKv(ssKey, ssValue);
+}
+
+bool CBlockIndexDB::GetBlockLocalSignFlagDb(const CChainId nChainId, const uint32 nHeight, const uint16 nSlot, uint256& hashBlock)
+{
+    CBufStream ssKey, ssValue;
+    ssKey << DB_BLOCKINDEX_KEY_TYPE_BLOCK_LOCAL_SIGN_FLAG << nChainId << nHeight << nSlot;
+    if (!dbTrie.ReadExtKv(ssKey, ssValue))
+    {
+        return false;
+    }
+    try
+    {
+        ssValue >> hashBlock;
     }
     catch (std::exception& e)
     {

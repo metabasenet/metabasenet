@@ -65,7 +65,7 @@ public:
     void Deinitialize();
     void Clear();
 
-    bool AddForkContext(const uint256& hashPrevBlock, const uint256& hashBlock, const std::map<uint256, CForkContext>& mapForkCtxt, uint256& hashNewRoot);
+    bool AddForkContext(const uint256& hashPrevBlock, const uint256& hashBlock, const std::map<uint256, CForkContext>& mapForkCtxt, const std::map<std::string, CCoinContext>& mapSymbolCoin, uint256& hashNewRoot);
     bool ListForkContext(std::map<uint256, CForkContext>& mapForkCtxt, const uint256& hashBlock = uint256());
     bool RetrieveForkContext(const uint256& hashFork, CForkContext& ctxt, const uint256& hashMainChainRefBlock = uint256());
 
@@ -73,8 +73,15 @@ public:
     bool RemoveFork(const uint256& hashFork);
     bool RetrieveForkLast(const uint256& hashFork, uint256& hashLastBlock);
 
+    bool GetForkCoinCtxByForkSymbol(const std::string& strForkSymbol, CCoinContext& ctxCoin, const uint256& hashMainChainRefBlock = uint256());
     bool GetForkHashByForkName(const std::string& strForkName, uint256& hashFork, const uint256& hashMainChainRefBlock = uint256());
     bool GetForkHashByChainId(const CChainId nChainId, uint256& hashFork, const uint256& hashMainChainRefBlock = uint256());
+    bool ListCoinContext(std::map<std::string, CCoinContext>& mapSymbolCoin, const uint256& hashMainChainRefBlock = uint256());
+
+    bool GetDexCoinPairBySymbolPair(const std::string& strSymbol1, const std::string& strSymbol2, uint32& nCoinPair, const uint256& hashMainChainRefBlock = uint256());
+    bool GetSymbolPairByDexCoinPair(const uint32 nCoinPair, std::string& strSymbol1, std::string& strSymbol2, const uint256& hashMainChainRefBlock = uint256());
+    bool GetMaxDexCoinPair(uint32& nMaxCoinPair, const uint256& hashMainChainRefBlock = uint256());
+    bool ListDexCoinPair(const uint32 nCoinPair, const std::string& strCoinSymbol, std::map<uint32, std::pair<std::string, std::string>>& mapDexCoinPair, const uint256& hashMainChainRefBlock = uint256());
 
     bool VerifyForkContext(const uint256& hashPrevBlock, const uint256& hashBlock, uint256& hashRoot, const bool fVerifyAllNode = true);
 
@@ -88,6 +95,11 @@ protected:
     const CCacheFork* GetCacheForkContext(const uint256& hashBlock);
     const CCacheFork* LoadCacheForkContext(const uint256& hashBlock);
     bool ListDbForkContext(const uint256& hashBlock, std::map<uint256, CForkContext>& mapForkCtxt);
+    bool ListDbCoinContext(std::map<std::string, CCoinContext>& mapSymbolCoin, const uint256& hashRoot);
+    void AddMaxDexCoinPair(const uint32 nMaxDexCoinPair, bytesmap& mapKv);
+    bool GetMaxForkDexCoinPair(const uint256& hashRoot, uint32& nMaxDexCoinPair);
+    bool GetCoinContextByForkSymbol(const uint256& hashRoot, const std::string& strForkSymbol, CCoinContext& ctxCoin);
+    void AddForkDexCoinPair(const uint256& hashPrevBlock, const uint256& hashPrevRoot, const std::map<std::string, CCoinContext>& mapNewSymbolCoin, bytesmap& mapKv);
 
 protected:
     enum
@@ -100,9 +112,9 @@ protected:
     CTrieDB dbTrie;
 
     mtbase::CRWAccess rwAccess;
-    std::map<uint256, CCacheFork> mapCacheFork;
-    std::map<uint256, uint256> mapCacheLast;
-    std::map<uint256, uint256> mapCacheRoot;
+    std::map<uint256, CCacheFork, CustomBlockHashCompare> mapCacheFork; // key: block hash
+    std::map<uint256, uint256> mapCacheLast;                            // key: fork hash
+    std::map<uint256, uint256, CustomBlockHashCompare> mapCacheRoot;    // key: block hash
 };
 
 } // namespace storage

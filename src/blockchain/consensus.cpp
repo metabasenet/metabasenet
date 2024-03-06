@@ -27,7 +27,7 @@ CDelegateContext::CDelegateContext(const crypto::CKey& keyDelegateIn, const CDes
     destDelegate.SetTemplateId(templDelegate->GetTemplateId());
 }
 
-bool CDelegateContext::BuildEnrollTx(CTransaction& tx, const int nBlockHeight, const int64 nTime, const uint256& hashFork, const CChainId nChainId, const vector<unsigned char>& vchData)
+bool CDelegateContext::BuildEnrollTx(CTransaction& tx, const int nBlockHeight, const int64 nTime, const uint256& hashFork, const CChainId nChainId, const bool fNeedSetBlspubkey, const vector<unsigned char>& vchData)
 {
     tx.SetNull();
 
@@ -38,6 +38,23 @@ bool CDelegateContext::BuildEnrollTx(CTransaction& tx, const int nBlockHeight, c
     tx.SetToAddress(destDelegate);
 
     tx.AddTxData(CTransaction::DF_CERTTXDATA, vchData);
+
+    if (fNeedSetBlspubkey)
+    {
+        CCryptoBlsKey blsKey;
+        if (!keyDelegate.GetBlsKey(blsKey))
+        {
+            StdLog("CDelegateContext", "Build Enroll Tx: Get bls key fail");
+            return false;
+        }
+
+        CBufStream ss;
+        ss << blsKey.pubkey;
+        bytes btKeyData;
+        ss.GetData(btKeyData);
+
+        tx.AddTxData(CTransaction::DF_BLSPUBKEY, btKeyData);
+    }
 
     bytes btSigData;
     if (!keyDelegate.Sign(tx.GetSignatureHash(), btSigData))
@@ -228,8 +245,15 @@ void CConsensus::PrimaryUpdate(const CBlockChainUpdate& update, CDelegateRoutine
                     const uint256& nVoteAmount = nt->second;
                     StdTrace("CConsensus", "Primary Update: Vote amount: %s, destDelegate: %s", CoinToTokenBigFloat(nVoteAmount).c_str(), destDelegate.ToString().c_str());
 
+                    bool fNeedSetBlspubkey = false;
+                    uint384 blsPubkey;
+                    if (!pBlockChain->RetrieveBlsPubkeyContext(pCoreProtocol->GetGenesisBlockHash(), hash, destDelegate, blsPubkey))
+                    {
+                        fNeedSetBlspubkey = true;
+                    }
+
                     CTransaction tx;
-                    if (ctxDelegate.BuildEnrollTx(tx, nBlockHeight, GetNetTime(), pCoreProtocol->GetGenesisBlockHash(), pCoreProtocol->GetGenesisChainId(), it->second))
+                    if (ctxDelegate.BuildEnrollTx(tx, nBlockHeight, GetNetTime(), pCoreProtocol->GetGenesisBlockHash(), pCoreProtocol->GetGenesisChainId(), fNeedSetBlspubkey, it->second))
                     {
                         StdTrace("CConsensus", "Primary Update: Build enroll tx success, vote token: %s, destDelegate: %s, block: [%d] %s",
                                  CoinToTokenBigFloat(nVoteAmount).c_str(), (*it).first.ToString().c_str(),

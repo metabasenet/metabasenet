@@ -57,6 +57,7 @@ public:
     bool Unlock(const CCryptoString& strPassphrase = "");
 
     bool SignEthTx(const CEthTxSkeleton& ets, uint256& hashTx, bytes& btEthTxData);
+    bool GetBlsKey(CCryptoBlsKey& keyBls);
 
 protected:
     bool UpdateCipher(uint32 nVersionIn = INIT, const CCryptoString& strPassphrase = "");

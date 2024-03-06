@@ -151,6 +151,55 @@ protected:
     }
 };
 
+class CBlockVoteSig
+{
+    friend class mtbase::CStream;
+
+public:
+    uint256 hashBlockVote;
+    bytes btBlockVoteBitmap;
+    bytes btBlockVoteAggSig;
+
+public:
+    CBlockVoteSig() {}
+    CBlockVoteSig(const uint256& hashBlockVoteIn, const bytes& btBlockVoteBitmapIn, const bytes& btBlockVoteAggSigIn)
+      : hashBlockVote(hashBlockVoteIn), btBlockVoteBitmap(btBlockVoteBitmapIn), btBlockVoteAggSig(btBlockVoteAggSigIn) {}
+
+    void Save(std::vector<unsigned char>& btProof) const
+    {
+        mtbase::CBufStream ss;
+        ss << *this;
+        ss.GetData(btProof);
+    }
+    bool Load(const std::vector<unsigned char>& btProof)
+    {
+        mtbase::CBufStream ss(btProof);
+        try
+        {
+            ss >> *this;
+        }
+        catch (const std::exception& e)
+        {
+            mtbase::StdError(__PRETTY_FUNCTION__, e.what());
+            return false;
+        }
+        return true;
+    }
+    bool IsNull() const
+    {
+        return (hashBlockVote.IsNull() || btBlockVoteBitmap.empty() || btBlockVoteAggSig.empty());
+    }
+
+protected:
+    template <typename O>
+    void Serialize(mtbase::CStream& s, O& opt)
+    {
+        s.Serialize(hashBlockVote, opt);
+        s.Serialize(btBlockVoteBitmap, opt);
+        s.Serialize(btBlockVoteAggSig, opt);
+    }
+};
+
 class CConsensusParam
 {
 public:

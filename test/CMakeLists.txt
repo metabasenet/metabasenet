@@ -1,7 +1,7 @@
 # ------------------------------------------------------------------------------
 # CMake file for MetabaseNet
 #
-# Copyright (c) 2021-2023 The MetabaseNet developers
+# Copyright (c) 2022-2024 The MetabaseNet developers
 # Distributed under the MIT/X11 software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 # ------------------------------------------------------------------------------
@@ -11,6 +11,7 @@ include_directories(${CMAKE_CURRENT_BINARY_DIR}/../src/jsonrpc ../src/jsonrpc)
 include_directories(../src/wvm/wasm-edge/include)
 
 set(sources
+    base_tests.h
     test_big_main.cpp
     test_big.h test_big.cpp
     uint256_tests.cpp
@@ -21,19 +22,22 @@ set(sources
     crypto_tests.cpp
     delegate_tests.cpp
     eth_test.cpp
+    hdexdb_tests.cpp
     storage_tests.cpp
     structure_tests.cpp
     util_tests.cpp
     slowhash_tests.cpp
     triedb_tests.cpp
     bloomfilter_tests.cpp
+    blockvote_tests.cpp
+    merkletree_tests.cpp
     evmc/evmcTest.cpp
     evmc/example_host.cpp
 )
 
 add_executable(test_big ${sources})
 
-include_directories(../src/blockchain ../src/mtbase ../src/crypto ../src/common ../src/storage ../src/network ../src/mpvss ../src/delegate ../src/wvm/utils ../src/meth ../src/mvm/mevm ../src/mvm/mwvm ../src/mvm/vface)
+include_directories(../src/blockchain ../src/mtbase ../src/crypto ../src/common ../src/consensus ../src/storage ../src/network ../src/mpvss ../src/delegate ../src/wvm/utils ../src/meth ../src/mvm/mevm ../src/mvm/mwvm ../src/mvm/vface)
 
 target_link_libraries(test_big
     ${Boost_UNIT_TEST_FRAMEWORK_LIBRARY}
@@ -60,6 +64,7 @@ target_link_libraries(test_big
     mevm
     mwvm
     vface
+    consensus
     ${Boost_LOG_LIBRARY}
 )
 

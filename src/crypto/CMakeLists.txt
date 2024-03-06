@@ -6,6 +6,9 @@
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 # ------------------------------------------------------------------------------
 
+# sub directories
+add_subdirectory(blss)
+
 set(curve25519
     curve25519/base25519.cpp curve25519/base25519.h
     curve25519/fp25519.cpp curve25519/fp25519.h
@@ -30,7 +33,7 @@ endif()
 
 add_library(crypto ${sources})
 
-include_directories(crypto ../mtbase ../common ../meth ../wvm/utils ./ ${sodium_INCLUDE_DIR})
+include_directories(crypto ../mtbase ../common ./blss/src ../meth ../wvm/utils ./ ${sodium_INCLUDE_DIR})
 link_directories()
 
 if(MSVC)
@@ -51,6 +54,7 @@ target_link_libraries(crypto
     ${sodium_LIBRARY_RELEASE}
     mtbase
     common
+    bls
     ssvmCommon
     ssvmEVMCUtilEVMCLoader
     ssvm-evmc

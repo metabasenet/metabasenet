@@ -55,10 +55,14 @@ set(src
     chnblock.cpp chnblock.h
     chncerttx.cpp chncerttx.h
     chnusertx.cpp chnusertx.h
+    chnblockvote.cpp chnblockvote.h
+    chnblockcrossprove.cpp chnblockcrossprove.h
+    struct.cpp struct.h
+    wsservice.cpp wsservice.h
+    blockfilter.cpp blockfilter.h
 
     event.h
     base.h
-    struct.h
     storage.h
     version.h
 )
@@ -86,7 +90,7 @@ set(sources
 add_library(blockchain ${sources})
 add_executable(metabasenet main.cpp)
 
-include_directories(../mtbase ../crypto ../common ../storage ../network ../delegate ../mpvss ../jsonrpc ../mvm ./)
+include_directories(../mtbase ../crypto ../common ../storage ../network ../delegate ../consensus ../mpvss ../jsonrpc ../mvm ../mnc ./)
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
 include_directories(${CMAKE_BINARY_DIR}/src/jsonrpc)
 include_directories(${Protobuf_INCLUDE_DIRS})
@@ -137,6 +141,7 @@ target_link_libraries(blockchain
     devcrypto
     ethcore
     devcommon
+    consensus
 )
 
 if(UNIX)

@@ -60,7 +60,7 @@ long getFileSize(const char* strFileName)
 void loaderc20()
 {
     using namespace std;
-    const std::string wasmf = "/home/user/metabasenet/test/evmc/test.wasm";
+    const std::string wasmf = "/home/shang/mam/metabasenet/test/evmc/test.wasm";
     ifstream inFile(wasmf, ios::in | ios::binary);
     erc20_deploy_wasm_len = getFileSize(wasmf.c_str());
     erc20_deploy_wasm_ = new char[erc20_deploy_wasm_len];
@@ -71,7 +71,7 @@ void loaderc20()
 void saveerc20()
 {
     using namespace std;
-    const std::string wasmf = "/home/user/metabasenet/test/evmc/test_.wasm";
+    const std::string wasmf = "/home/shang/mam/metabasenet/test/evmc/test_.wasm";
     ofstream outFile(wasmf, ios::out | ios::binary);
     outFile.write(erc20_wasm_, erc20_wasm_len);
     outFile.close();

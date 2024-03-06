@@ -26,6 +26,7 @@ public:
 
 public:
     unsigned int nRPCPort;
+    unsigned int nWsPort;
 };
 
 class CRPCServerConfig : virtual public CRPCBasicConfig, virtual public CRPCServerConfigOption
@@ -37,9 +38,12 @@ public:
     virtual std::string ListConfig() const;
     virtual std::string Help() const;
 
+    uint16 GetRpcPort(const CChainId nChainIdIn) const;
+    uint16 GetWsPort(const CChainId nChainIdIn) const;
+
 public:
     boost::asio::ip::tcp::endpoint epRPC;
-    std::vector<std::pair<uint32, uint16>> vecChainIdRpcPort;
+    std::map<CChainId, std::pair<uint16, uint16>> mapChainIdRpcPort; // key: chainid, value1: rpc port, value2: ws port
 };
 
 class CRPCClientConfig : virtual public CRPCBasicConfig, virtual public CRPCClientConfigOption

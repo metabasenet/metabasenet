@@ -47,7 +47,7 @@ static const unsigned int MAX_SIGNATURE_SIZE = 2048;
 static const unsigned int MAX_TX_INPUT_COUNT = (MAX_TX_SIZE - MAX_SIGNATURE_SIZE - 4) / 33;
 static const int64 MAX_BLOCK_GAS_LIMIT = 10000 * 10000 * 10;
 
-#define BLOCK_TARGET_SPACING GET_FAST_PARAM(10, 5, 1)
+#define BLOCK_TARGET_SPACING GET_FAST_PARAM(60, 5, 1)
 #define EXTENDED_BLOCK_SPACING GET_PARAM(1, 1)
 
 #define DAY_HEIGHT_MAINNET (3600 * 24 / BLOCK_TARGET_SPACING)
@@ -69,6 +69,7 @@ static const int64 MAX_BLOCK_GAS_LIMIT = 10000 * 10000 * 10;
 #define CONSENSUS_INTERVAL (CONSENSUS_DISTRIBUTE_INTERVAL + CONSENSUS_ENROLL_INTERVAL + 1)
 
 #define MAX_DELEGATE_THRESH (21)
+#define MAX_DELEGATE_BLOCK_VOTE (MAX_DELEGATE_THRESH * 2)
 
 ///////////////////////////////////
 // FORK
@@ -80,6 +81,8 @@ const double MORTGAGE_DECAY_QUANTITY = 0.5; // decay quantity
 
 #define MIN_CREATE_FORK_INTERVAL_HEIGHT GET_PARAM(30, 0)
 #define MAX_JOINT_FORK_INTERVAL_HEIGHT GET_PARAM(DAY_HEIGHT_MAINNET, 0x7FFFFFFF)
+
+static const bool fCreateUserForkEnable = false;
 
 ///////////////////////////////////
 // CORE
@@ -106,6 +109,8 @@ static const uint256 DELEGATE_PROOF_OF_STAKE_MIN_VOTE_AMOUNT = COIN;
 #define FUNCTION_TX_GAS_TRANS (2300)
 #define REWARD_TX_GAS_LIMIT (300000)
 #define PLEDGE_REDEEM_TX_GAS_LIMIT (300000)
+#define MAX_COIN_SYMBOL_SIZE (32) // Note: cannot be modified
+#define MAX_FORK_NAME_SIZE (128)
 
 static const int64 MINT_REWARD_PER = 10000;
 static const uint256 CODE_REWARD_USED(50);
@@ -222,7 +227,9 @@ static const std::map<std::string, int> mapCodeGrantAddress = {
 
 ///////////////////////////////////
 static const CDestination FUNCTION_BLACKHOLE_ADDRESS("0x0000000000000000000000000000000000000001");
+static const CDestination FUNCTION_CROSSCHAIN_ADDRESS("0x0000000000000000000000000000000000000002");
 static const CDestination FUNCTION_CONTRACT_ADDRESS("0x00000000000000000000000000000000000000A1");
+static const CDestination FUNCTION_DEX_POOL_ADDRESS("0x00000000000000000000000000000000000000B1");
 
 inline bool isFunctionContractAddress(const CDestination& _addr)
 {
@@ -236,6 +243,7 @@ static const uint32 DATA_PAGE_SIZE = 32;
 ///////////////////////////////////
 std::string CoinToTokenBigFloat(const uint256& nCoin);
 bool TokenBigFloatToCoin(const std::string& strToken, uint256& nCoin);
+uint256 TokenBigFloatToCoin(const std::string& strToken);
 
 } // namespace metabasenet
 

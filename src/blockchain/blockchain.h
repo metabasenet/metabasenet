@@ -31,9 +31,9 @@ public:
     bool GetBlockHashList(const uint256& hashFork, const uint32 nHeight, std::vector<uint256>& vBlockHash) override;
     bool GetBlockNumberHash(const uint256& hashFork, const uint64 nNumber, uint256& hashBlock) override;
     bool GetBlockStatus(const uint256& hashBlock, CBlockStatus& status) override;
+    bool GetLastBlockStatus(const uint256& hashFork, CBlockStatus& status) override;
     bool GetLastBlockOfHeight(const uint256& hashFork, const int nHeight, uint256& hashBlock, uint64& nTime) override;
     bool GetBlockHashOfRefBlock(const uint256& hashRefBlock, const int nHeight, uint256& hashBlock) override;
-    bool GetLastBlockStatus(const uint256& hashFork, CBlockStatus& status) override;
     bool GetLastBlockTime(const uint256& hashFork, int nDepth, std::vector<uint64>& vTime) override;
     bool GetBlock(const uint256& hashBlock, CBlock& block) override;
     bool GetBlockEx(const uint256& hashBlock, CBlockEx& block) override;
@@ -44,7 +44,7 @@ public:
     bool ListForkContext(std::map<uint256, CForkContext>& mapForkCtxt, const uint256& hashBlock = uint256()) override;
     bool RetrieveForkLast(const uint256& hashFork, uint256& hashLastBlock) override;
     bool GetForkStorageMaxHeight(const uint256& hashFork, uint32& nMaxHeight) override;
-    Errno AddNewBlock(const CBlock& block, CBlockChainUpdate& update) override;
+    Errno AddNewBlock(const uint256& hashBlock, const CBlock& block, uint256& hashFork, CBlockChainUpdate& update) override;
     Errno AddNewOrigin(const CBlock& block, CBlockChainUpdate& update) override;
     bool GetProofOfWorkTarget(const uint256& hashPrev, int nAlgo, int& nBits) override;
     bool GetBlockMintReward(const uint256& hashPrev, const bool fPow, uint256& nReward, const uint256& hashMainChainRefBlock) override;
@@ -63,6 +63,7 @@ public:
     bool VerifyDelegateEnroll(const uint256& hashRefBlock, const int nEnrollHeight, const CDestination& destDelegate) override;
     bool VerifyDelegateMinVote(const uint256& hashRefBlock, const uint32 nHeight, const CDestination& destDelegate) override;
     uint256 GetBlockMoneySupply(const uint256& hashBlock) override;
+    bool GetBlockDelegateVoteAddress(const uint256& hashBlock, std::set<CDestination>& setVoteAddress) override;
     uint64 GetNextBlockTimestamp(const uint256& hashPrev) override;
     Errno VerifyPowBlock(const CBlock& block, bool& fLongChain) override;
     bool VerifyBlockForkTx(const uint256& hashPrev, const CTransaction& tx, std::vector<std::pair<CDestination, CForkContext>>& vForkCtxt) override;
@@ -76,6 +77,7 @@ public:
     CTemplatePtr GetTxToAddressTemplatePtr(const uint256& hashFork, const uint256& hashBlock, const CTransaction& tx) override;
     bool ListContractAddress(const uint256& hashFork, const uint256& hashBlock, std::map<CDestination, CContractAddressContext>& mapContractAddress) override;
     bool RetrieveTimeVault(const uint256& hashFork, const uint256& hashBlock, const CDestination& dest, CTimeVault& tv) override;
+    bool RetrieveBlsPubkeyContext(const uint256& hashFork, const uint256& hashBlock, const CDestination& dest, uint384& blsPubkey) override;
     bool GetAddressCount(const uint256& hashFork, const uint256& hashBlock, uint64& nAddressCount, uint64& nNewAddressCount) override;
     bool RetrieveForkContractCreateCodeContext(const uint256& hashFork, const uint256& hashBlock, const uint256& hashContractCreateCode, CContractCreateCodeContext& ctxtCode) override;
     bool RetrieveLinkGenesisContractCreateCodeContext(const uint256& hashFork, const uint256& hashBlock, const uint256& hashContractCreateCode, CContractCreateCodeContext& ctxtCode, bool& fLinkGenesisFork) override;
@@ -88,20 +90,18 @@ public:
     bool VerifyAddressVoteRedeem(const CDestination& dest, const uint256& hashPrevBlock) override;
     bool GetVoteRewardLockedAmount(const uint256& hashFork, const uint256& hashPrevBlock, const CDestination& dest, uint256& nLockedAmount) override;
     bool GetAddressLockedAmount(const uint256& hashFork, const uint256& hashPrevBlock, const CDestination& dest, const CAddressContext& ctxAddress, const uint256& nBalance, uint256& nLockedAmount) override;
-    bool VerifyForkNameAndChainId(const uint256& hashFork, const CChainId nChainIdIn, const std::string& strForkName, const uint256& hashBlock = uint256()) override;
-    bool GetForkHashByChainId(const CChainId nChainId, uint256& hashFork, const uint256& hashBlock = uint256()) override;
+    bool VerifyForkFlag(const uint256& hashNewFork, const CChainId nChainIdIn, const std::string& strForkSymbol, const std::string& strForkName, const uint256& hashBlock = uint256()) override;
+    bool GetForkCoinCtxByForkSymbol(const std::string& strForkSymbol, CCoinContext& ctxCoin, const uint256& hashMainChainRefBlock = uint256()) override;
+    bool GetForkHashByChainId(const CChainId nChainId, uint256& hashFork, const uint256& hashMainChainRefBlock = uint256()) override;
+    bool ListCoinContext(std::map<std::string, CCoinContext>& mapSymbolCoin, const uint256& hashMainChainRefBlock = uint256()) override;
+    bool GetDexCoinPairBySymbolPair(const std::string& strSymbol1, const std::string& strSymbol2, uint32& nCoinPair, const uint256& hashMainChainRefBlock = uint256()) override;
+    bool GetSymbolPairByDexCoinPair(const uint32 nCoinPair, std::string& strSymbol1, std::string& strSymbol2, const uint256& hashMainChainRefBlock = uint256()) override;
+    bool ListDexCoinPair(const uint32 nCoinPair, const std::string& strCoinSymbol, std::map<uint32, std::pair<std::string, std::string>>& mapDexCoinPair, const uint256& hashMainChainRefBlock = uint256()) override;
     bool RetrieveContractKvValue(const uint256& hashFork, const uint256& hashBlock, const CDestination& dest, const uint256& key, bytes& value) override;
-    uint256 AddLogsFilter(const uint256& hashClient, const uint256& hashFork, const CLogsFilter& logsFilter) override;
-    void RemoveFilter(const uint256& nFilterId) override;
-    bool GetTxReceiptLogsByFilterId(const uint256& nFilterId, const bool fAll, ReceiptLogsVec& receiptLogs) override;
-    bool GetTxReceiptsByLogsFilter(const uint256& hashFork, const CLogsFilter& logsFilter, ReceiptLogsVec& vReceiptLogs) override;
-    uint256 AddBlockFilter(const uint256& hashClient, const uint256& hashFork) override;
-    bool GetFilterBlockHashs(const uint256& hashFork, const uint256& nFilterId, const bool fAll, std::vector<uint256>& vBlockHash) override;
-    uint256 AddPendingTxFilter(const uint256& hashClient, const uint256& hashFork) override;
-    void AddPendingTx(const uint256& hashFork, const uint256& txid) override;
-    bool GetFilterTxids(const uint256& hashFork, const uint256& nFilterId, const bool fAll, std::vector<uint256>& vTxid) override;
+    bool GetBlockReceiptsByBlock(const uint256& hashFork, const uint256& hashFromBlock, const uint256& hashToBlock, std::map<uint256, std::vector<CTransactionReceipt>, CustomBlockHashCompare>& mapBlockReceipts) override;
+    bool VerifySameChain(const uint256& hashPrevBlock, const uint256& hashAfterBlock) override;
+    bool GetPrevBlockHashList(const uint256& hashBlock, const uint32 nGetCount, std::vector<uint256>& vPrevBlockhash) override;
 
-    /////////////    CheckPoints    /////////////////////
     typedef std::map<int, CCheckPoint> MapCheckPointsType;
 
     bool HasCheckPoints(const uint256& hashFork) const override;
@@ -116,13 +116,24 @@ public:
     bool CalcBlockVoteRewardTx(const uint256& hashPrev, const uint16 nBlockType, const int nBlockHeight, const uint32 nBlockTime, std::vector<CTransaction>& vVoteRewardTx) override;
     uint256 GetPrimaryBlockReward(const uint256& hashPrev) override;
     bool CreateBlockStateRoot(const uint256& hashFork, const CBlock& block, uint256& hashStateRoot, uint256& hashReceiptRoot,
-                              uint256& nBlockGasUsed, bytes& btBloomDataOut, uint256& nTotalMintRewardOut) override;
+                              uint256& hashCrosschainMerkleRoot, uint256& nBlockGasUsed, bytes& btBloomDataOut, uint256& nTotalMintRewardOut, bool& fMoStatus) override;
     bool RetrieveDestState(const uint256& hashFork, const uint256& hashBlock, const CDestination& dest, CDestState& state) override;
     bool GetTransactionReceipt(const uint256& hashFork, const uint256& txid, CTransactionReceiptEx& receiptex) override;
     bool CallContract(const bool fEthCall, const uint256& hashFork, const uint256& hashBlock, const CDestination& from, const CDestination& to, const uint256& nAmount, const uint256& nGasPrice,
                       const uint256& nGas, const bytes& btContractParam, uint256& nUsedGas, uint64& nGasLeft, int& nStatus, bytes& btResult) override;
+    bool GetContractBalance(const bool fEthCall, const uint256& hashFork, const uint256& hashBlock, const CDestination& destContract, const CDestination& destUser, uint256& nBalance) override;
     bool VerifyContractAddress(const uint256& hashFork, const uint256& hashBlock, const CDestination& destContract) override;
     bool VerifyCreateCodeTx(const uint256& hashFork, const uint256& hashBlock, const CTransaction& tx) override;
+
+    bool GetCompleteOrder(const uint256& hashBlock, const CDestination& destOrder, const CChainId nChainIdOwner, const std::string& strCoinSymbolOwner,
+                          const std::string& strCoinSymbolPeer, const uint64 nOrderNumber, uint256& nCompleteAmount, uint64& nCompleteOrderCount) override;
+    bool GetCompleteOrder(const uint256& hashBlock, const uint256& hashDexOrder, uint256& nCompleteAmount, uint64& nCompleteOrderCount) override;
+    bool ListAddressDexOrder(const uint256& hashBlock, const CDestination& destOrder, const std::string& strCoinSymbolOwner, const std::string& strCoinSymbolPeer,
+                             const uint64 nBeginOrderNumber, const uint32 nGetCount, std::map<CDexOrderHeader, CDexOrderSave>& mapDexOrder) override;
+    bool ListMatchDexOrder(const uint256& hashBlock, const std::string& strCoinSymbolSell, const std::string& strCoinSymbolBuy, const uint64 nGetCount, CRealtimeDexOrder& realDexOrder) override;
+    bool GetCrosschainProveForPrevBlock(const CChainId nRecvChainId, const uint256& hashRecvPrevBlock, std::map<CChainId, CBlockProve>& mapBlockCrosschainProve) override;
+    bool AddRecvCrosschainProve(const CChainId nRecvChainId, const CBlockProve& blockProve) override;
+    bool GetRecvCrosschainProve(const CChainId nRecvChainId, const CChainId nSendChainId, const uint256& hashSendProvePrevBlock, CBlockProve& blockProve) override;
 
     bool AddBlacklistAddress(const CDestination& dest) override;
     void RemoveBlacklistAddress(const CDestination& dest) override;
@@ -135,6 +146,18 @@ public:
 
     bool UpdateForkMintMinGasPrice(const uint256& hashFork, const uint256& nMinGasPrice) override;
     uint256 GetForkMintMinGasPrice(const uint256& hashFork) override;
+
+    bool GetCandidatePubkey(const uint256& hashPrimaryBlock, std::vector<uint384>& vCandidatePubkey) override;
+    bool GetPrevBlockCandidatePubkey(const uint256& hashBlock, std::vector<uint384>& vCandidatePubkey) override;
+    bool VerifyBlockCommitVoteAggSig(const uint256& hashBlock, const bytes& btAggBitmap, const bytes& btAggSig) override;
+    bool VerifyBlockCommitVoteAggSig(const uint256& hashVoteBlock, const uint256& hashRefBlock, const bytes& btAggBitmap, const bytes& btAggSig) override;
+
+    bool AddBlockVoteResult(const uint256& hashBlock, const bool fLongChain, const bytes& btBitmap, const bytes& btAggSig, const bool fAtChain, const uint256& hashAtBlock) override;
+    bool RetrieveBlockVoteResult(const uint256& hashBlock, bytes& btBitmap, bytes& btAggSig, bool& fAtChain, uint256& hashAtBlock) override;
+    bool GetMakerVoteBlock(const uint256& hashPrevBlock, bytes& btBitmap, bytes& btAggSig, uint256& hashVoteBlock) override;
+    bool IsBlockConfirm(const uint256& hashBlock) override;
+    bool AddBlockLocalVoteSignFlag(const uint256& hashBlock) override;
+    bool VerifyPrimaryBlockConfirm(const uint256& hashBlock) override;
 
 public:
     static int64 GetBlockInvestRewardTxMaxCount();
@@ -151,7 +174,9 @@ protected:
                                    CDelegateAgreement& agreement, uint256& nEnrollTrust);
     Errno VerifyBlock(const uint256& hashBlock, const CBlock& block, CBlockIndex* pIndexPrev,
                       uint256& nReward, CDelegateAgreement& agreement, uint256& nEnrollTrust, CBlockIndex** ppIndexRef);
-    bool VerifyBlockCertTx(const CBlock& block);
+    bool VerifyBlockCertTx(const uint256& hashBlock, const CBlock& block);
+    bool VerifyBlockVoteResult(const uint256& hashBlock, const CBlock& block);
+    bool VerifyBlockCrosschainProve(const uint256& hashBlock, const CBlock& block);
 
     void InitCheckPoints();
     void InitCheckPoints(const uint256& hashFork, const std::map<int, uint256>& mapCheckPointsIn);
@@ -177,11 +202,14 @@ protected:
     mtbase::CCache<uint256, CDelegateAgreement> cacheAgreement;
     mtbase::CCache<uint256, CProofOfPiggyback> cachePiggyback;
 
+    boost::mutex mutexBlsPubkey;
+    CCacheBlsPubkey cacheBlsPubkey;
+
     std::map<uint256, MapCheckPointsType> mapForkCheckPoints;
     uint32 nMaxBlockRewardTxCount;
 
     boost::shared_mutex rwCvrAccess;
-    std::map<uint256, std::map<uint256, std::vector<std::vector<CTransaction>>>> mapCacheDistributeVoteReward;
+    std::map<uint256, std::map<uint256, std::vector<std::vector<CTransaction>>, CustomBlockHashCompare>> mapCacheDistributeVoteReward;
 };
 
 } // namespace metabasenet

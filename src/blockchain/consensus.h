@@ -21,7 +21,7 @@ public:
     {
         return destDelegate;
     }
-    bool BuildEnrollTx(CTransaction& tx, const int nBlockHeight, const int64 nTime, const uint256& hashFork, const CChainId nChainId, const std::vector<unsigned char>& vchData);
+    bool BuildEnrollTx(CTransaction& tx, const int nBlockHeight, const int64 nTime, const uint256& hashFork, const CChainId nChainId, const bool fNeedSetBlspubkey, const std::vector<unsigned char>& vchData);
 
 protected:
     CDestination destDelegate;

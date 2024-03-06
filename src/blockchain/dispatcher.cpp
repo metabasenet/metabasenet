@@ -29,11 +29,14 @@ CDispatcher::CDispatcher()
     pService = nullptr;
     pBlockMaker = nullptr;
     pNetChannel = nullptr;
+    pDelegatedChannel = nullptr;
     pBlockChannel = nullptr;
     pCertTxChannel = nullptr;
     pUserTxChannel = nullptr;
-    pDelegatedChannel = nullptr;
+    pBlockVoteChannel = nullptr;
+    pBlockCrossProveChannel = nullptr;
     pDataStat = nullptr;
+    pBlockFilter = nullptr;
 }
 
 CDispatcher::~CDispatcher()
@@ -90,33 +93,51 @@ bool CDispatcher::HandleInitialize()
         return false;
     }
 
-    if (!GetObject("blockchannel", pBlockChannel))
-    {
-        Error("Failed to request peer net blockchannel\n");
-        return false;
-    }
-
-    if (!GetObject("certtxchannel", pCertTxChannel))
-    {
-        Error("Failed to request peer net certtxchannel\n");
-        return false;
-    }
-
-    if (!GetObject("usertxchannel", pUserTxChannel))
-    {
-        Error("Failed to request peer net usertxchannel\n");
-        return false;
-    }
-
     if (!GetObject("delegatedchannel", pDelegatedChannel))
     {
         Error("Failed to request delegatedchanne");
         return false;
     }
 
+    if (!GetObject("blockchannel", pBlockChannel))
+    {
+        Error("Failed to request peer net blockchannel");
+        return false;
+    }
+
+    if (!GetObject("certtxchannel", pCertTxChannel))
+    {
+        Error("Failed to request peer net certtxchannel");
+        return false;
+    }
+
+    if (!GetObject("usertxchannel", pUserTxChannel))
+    {
+        Error("Failed to request peer net usertxchannel");
+        return false;
+    }
+
+    if (!GetObject("blockvotechannel", pBlockVoteChannel))
+    {
+        Error("Failed to request peer net blockvotechannel");
+        return false;
+    }
+
+    if (!GetObject("blockcrossprovechannel", pBlockCrossProveChannel))
+    {
+        Error("Failed to request peer net blockcrossprovechannel");
+        return false;
+    }
+
     if (!GetObject("datastat", pDataStat))
     {
         Error("Failed to request datastat");
+        return false;
+    }
+
+    if (!GetObject("blockfilter", pBlockFilter))
+    {
+        Error("Failed to request blockfilter");
         return false;
     }
     return true;
@@ -132,11 +153,14 @@ void CDispatcher::HandleDeinitialize()
     pService = nullptr;
     pBlockMaker = nullptr;
     pNetChannel = nullptr;
+    pDelegatedChannel = nullptr;
     pBlockChannel = nullptr;
     pCertTxChannel = nullptr;
     pUserTxChannel = nullptr;
-    pDelegatedChannel = nullptr;
+    pBlockVoteChannel = nullptr;
+    pBlockCrossProveChannel = nullptr;
     pDataStat = nullptr;
+    pBlockFilter = nullptr;
 }
 
 bool CDispatcher::HandleInvoke()
@@ -176,26 +200,29 @@ void CDispatcher::HandleHalt()
 
 Errno CDispatcher::AddNewBlock(const CBlock& block, uint64 nNonce)
 {
+    const uint256 hashBlock = block.GetHash();
+
     Errno err = OK;
     if (!pBlockChain->Exists(block.hashPrev))
     {
-        StdError("Dispatcher", "Add New Block: prev block not exist, block: %s, prev: %s", block.GetHash().GetHex().c_str(), block.hashPrev.GetHex().c_str());
+        StdError("Dispatcher", "Add New Block: prev block not exist, block: %s, prev: %s", hashBlock.GetHex().c_str(), block.hashPrev.GetHex().c_str());
         return ERR_MISSING_PREV;
     }
 
+    uint256 hashFork;
     CBlockChainUpdate updateBlockChain;
     if (!block.IsOrigin())
     {
-        err = pBlockChain->AddNewBlock(block, updateBlockChain);
+        err = pBlockChain->AddNewBlock(hashBlock, block, hashFork, updateBlockChain);
         if (err == OK)
         {
             if (!nNonce)
             {
-                pDataStat->AddBlockMakerStatData(updateBlockChain.hashFork, block.IsProofOfWork(), block.vtx.size());
+                pDataStat->AddBlockMakerStatData(hashFork, block.IsProofOfWork(), block.vtx.size());
             }
             else
             {
-                pDataStat->AddP2pSynRecvStatData(updateBlockChain.hashFork, 1, block.vtx.size());
+                pDataStat->AddP2pSynRecvStatData(hashFork, 1, block.vtx.size());
             }
         }
     }
@@ -206,20 +233,41 @@ Errno CDispatcher::AddNewBlock(const CBlock& block, uint64 nNonce)
 
     if (err != OK || updateBlockChain.IsNull())
     {
+        // if (err == OK)
+        // {
+        //     if (!block.IsOrigin() && !block.IsVacant())
+        //     {
+        //         StdDebug("TEST", "Add New Block: Add vote block, block: %s", hashBlock.GetHex().c_str());
+        //         pBlockVoteChannel->UpdateNewBlock(hashFork, hashBlock, block, nNonce);
+        //     }
+        // }
         return err;
     }
 
     if (!pTxPool->SynchronizeBlockChain(updateBlockChain))
     {
-        StdError("Dispatcher", "Add New Block: TxPool Synchronize block chain fail, block: %s", block.GetHash().GetHex().c_str());
+        StdError("Dispatcher", "Add New Block: TxPool Synchronize block chain fail, block: %s", hashBlock.GetHex().c_str());
         return ERR_SYS_DATABASE_ERROR;
     }
 
+    for (auto& receipt : updateBlockChain.vBlockTxReceipts)
+    {
+        pBlockFilter->AddTxReceipt(hashFork, hashBlock, receipt);
+    }
+    pBlockFilter->AddNewBlockInfo(hashFork, hashBlock, block);
+
     if (!block.IsOrigin())
     {
-        pBlockChannel->BroadcastBlock(nNonce, updateBlockChain.hashFork, block.GetHash(), block.hashPrev, block);
+        pBlockChannel->BroadcastBlock(nNonce, updateBlockChain.hashFork, hashBlock, block.hashPrev, block);
         //pNetChannel->BroadcastBlockInv(updateBlockChain.hashFork, block.GetHash());
         pDataStat->AddP2pSynSendStatData(updateBlockChain.hashFork, 1, block.vtx.size());
+
+        if (!block.IsVacant())
+        {
+            NotifyBlockVoteChnNewBlock(hashBlock, nNonce);
+
+            pBlockCrossProveChannel->BroadcastBlockProve(updateBlockChain.hashFork, hashBlock, nNonce, updateBlockChain.mapBlockProve);
+        }
     }
 
     if (!block.IsVacant())
@@ -286,7 +334,7 @@ Errno CDispatcher::AddNewTx(const uint256& hashFork, const CTransaction& tx, uin
         pDataStat->AddP2pSynTxSynStatData(hashFork, 1, false);
     }
 
-    pBlockChain->AddPendingTx(hashFork, tx.GetHash());
+    pBlockFilter->AddPendingTx(hashFork, tx.GetHash());
     return OK;
 }
 
@@ -328,6 +376,17 @@ void CDispatcher::CheckAllSubForkLastBlock()
     }
 }
 
+void CDispatcher::NotifyBlockVoteChnNewBlock(const uint256& hashBlock, const uint64 nNonce)
+{
+    CBlockStatus status;
+    if (!pBlockChain->GetBlockStatus(hashBlock, status))
+    {
+        StdLog("Dispatcher", "Notify block vote chn new block: Get block status fail, block: %s", hashBlock.GetBhString().c_str());
+        return;
+    }
+    pBlockVoteChannel->UpdateNewBlock(status.hashFork, hashBlock, status.hashRefBlock, status.nBlockTime, nNonce);
+}
+
 ////////////////////////////////
 void CDispatcher::UpdatePrimaryBlock(const CBlock& block, const CBlockChainUpdate& updateBlockChain, const uint64 nNonce)
 {
@@ -344,13 +403,11 @@ void CDispatcher::UpdatePrimaryBlock(const CBlock& block, const CBlockChainUpdat
         Errno err = AddNewTx(pCoreProtocol->GetGenesisBlockHash(), tx, 0);
         if (err == OK)
         {
-            StdLog("Dispatcher", "Send DelegateTx success, txid: %s.",
-                   tx.GetHash().GetHex().c_str());
+            StdDebug("Dispatcher", "Send DelegateTx success, txid: %s.", tx.GetHash().GetHex().c_str());
         }
         else
         {
-            StdLog("Dispatcher", "Send DelegateTx fail, err: [%d] %s, txid: %s.",
-                   err, ErrorString(err), tx.GetHash().GetHex().c_str());
+            StdLog("Dispatcher", "Send DelegateTx fail, err: [%d] %s, txid: %s.", err, ErrorString(err), tx.GetHash().GetHex().c_str());
         }
     }
 
@@ -415,6 +472,8 @@ void CDispatcher::ActivateFork(const uint256& hashFork, const uint64& nNonce)
     pNetChannel->SubscribeFork(hashFork, nNonce);
     pBlockChannel->SubscribeFork(hashFork, nNonce);
     pUserTxChannel->SubscribeFork(hashFork, nNonce);
+    pBlockVoteChannel->SubscribeFork(hashFork, nNonce);
+    pBlockCrossProveChannel->SubscribeFork(hashFork, nNonce);
     StdLog("Dispatcher", "Activated fork %s ...", hashFork.GetHex().c_str());
 }
 

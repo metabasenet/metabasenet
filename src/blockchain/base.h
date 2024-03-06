@@ -11,11 +11,11 @@
 #include <set>
 
 #include "block.h"
-#include "blockbase.h"
 #include "config.h"
 #include "crypto.h"
 #include "destination.h"
 #include "error.h"
+#include "forkcontext.h"
 #include "key.h"
 #include "param.h"
 #include "peer.h"
@@ -23,6 +23,7 @@
 #include "struct.h"
 #include "template/mint.h"
 #include "template/template.h"
+#include "timeseries.h"
 #include "transaction.h"
 #include "uint256.h"
 
@@ -118,7 +119,7 @@ public:
     virtual bool ListForkContext(std::map<uint256, CForkContext>& mapForkCtxt, const uint256& hashBlock = uint256()) = 0;
     virtual bool RetrieveForkLast(const uint256& hashFork, uint256& hashLastBlock) = 0;
     virtual bool GetForkStorageMaxHeight(const uint256& hashFork, uint32& nMaxHeight) = 0;
-    virtual Errno AddNewBlock(const CBlock& block, CBlockChainUpdate& update) = 0;
+    virtual Errno AddNewBlock(const uint256& hashBlock, const CBlock& block, uint256& hashFork, CBlockChainUpdate& update) = 0;
     virtual Errno AddNewOrigin(const CBlock& block, CBlockChainUpdate& update) = 0;
     virtual bool GetProofOfWorkTarget(const uint256& hashPrev, int nAlgo, int& nBits) = 0;
     virtual bool GetBlockMintReward(const uint256& hashPrev, const bool fPow, uint256& nReward, const uint256& hashMainChainRefBlock) = 0;
@@ -130,6 +131,7 @@ public:
     virtual CTemplatePtr GetTxToAddressTemplatePtr(const uint256& hashFork, const uint256& hashBlock, const CTransaction& tx) = 0;
     virtual bool ListContractAddress(const uint256& hashFork, const uint256& hashBlock, std::map<CDestination, CContractAddressContext>& mapContractAddress) = 0;
     virtual bool RetrieveTimeVault(const uint256& hashFork, const uint256& hashBlock, const CDestination& dest, CTimeVault& tv) = 0;
+    virtual bool RetrieveBlsPubkeyContext(const uint256& hashFork, const uint256& hashBlock, const CDestination& dest, uint384& blsPubkey) = 0;
     virtual bool GetAddressCount(const uint256& hashFork, const uint256& hashBlock, uint64& nAddressCount, uint64& nNewAddressCount) = 0;
     virtual bool RetrieveForkContractCreateCodeContext(const uint256& hashFork, const uint256& hashBlock, const uint256& hashContractCreateCode, CContractCreateCodeContext& ctxtCode) = 0;
     virtual bool RetrieveLinkGenesisContractCreateCodeContext(const uint256& hashFork, const uint256& hashBlock, const uint256& hashContractCreateCode, CContractCreateCodeContext& ctxtCode, bool& fLinkGenesisFork) = 0;
@@ -142,18 +144,17 @@ public:
     virtual bool VerifyAddressVoteRedeem(const CDestination& dest, const uint256& hashPrevBlock) = 0;
     virtual bool GetVoteRewardLockedAmount(const uint256& hashFork, const uint256& hashPrevBlock, const CDestination& dest, uint256& nLockedAmount) = 0;
     virtual bool GetAddressLockedAmount(const uint256& hashFork, const uint256& hashPrevBlock, const CDestination& dest, const CAddressContext& ctxAddress, const uint256& nBalance, uint256& nLockedAmount) = 0;
-    virtual bool VerifyForkNameAndChainId(const uint256& hashFork, const CChainId nChainIdIn, const std::string& strForkName, const uint256& hashBlock = uint256()) = 0;
-    virtual bool GetForkHashByChainId(const CChainId nChainId, uint256& hashFork, const uint256& hashBlock = uint256()) = 0;
+    virtual bool VerifyForkFlag(const uint256& hashNewFork, const CChainId nChainIdIn, const std::string& strForkSymbol, const std::string& strForkName, const uint256& hashBlock = uint256()) = 0;
+    virtual bool GetForkCoinCtxByForkSymbol(const std::string& strForkSymbol, CCoinContext& ctxCoin, const uint256& hashMainChainRefBlock = uint256()) = 0;
+    virtual bool GetForkHashByChainId(const CChainId nChainId, uint256& hashFork, const uint256& hashMainChainRefBlock = uint256()) = 0;
+    virtual bool ListCoinContext(std::map<std::string, CCoinContext>& mapSymbolCoin, const uint256& hashMainChainRefBlock = uint256()) = 0;
+    virtual bool GetDexCoinPairBySymbolPair(const std::string& strSymbol1, const std::string& strSymbol2, uint32& nCoinPair, const uint256& hashMainChainRefBlock = uint256()) = 0;
+    virtual bool GetSymbolPairByDexCoinPair(const uint32 nCoinPair, std::string& strSymbol1, std::string& strSymbol2, const uint256& hashMainChainRefBlock = uint256()) = 0;
+    virtual bool ListDexCoinPair(const uint32 nCoinPair, const std::string& strCoinSymbol, std::map<uint32, std::pair<std::string, std::string>>& mapDexCoinPair, const uint256& hashMainChainRefBlock = uint256()) = 0;
     virtual bool RetrieveContractKvValue(const uint256& hashFork, const uint256& hashBlock, const CDestination& dest, const uint256& key, bytes& value) = 0;
-    virtual uint256 AddLogsFilter(const uint256& hashClient, const uint256& hashFork, const CLogsFilter& logsFilter) = 0;
-    virtual void RemoveFilter(const uint256& nFilterId) = 0;
-    virtual bool GetTxReceiptLogsByFilterId(const uint256& nFilterId, const bool fAll, ReceiptLogsVec& receiptLogs) = 0;
-    virtual bool GetTxReceiptsByLogsFilter(const uint256& hashFork, const CLogsFilter& logsFilter, ReceiptLogsVec& vReceiptLogs) = 0;
-    virtual uint256 AddBlockFilter(const uint256& hashClient, const uint256& hashFork) = 0;
-    virtual bool GetFilterBlockHashs(const uint256& hashFork, const uint256& nFilterId, const bool fAll, std::vector<uint256>& vBlockHash) = 0;
-    virtual uint256 AddPendingTxFilter(const uint256& hashClient, const uint256& hashFork) = 0;
-    virtual void AddPendingTx(const uint256& hashFork, const uint256& txid) = 0;
-    virtual bool GetFilterTxids(const uint256& hashFork, const uint256& nFilterId, const bool fAll, std::vector<uint256>& vTxid) = 0;
+    virtual bool GetBlockReceiptsByBlock(const uint256& hashFork, const uint256& hashFromBlock, const uint256& hashToBlock, std::map<uint256, std::vector<CTransactionReceipt>, CustomBlockHashCompare>& mapBlockReceipts) = 0;
+    virtual bool VerifySameChain(const uint256& hashPrevBlock, const uint256& hashAfterBlock) = 0;
+    virtual bool GetPrevBlockHashList(const uint256& hashBlock, const uint32 nGetCount, std::vector<uint256>& vPrevBlockhash) = 0;
 
     /////////////    CheckPoints    /////////////////////
     virtual bool HasCheckPoints(const uint256& hashFork) const = 0;
@@ -177,6 +178,7 @@ public:
     virtual bool GetBlockDelegateEnrolled(const uint256& hashBlock, CDelegateEnrolled& enrolled) = 0;
     virtual bool GetBlockDelegateAgreement(const uint256& hashBlock, CDelegateAgreement& agreement) = 0;
     virtual uint256 GetBlockMoneySupply(const uint256& hashBlock) = 0;
+    virtual bool GetBlockDelegateVoteAddress(const uint256& hashBlock, std::set<CDestination>& setVoteAddress) = 0;
     virtual uint64 GetNextBlockTimestamp(const uint256& hashPrev) = 0;
     virtual Errno VerifyPowBlock(const CBlock& block, bool& fLongChain) = 0;
     virtual bool VerifyBlockForkTx(const uint256& hashPrev, const CTransaction& tx, std::vector<std::pair<CDestination, CForkContext>>& vForkCtxt) = 0;
@@ -188,16 +190,29 @@ public:
     virtual bool CalcBlockVoteRewardTx(const uint256& hashPrev, const uint16 nBlockType, const int nBlockHeight, const uint32 nBlockTime, vector<CTransaction>& vVoteRewardTx) = 0;
     virtual uint256 GetPrimaryBlockReward(const uint256& hashPrev) = 0;
     virtual bool CreateBlockStateRoot(const uint256& hashFork, const CBlock& block, uint256& hashStateRoot, uint256& hashReceiptRoot,
-                                      uint256& nBlockGasUsed, bytes& btBloomDataOut, uint256& nTotalMintRewardOut)
+                                      uint256& hashCrosschainMerkleRoot, uint256& nBlockGasUsed, bytes& btBloomDataOut, uint256& nTotalMintRewardOut, bool& fMoStatus)
         = 0;
     virtual bool RetrieveDestState(const uint256& hashFork, const uint256& hashBlock, const CDestination& dest, CDestState& state) = 0;
     virtual bool GetTransactionReceipt(const uint256& hashFork, const uint256& txid, CTransactionReceiptEx& receiptex) = 0;
     virtual bool CallContract(const bool fEthCall, const uint256& hashFork, const uint256& hashBlock, const CDestination& from, const CDestination& to, const uint256& nAmount, const uint256& nGasPrice,
                               const uint256& nGas, const bytes& btContractParam, uint256& nUsedGas, uint64& nGasLeft, int& nStatus, bytes& btResult)
         = 0;
+    virtual bool GetContractBalance(const bool fEthCall, const uint256& hashFork, const uint256& hashBlock, const CDestination& destContract, const CDestination& destUser, uint256& nBalance) = 0;
     virtual bool VerifyContractAddress(const uint256& hashFork, const uint256& hashBlock, const CDestination& destContract) = 0;
     virtual bool VerifyCreateCodeTx(const uint256& hashFork, const uint256& hashBlock, const CTransaction& tx) = 0;
     virtual bool VerifyDelegateMinVote(const uint256& hashRefBlock, const uint32 nHeight, const CDestination& destDelegate) = 0;
+
+    virtual bool GetCompleteOrder(const uint256& hashBlock, const CDestination& destOrder, const CChainId nChainIdOwner, const std::string& strCoinSymbolOwner,
+                                  const std::string& strCoinSymbolPeer, const uint64 nOrderNumber, uint256& nCompleteAmount, uint64& nCompleteOrderCount)
+        = 0;
+    virtual bool GetCompleteOrder(const uint256& hashBlock, const uint256& hashDexOrder, uint256& nCompleteAmount, uint64& nCompleteOrderCount) = 0;
+    virtual bool ListAddressDexOrder(const uint256& hashBlock, const CDestination& destOrder, const std::string& strCoinSymbolOwner, const std::string& strCoinSymbolPeer,
+                                     const uint64 nBeginOrderNumber, const uint32 nGetCount, std::map<CDexOrderHeader, CDexOrderSave>& mapDexOrder)
+        = 0;
+    virtual bool ListMatchDexOrder(const uint256& hashBlock, const std::string& strCoinSymbolSell, const std::string& strCoinSymbolBuy, const uint64 nGetCount, CRealtimeDexOrder& realDexOrder) = 0;
+    virtual bool GetCrosschainProveForPrevBlock(const CChainId nRecvChainId, const uint256& hashRecvPrevBlock, std::map<CChainId, CBlockProve>& mapBlockCrosschainProve) = 0;
+    virtual bool AddRecvCrosschainProve(const CChainId nRecvChainId, const CBlockProve& blockProve) = 0;
+    virtual bool GetRecvCrosschainProve(const CChainId nRecvChainId, const CChainId nSendChainId, const uint256& hashSendProvePrevBlock, CBlockProve& blockProve) = 0;
 
     virtual bool AddBlacklistAddress(const CDestination& dest) = 0;
     virtual void RemoveBlacklistAddress(const CDestination& dest) = 0;
@@ -210,6 +225,18 @@ public:
 
     virtual bool UpdateForkMintMinGasPrice(const uint256& hashFork, const uint256& nMinGasPrice) = 0;
     virtual uint256 GetForkMintMinGasPrice(const uint256& hashFork) = 0;
+
+    virtual bool GetCandidatePubkey(const uint256& hashPrimaryBlock, std::vector<uint384>& vCandidatePubkey) = 0;
+    virtual bool GetPrevBlockCandidatePubkey(const uint256& hashBlock, std::vector<uint384>& vCandidatePubkey) = 0;
+    virtual bool VerifyBlockCommitVoteAggSig(const uint256& hashBlock, const bytes& btAggBitmap, const bytes& btAggSig) = 0;
+    virtual bool VerifyBlockCommitVoteAggSig(const uint256& hashVoteBlock, const uint256& hashRefBlock, const bytes& btAggBitmap, const bytes& btAggSig) = 0;
+
+    virtual bool AddBlockVoteResult(const uint256& hashBlock, const bool fLongChain, const bytes& btBitmap, const bytes& btAggSig, const bool fAtChain, const uint256& hashAtBlock) = 0;
+    virtual bool RetrieveBlockVoteResult(const uint256& hashBlock, bytes& btBitmap, bytes& btAggSig, bool& fAtChain, uint256& hashAtBlock) = 0;
+    virtual bool GetMakerVoteBlock(const uint256& hashPrevBlock, bytes& btBitmap, bytes& btAggSig, uint256& hashVoteBlock) = 0;
+    virtual bool IsBlockConfirm(const uint256& hashBlock) = 0;
+    virtual bool AddBlockLocalVoteSignFlag(const uint256& hashBlock) = 0;
+    virtual bool VerifyPrimaryBlockConfirm(const uint256& hashBlock) = 0;
 
     const CBasicConfig* Config()
     {
@@ -354,6 +381,7 @@ public:
         = 0;
     virtual void SetConsensus(const CAgreementBlock& agreeBlock) = 0;
     virtual void CheckAllSubForkLastBlock() = 0;
+    virtual void NotifyBlockVoteChnNewBlock(const uint256& hashBlock, const uint64 nNonce = 0) = 0;
 };
 
 class IService : public mtbase::IBase
@@ -377,10 +405,15 @@ public:
     virtual bool GetForkLastBlock(const uint256& hashFork, int& nLastHeight, uint256& hashLastBlock) = 0;
     virtual void ListFork(std::vector<std::pair<uint256, CProfile>>& vFork, bool fAll = false) = 0;
     virtual bool GetForkContext(const uint256& hashFork, CForkContext& ctxtFork, const uint256& hashMainChainRefBlock = uint256()) = 0;
-    virtual bool VerifyForkNameAndChainId(const uint256& hashFork, const CChainId nChainIdIn, const std::string& strForkName, const uint256& hashBlock = uint256()) = 0;
-    virtual bool GetForkGenealogy(const uint256& hashFork, std::vector<std::pair<uint256, int>>& vAncestry,
-                                  std::vector<std::pair<int, uint256>>& vSubline)
-        = 0;
+    virtual bool VerifyForkFlag(const uint256& hashNewFork, const CChainId nChainIdIn, const std::string& strForkSymbol, const std::string& strForkName, const uint256& hashBlock = uint256()) = 0;
+    virtual bool GetForkCoinCtxByForkSymbol(const std::string& strForkSymbol, CCoinContext& ctxCoin, const uint256& hashMainChainRefBlock = uint256()) = 0;
+    virtual bool GetForkHashByChainId(const CChainId nChainIdIn, uint256& hashFork) = 0;
+    virtual bool GetCoinContext(const std::string& strCoinSymbol, CCoinContext& ctxCoin, const uint256& hashLastBlock = uint256()) = 0;
+    virtual bool ListCoinContext(std::map<std::string, CCoinContext>& mapSymbolCoin, const uint256& hashLastBlock = uint256()) = 0;
+    virtual bool GetDexCoinPairBySymbolPair(const std::string& strSymbol1, const std::string& strSymbol2, uint32& nCoinPair, const uint256& hashMainChainRefBlock = uint256()) = 0;
+    virtual bool GetSymbolPairByDexCoinPair(const uint32 nCoinPair, std::string& strSymbol1, std::string& strSymbol2, const uint256& hashMainChainRefBlock = uint256()) = 0;
+    virtual bool ListDexCoinPair(const uint32 nCoinPair, const std::string& strCoinSymbol, std::map<uint32, std::pair<std::string, std::string>>& mapDexCoinPair, const uint256& hashMainChainRefBlock = uint256()) = 0;
+    virtual bool GetForkGenealogy(const uint256& hashFork, std::vector<std::pair<uint256, int>>& vAncestry, std::vector<std::pair<int, uint256>>& vSubline) = 0;
     virtual bool GetBlockLocation(const uint256& hashBlock, CChainId& nChainId, uint256& hashFork, int& nHeight) = 0;
     virtual int GetBlockCount(const uint256& hashFork) = 0;
     virtual bool GetBlockHashByHeightSlot(const uint256& hashFork, const uint32 nHeight, const uint16 nSlot, uint256& hashBlock) = 0;
@@ -391,6 +424,7 @@ public:
     virtual bool GetLastBlockOfHeight(const uint256& hashFork, const int nHeight, uint256& hashBlock, uint64& nTime) = 0;
     virtual bool GetBlockStatus(const uint256& hashBlock, CBlockStatus& status) = 0;
     virtual bool GetLastBlockStatus(const uint256& hashFork, CBlockStatus& status) = 0;
+    virtual bool IsBlockConfirm(const uint256& hashBlock) = 0;
     virtual void GetTxPool(const uint256& hashFork, std::vector<std::pair<uint256, std::size_t>>& vTxPool) = 0;
     virtual void ListTxPool(const uint256& hashFork, const CDestination& dest, std::vector<CTxInfo>& vTxPool, const int64 nGetOffset = 0, const int64 nGetCount = 0) = 0;
     virtual bool GetTransactionAndPosition(const uint256& hashRefFork, const uint256& txid, CTransaction& tx, uint256& hashAtFork, uint256& hashAtBlock, uint64& nBlockNumber, uint16& nTxSeq) = 0;
@@ -405,7 +439,6 @@ public:
     virtual bool CallContract(const bool fEthCall, const uint256& hashFork, const uint256& hashBlock, const CDestination& from, const CDestination& to, const uint256& nAmount, const uint256& nGasPrice,
                               const uint256& nGas, const bytes& btContractParam, uint256& nUsedGas, uint64& nGasLeft, int& nStatus, bytes& btResult)
         = 0;
-    virtual bool GetForkHashByChainId(const CChainId nChainIdIn, uint256& hashFork) = 0;
     virtual bool RetrieveContractKvValue(const uint256& hashFork, const uint256& hashBlock, const CDestination& dest, const uint256& key, bytes& value) = 0;
     virtual uint256 AddLogsFilter(const uint256& hashClient, const uint256& hashFork, const CLogsFilter& logsFilter) = 0;
     virtual void RemoveFilter(const uint256& nFilterId) = 0;
@@ -431,7 +464,7 @@ public:
         = 0;
     virtual bool Lock(const CDestination& dest) = 0;
     virtual bool Unlock(const CDestination& dest, const crypto::CCryptoString& strPassphrase, int64 nTimeout) = 0;
-    virtual bool GetBalance(const uint256& hashFork, const uint256& hashLastBlock, const CDestination& dest, CWalletBalance& balance) = 0;
+    virtual bool GetBalance(const uint256& hashFork, const uint256& hashLastBlock, const CDestination& dest, const CCoinContext& ctxCoin, CWalletBalance& balance) = 0;
     virtual bool SignSignature(const CDestination& dest, const uint256& hash, std::vector<unsigned char>& vchSig) = 0;
     virtual bool SignTransaction(const uint256& hashFork, CTransaction& tx) = 0;
     virtual bool HaveTemplate(const CDestination& dest) = 0;
@@ -462,6 +495,16 @@ public:
     virtual bool GetContractCode(const uint256& hashFork, const uint256& hashRefBlock, const uint256& hashCode, bytes& btCode) = 0;
     virtual bool GetDestTemplateData(const uint256& hashFork, const uint256& hashRefBlock, const CDestination& dest, bytes& btTemplateData) = 0;
     virtual bool RetrieveAddressContext(const uint256& hashFork, const CDestination& dest, CAddressContext& ctxAddress, const uint256& hashBlock = uint256()) = 0;
+    virtual uint64 GetDestNextTxNonce(const uint256& hashFork, const CDestination& dest) = 0;
+
+    virtual bool GetCompleteOrder(const uint256& hashBlock, const CDestination& destOrder, const CChainId nChainIdOwner, const std::string& strCoinSymbolOwner,
+                                  const std::string& strCoinSymbolPeer, const uint64 nOrderNumber, uint256& nCompleteAmount, uint64& nCompleteOrderCount)
+        = 0;
+    virtual bool GetCompleteOrder(const uint256& hashBlock, const uint256& hashDexOrder, uint256& nCompleteAmount, uint64& nCompleteOrderCount) = 0;
+    virtual bool ListAddressDexOrder(const uint256& hashBlock, const CDestination& destOrder, const std::string& strCoinSymbolOwner, const std::string& strCoinSymbolPeer,
+                                     const uint64 nBeginOrderNumber, const uint32 nGetCount, std::map<CDexOrderHeader, CDexOrderSave>& mapDexOrder)
+        = 0;
+    virtual bool ListMatchDexOrder(const uint256& hashBlock, const std::string& strCoinSymbolSell, const std::string& strCoinSymbolBuy, const uint64 nGetCount, CRealtimeDexOrder& realDexOrder) = 0;
 
     virtual bool AddBlacklistAddress(const CDestination& dest) = 0;
     virtual void RemoveBlacklistAddress(const CDestination& dest) = 0;
@@ -474,8 +517,6 @@ public:
     virtual bool UpdateForkMintMinGasPrice(const uint256& hashFork, const uint256& nMinGasPrice) = 0;
     virtual uint256 GetForkMintMinGasPrice(const uint256& hashFork) = 0;
 
-    virtual bytes MakeEthTxCallData(const std::string& strFunction, const std::vector<bytes>& vParamList) = 0;
-
     /* Mint */
     virtual bool GetWork(std::vector<unsigned char>& vchWorkData, int& nPrevBlockHeight,
                          uint256& hashPrev, int& nAlgo, int& nBits,
@@ -484,6 +525,21 @@ public:
     virtual Errno SubmitWork(const std::vector<unsigned char>& vchWorkData, const CTemplateMintPtr& templMint,
                              crypto::CKey& keyMint, uint256& hashBlock)
         = 0;
+};
+
+class IWsService : public mtbase::CEventProc
+{
+public:
+    IWsService()
+      : CEventProc("wsservice") {}
+
+    virtual void AddNewBlockSubscribe(const CChainId nChainId, const uint64 nClientConnId, uint128& nSubsId) = 0;
+    virtual void AddLogsSubscribe(const CChainId nChainId, const uint64 nClientConnId, const std::set<CDestination>& setSubsAddress, const std::set<uint256>& setSubsTopics, uint128& nSubsId) = 0;
+    virtual void AddNewPendingTxSubscribe(const CChainId nChainId, const uint64 nClientConnId, uint128& nSubsId) = 0;
+    virtual void AddSyncingSubscribe(const CChainId nChainId, const uint64 nClientConnId, uint128& nSubsId) = 0;
+    virtual bool RemoveSubscribe(const CChainId nChainId, const uint64 nClientConnId, const uint128& nSubsId) = 0;
+
+    virtual void SendWsMsg(const CChainId nChainId, const uint64 nNonce, const std::string& strMsg) = 0;
 };
 
 class IDataStat : public mtbase::IIOModule
@@ -508,6 +564,29 @@ public:
     {
         return dynamic_cast<const CStorageConfig*>(mtbase::IBase::Config());
     }
+};
+
+class IBlockFilter : public mtbase::IBase
+{
+public:
+    IBlockFilter()
+      : IBase("blockfilter") {}
+
+    virtual void RemoveFilter(const uint256& nFilterId) = 0;
+
+    virtual uint256 AddLogsFilter(const uint256& hashClient, const uint256& hashFork, const CLogsFilter& logFilterIn, const std::map<uint256, std::vector<CTransactionReceipt>, CustomBlockHashCompare>& mapHisBlockReceiptsIn) = 0;
+    virtual void AddTxReceipt(const uint256& hashForkIn, const uint256& hashBlock, const CTransactionReceipt& receipt) = 0;
+    virtual bool GetTxReceiptLogsByFilterId(const uint256& nFilterId, const bool fAll, ReceiptLogsVec& receiptLogs) = 0;
+
+    virtual uint256 AddBlockFilter(const uint256& hashClient, const uint256& hashFork) = 0;
+    virtual void AddNewBlockInfo(const uint256& hashForkIn, const uint256& hashBlock, const CBlock& block) = 0;
+    virtual bool GetFilterBlockHashs(const uint256& nFilterId, const uint256& hashLastBlock, const bool fAll, std::vector<uint256>& vBlockHash) = 0;
+
+    virtual uint256 AddPendingTxFilter(const uint256& hashClient, const uint256& hashFork) = 0;
+    virtual void AddPendingTx(const uint256& hashFork, const uint256& txid) = 0;
+    virtual bool GetFilterTxids(const uint256& hashFork, const uint256& nFilterId, const bool fAll, std::vector<uint256>& vTxid) = 0;
+
+    virtual void AddMaxPeerBlockNumber(const uint256& hashFork, const uint64 nMaxPeerBlockNumber) = 0;
 };
 
 } // namespace metabasenet

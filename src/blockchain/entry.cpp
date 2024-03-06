@@ -11,8 +11,11 @@
 #include <string>
 
 #include "blockchain.h"
+#include "blockfilter.h"
 #include "blockmaker.h"
 #include "chnblock.h"
+#include "chnblockcrossprove.h"
+#include "chnblockvote.h"
 #include "chncerttx.h"
 #include "chnusertx.h"
 #include "consensus.h"
@@ -31,6 +34,7 @@
 #include "txpool.h"
 #include "version.h"
 #include "wallet.h"
+#include "wsservice.h"
 
 #ifdef _WIN32
 #include <shlobj.h>
@@ -47,20 +51,20 @@ using namespace boost::filesystem;
 namespace metabasenet
 {
 
-const char*
-GetGitVersion();
+const char* GetGitVersion();
 
 //////////////////////////////
 // CBbEntry
 
-CBbEntry&
-CBbEntry::GetInstance()
+CBbEntry& CBbEntry::GetInstance()
 {
     static CBbEntry entry;
     return entry;
 }
 
-CBbEntry::CBbEntry() {}
+CBbEntry::CBbEntry()
+{
+}
 
 CBbEntry::~CBbEntry()
 {
@@ -85,8 +89,7 @@ bool CBbEntry::Initialize(int argc, char* argv[])
     // version
     if (config.GetConfig()->fVersion)
     {
-        cout << "MetabaseNet version is v" << VERSION_STR
-             << ", git commit id is " << GetGitVersion() << endl;
+        cout << "MetabaseNet version is v" << VERSION_STR << ", git commit id is " << GetGitVersion() << endl;
         return false;
     }
 
@@ -106,14 +109,12 @@ bool CBbEntry::Initialize(int argc, char* argv[])
     // check log size
     if (config.GetConfig()->nLogFileSize < 1 || config.GetConfig()->nLogFileSize > 2048)
     {
-        cerr << "Log file size beyond range(range: 1 ~ 2048), value: "
-             << config.GetConfig()->nLogFileSize << endl;
+        cerr << "Log file size beyond range(range: 1 ~ 2048), value: " << config.GetConfig()->nLogFileSize << endl;
         return false;
     }
     if (config.GetConfig()->nLogHistorySize < 2 || config.GetConfig()->nLogHistorySize > 0x7FFFFFFF)
     {
-        cerr << "Log history size beyond range(range: 2 ~ 2147483647), value: "
-             << config.GetConfig()->nLogHistorySize << endl;
+        cerr << "Log history size beyond range(range: 2 ~ 2147483647), value: " << config.GetConfig()->nLogHistorySize << endl;
         return false;
     }
 
@@ -148,8 +149,7 @@ bool CBbEntry::Initialize(int argc, char* argv[])
         {
             return false;
         }
-        cout << "metabasenet server starting, version is v" << VERSION_STR
-             << ", git commit id is " << GetGitVersion() << endl;
+        cout << "metabasenet server starting, version is v" << VERSION_STR << ", git commit id is " << GetGitVersion() << endl;
     }
 
     TESTNET_FLAG = config.GetConfig()->fTestNet;
@@ -167,10 +167,11 @@ bool CBbEntry::Initialize(int argc, char* argv[])
     }
 
     // log
-    if ((config.GetModeType() == EModeType::MODE_SERVER || config.GetModeType() == EModeType::MODE_MINER) && log.SetLogFilePath((pathData / "metabasenet.log").string()) && !InitLog(pathData, config.GetConfig()->fDebug, config.GetConfig()->fDaemon, config.GetConfig()->nLogFileSize, config.GetConfig()->nLogHistorySize))
+    if ((config.GetModeType() == EModeType::MODE_SERVER || config.GetModeType() == EModeType::MODE_MINER)
+        && log.SetLogFilePath((pathData / "metabasenet.log").string())
+        && !InitLog(pathData, config.GetConfig()->fDebug, config.GetConfig()->fDaemon, config.GetConfig()->nLogFileSize, config.GetConfig()->nLogHistorySize))
     {
-        cerr << "Failed to open log file : " << (pathData / "metabasenet.log")
-             << endl;
+        cerr << "Failed to open log file : " << (pathData / "metabasenet.log") << endl;
         return false;
     }
 
@@ -184,10 +185,7 @@ bool CBbEntry::Initialize(int argc, char* argv[])
         cerr << "Failed to initialize docker" << endl;
         return false;
     }
-    StdLog("MetabaseNetStartup",
-           "Initialize: metabasenet version is v%s, git commit id: %s",
-           VERSION_STR.c_str(),
-           GetGitVersion());
+    StdLog("MetabaseNetStartup", "Initialize: metabasenet version is v%s, git commit id: %s", VERSION_STR.c_str(), GetGitVersion());
 
     // modules
     return InitializeModules(config.GetModeType());
@@ -214,11 +212,9 @@ bool CBbEntry::InitializeModules(const EModeType& mode)
         {
         case EModuleType::LOCK:
         {
-            if (!TryLockFile(
-                    (config.GetConfig()->pathData / ".lock").string()))
+            if (!TryLockFile((config.GetConfig()->pathData / ".lock").string()))
             {
-                cerr << "Cannot obtain a lock on data directory "
-                     << config.GetConfig()->pathData << "\n"
+                cerr << "Cannot obtain a lock on data directory " << config.GetConfig()->pathData << "\n"
                      << "MetabaseNet is probably already running." << endl;
                 return false;
             }
@@ -234,9 +230,7 @@ bool CBbEntry::InitializeModules(const EModeType& mode)
         }
         case EModuleType::COREPROTOCOL:
         {
-            if (!AttachModule(config.GetConfig()->fTestNet
-                                  ? new CTestNetCoreProtocol
-                                  : new CCoreProtocol()))
+            if (!AttachModule(config.GetConfig()->fTestNet ? new CTestNetCoreProtocol : new CCoreProtocol()))
             {
                 return false;
             }
@@ -274,6 +268,14 @@ bool CBbEntry::InitializeModules(const EModeType& mode)
             }
             break;
         }
+        case EModuleType::DELEGATEDCHANNEL:
+        {
+            if (!AttachModule(new CDelegatedChannel()))
+            {
+                return false;
+            }
+            break;
+        }
         case EModuleType::BLOCKCHANNEL:
         {
             if (!AttachModule(new CBlockChannel()))
@@ -298,9 +300,17 @@ bool CBbEntry::InitializeModules(const EModeType& mode)
             }
             break;
         }
-        case EModuleType::DELEGATEDCHANNEL:
+        case EModuleType::BLOCKVOTECHANNEL:
         {
-            if (!AttachModule(new CDelegatedChannel()))
+            if (!AttachModule(new CBlockVoteChannel()))
+            {
+                return false;
+            }
+            break;
+        }
+        case EModuleType::BLOCKCROSSPROVE:
+        {
+            if (!AttachModule(new CBlockCrossProveChannel()))
             {
                 return false;
             }
@@ -316,8 +326,7 @@ bool CBbEntry::InitializeModules(const EModeType& mode)
         }
         case EModuleType::RPCCLIENT:
         {
-            if (!AttachModule(
-                    new CRPCClient(config.GetConfig()->vecCommand.empty())))
+            if (!AttachModule(new CRPCClient(config.GetConfig()->vecCommand.empty())))
             {
                 return false;
             }
@@ -421,6 +430,22 @@ bool CBbEntry::InitializeModules(const EModeType& mode)
             }
             break;
         }
+        case EModuleType::WSSERVICE:
+        {
+            if (!AttachModule(new CWsService()))
+            {
+                return false;
+            }
+            break;
+        }
+        case EModuleType::BLOCKFILTER:
+        {
+            if (!AttachModule(new CBlockFilter()))
+            {
+                return false;
+            }
+            break;
+        }
         default:
             cerr << "Unknown module:%d" << CMode::IntValue(m) << endl;
             break;
@@ -437,12 +462,9 @@ bool CBbEntry::GetRPCHostConfig(std::vector<mtbase::CHttpHostConfig>& vHostCfg)
     {
         return false;
     }
-    CIOSSLOption sslRPC(pConfig->fRPCSSLEnable,
-                        pConfig->fRPCSSLVerify,
-                        pConfig->strRPCCAFile,
-                        pConfig->strRPCCertFile,
-                        pConfig->strRPCPKFile,
-                        pConfig->strRPCCiphers);
+    CIOSSLOption sslRPC(pConfig->fRPCSSLEnable, pConfig->fRPCSSLVerify,
+                        pConfig->strRPCCAFile, pConfig->strRPCCertFile,
+                        pConfig->strRPCPKFile, pConfig->strRPCCiphers);
 
     map<string, string> mapUsrRPC;
     if (!pConfig->strRPCUser.empty())
@@ -450,23 +472,17 @@ bool CBbEntry::GetRPCHostConfig(std::vector<mtbase::CHttpHostConfig>& vHostCfg)
         mapUsrRPC[pConfig->strRPCUser] = pConfig->strRPCPass;
     }
 
-    CHttpHostConfig cfgHost(GENESIS_CHAINID,
-                            pConfig->epRPC,
-                            pConfig->nRPCMaxConnections,
-                            sslRPC,
-                            mapUsrRPC,
-                            pConfig->vRPCAllowIP,
-                            "rpcmod");
+    CHttpHostConfig cfgHost(GENESIS_CHAINID, pConfig->epRPC, pConfig->nRPCMaxConnections, sslRPC, mapUsrRPC, pConfig->vRPCAllowIP, "rpcmod");
     vHostCfg.push_back(cfgHost);
 
-    for (auto& vd : pConfig->vecChainIdRpcPort)
+    for (const auto& kv : pConfig->mapChainIdRpcPort)
     {
-        if (vd.first == GENESIS_CHAINID)
+        if (kv.first == GENESIS_CHAINID)
         {
             continue;
         }
-        cfgHost.nLinkChainId = vd.first;
-        cfgHost.epHost = boost::asio::ip::tcp::endpoint(pConfig->epRPC.address(), vd.second);
+        cfgHost.nLinkChainId = kv.first;
+        cfgHost.epHost = boost::asio::ip::tcp::endpoint(pConfig->epRPC.address(), kv.second.first);
         vHostCfg.push_back(cfgHost);
     }
     return true;
@@ -524,8 +540,8 @@ path CBbEntry::GetDefaultDataDir()
 
 #ifdef _WIN32
     // Windows
-    // char pszPath[MAX_PATH] = "";
-    // if (SHGetSpecialFolderPathA(nullptr, pszPath, CSIDL_LOCAL_APPDATA, true))
+    //char pszPath[MAX_PATH] = "";
+    //if (SHGetSpecialFolderPathA(nullptr, pszPath, CSIDL_LOCAL_APPDATA, true))
     //{
     //    return path(pszPath) / "MetabaseNet";
     //}
@@ -566,9 +582,7 @@ bool CBbEntry::SetupEnvironment()
 #ifdef _MSC_VER
     // Turn off microsoft heap dump noise
     _CrtSetReportMode(_CRT_WARN, _CRTDBG_MODE_FILE);
-    _CrtSetReportFile(
-        _CRT_WARN,
-        CreateFileA("NUL", GENERIC_WRITE, 0, nullptr, OPEN_EXISTING, 0, 0));
+    _CrtSetReportFile(_CRT_WARN, CreateFileA("NUL", GENERIC_WRITE, 0, nullptr, OPEN_EXISTING, 0, 0));
 #endif
 #if _MSC_VER >= 1400
     // Disable confusing "helpful" text message on abort, ctrl-c

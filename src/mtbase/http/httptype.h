@@ -17,6 +17,12 @@ namespace mtbase
 
 #define MAX_HTTP_CONTENT_LENGTH 2000000
 
+enum
+{
+    REQ_SOURCE_TYPE_HTTP = 0,
+    REQ_SOURCE_TYPE_WS = 1,
+};
+
 class _iless
 {
 public:
@@ -59,6 +65,7 @@ public:
 class CHttpReq : public CHttpContent
 {
 public:
+    uint8 nSourceType; // 0: HTTP, 1: WS
     uint32 nReqChainId;
     uint16 nListenPort;
     std::string strPeerIp;

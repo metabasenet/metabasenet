@@ -329,13 +329,14 @@ bool CBlockMaker::WaitUpdateEvent(const int64 nSeconds)
     return !fExit;
 }
 
-void CBlockMaker::PrepareBlock(CBlock& block, const uint256& hashPrev, const uint64 nPrevTime,
+bool CBlockMaker::PrepareBlock(CBlock& block, const uint256& hashPrev, const uint64 nPrevTime,
                                const uint32 nPrevHeight, const uint32 nPrevNumber, const CDelegateAgreement& agreement)
 {
     block.SetNull();
     block.nType = CBlock::BLOCK_PRIMARY;
     block.hashPrev = hashPrev;
     block.nNumber = nPrevNumber + 1;
+    block.nHeight = nPrevHeight + 1;
     block.nSlot = 0;
 
     CProofOfDelegate proof;
@@ -346,11 +347,32 @@ void CBlockMaker::PrepareBlock(CBlock& block, const uint256& hashPrev, const uin
     {
         pConsensus->GetProof(nPrevHeight + 1, proof.btDelegateData);
     }
-
     block.AddDelegateProof(proof);
+
+    if (!pBlockChain->VerifyPrimaryBlockConfirm(hashPrev))
+    {
+        pDispatcher->NotifyBlockVoteChnNewBlock(hashPrev);
+        return false;
+    }
+
+    bytes btDbBitmap;
+    bytes btDbAggSig;
+    bool fDbAtChain = false;
+    uint256 hashDbAtBlock;
+    if (pBlockChain->RetrieveBlockVoteResult(hashPrev, btDbBitmap, btDbAggSig, fDbAtChain, hashDbAtBlock) && !fDbAtChain)
+    {
+        block.AddBlockVoteSig(CBlockVoteSig(hashPrev, btDbBitmap, btDbAggSig));
+    }
+
+    std::map<CChainId, CBlockProve> mapCrosschainProve;
+    if (pBlockChain->GetCrosschainProveForPrevBlock(block.GetChainId(), block.hashPrev, mapCrosschainProve))
+    {
+        block.mapProve = mapCrosschainProve;
+    }
+    return true;
 }
 
-bool CBlockMaker::ArrangeBlockTx(CBlock& block, const uint256& hashFork, const CBlockMakerProfile& profile)
+bool CBlockMaker::ArrangeBlockTx(CBlock& block, const uint256& hashFork, const CBlockMakerProfile& profile, bool& fMoStatus)
 {
     size_t nRestOfSize = MAX_BLOCK_SIZE - GetSerializeSize(block) - profile.GetSignatureSize() - 32 * 5;
     size_t rewardTxSize = 0;
@@ -392,7 +414,7 @@ bool CBlockMaker::ArrangeBlockTx(CBlock& block, const uint256& hashFork, const C
 
     uint256 nTotalMintReward;
     if (!pBlockChain->CreateBlockStateRoot(hashFork, block, block.hashStateRoot, block.hashReceiptsRoot,
-                                           block.nGasUsed, block.btBloomData, nTotalMintReward))
+                                           block.hashCrosschainMerkleRoot, block.nGasUsed, block.btBloomData, nTotalMintReward, fMoStatus))
     {
         StdError("blockmaker", "Arrange Block Tx: Get block state root fail, prev block: %s, fork: %s", block.hashPrev.ToString().c_str(), hashFork.ToString().c_str());
         pTxPool->ClearTxPool(hashFork);
@@ -405,17 +427,17 @@ bool CBlockMaker::ArrangeBlockTx(CBlock& block, const uint256& hashFork, const C
     //     block.AddMintCoinProof(nMintCoin);
     // }
     block.AddMintRewardProof(nTotalMintReward);
-
-    block.hashMerkleRoot = block.CalcMerkleTreeRoot();
+    block.UpdateMerkleRoot();
     return true;
 }
 
 bool CBlockMaker::SignBlock(CBlock& block, const CBlockMakerProfile& profile)
 {
+    const uint256 hashBlock = block.GetHash();
     bytes btSigData;
-    if (!profile.keyMint.Sign(block.GetHash(), btSigData))
+    if (!profile.keyMint.Sign(hashBlock, btSigData))
     {
-        StdTrace("blockmaker", "keyMint Sign failed. block: %s", block.GetHash().GetHex().c_str());
+        StdTrace("blockmaker", "keyMint Sign failed. block: %s", hashBlock.GetHex().c_str());
         return false;
     }
     block.SetSignData(btSigData);
@@ -424,14 +446,15 @@ bool CBlockMaker::SignBlock(CBlock& block, const CBlockMakerProfile& profile)
 
 bool CBlockMaker::DispatchBlock(const uint256& hashFork, const CBlock& block)
 {
-    StdDebug("blockmaker", "Dispatching block: %s, type: %u", block.GetHash().ToString().c_str(), block.nType);
+    const uint256 hashBlock = block.GetHash();
+    StdDebug("blockmaker", "Dispatching block: %s, type: %u", hashBlock.ToString().c_str(), block.nType);
     int64 nWait = block.GetBlockTime() - GetNetTime();
     if (!WaitExit(nWait))
     {
         return false;
     }
 
-    if (!block.IsExtended() && !pBlockChain->VerifyCheckPoint(hashFork, block.GetBlockHeight(), block.GetHash()))
+    if (!block.IsExtended() && !pBlockChain->VerifyCheckPoint(hashFork, block.GetBlockHeight(), hashBlock))
     {
         StdError("blockmaker", "Fork %s block at height %d does not match checkpoint hash", hashFork.ToString().c_str(), block.GetBlockHeight());
         return false;
@@ -446,12 +469,12 @@ bool CBlockMaker::DispatchBlock(const uint256& hashFork, const CBlock& block)
             pTxPool->ClearTxPool(hashFork);
             return false;
         }
-        StdDebug("blockmaker", "Dispatching block: %s already have, type: %u", block.GetHash().ToString().c_str(), block.nType);
+        StdDebug("blockmaker", "Dispatching block: %s already have, type: %u", hashBlock.ToString().c_str(), block.nType);
     }
     return true;
 }
 
-void CBlockMaker::ProcessDelegatedProofOfStake(const CAgreementBlock& consParam)
+bool CBlockMaker::ProcessDelegatedProofOfStake(const CAgreementBlock& consParam)
 {
     map<CDestination, CBlockMakerProfile>::iterator it = mapDelegatedProfile.find(consParam.agreement.vBallot[0]);
     if (it != mapDelegatedProfile.end())
@@ -459,14 +482,18 @@ void CBlockMaker::ProcessDelegatedProofOfStake(const CAgreementBlock& consParam)
         CBlockMakerProfile& profile = (*it).second;
 
         CBlock block;
-        PrepareBlock(block, consParam.hashPrev, consParam.nPrevTime, consParam.nPrevHeight, consParam.nPrevNumber, consParam.agreement);
+        if (!PrepareBlock(block, consParam.hashPrev, consParam.nPrevTime, consParam.nPrevHeight, consParam.nPrevNumber, consParam.agreement))
+        {
+            StdDebug("blockmaker", "Process delegated proof of stake: Prepare block fail, prev block: %s", consParam.hashPrev.ToString().c_str());
+            return false;
+        }
 
         // get block time
         uint64 nBlockTime = pBlockChain->GetNextBlockTimestamp(block.hashPrev);
         if (nBlockTime == 0)
         {
             StdError("blockmaker", "Process delegated proof of stake: Get next block timestamp error, hashPrev: %s", block.hashPrev.ToString().c_str());
-            return;
+            return false;
         }
         uint64 nCurrTime = GetNetTime();
         if (nCurrTime > nBlockTime)
@@ -479,7 +506,7 @@ void CBlockMaker::ProcessDelegatedProofOfStake(const CAgreementBlock& consParam)
         if (!CreateDelegatedBlock(block, pCoreProtocol->GetGenesisBlockHash(), pCoreProtocol->GetGenesisChainId(), block.hashPrev, profile))
         {
             StdError("blockmaker", "Process delegated proof of stake: Create delegated block error, hashPrev: %s", block.hashPrev.ToString().c_str());
-            return;
+            return false;
         }
 
         // dispatch PoS primary block
@@ -493,6 +520,7 @@ void CBlockMaker::ProcessDelegatedProofOfStake(const CAgreementBlock& consParam)
             ProcessSubFork(profile, consParam.agreement, block.GetHash(), block.GetBlockTime(), consParam.nPrevHeight, consParam.nPrevMintType);
         }
     }
+    return true;
 }
 
 void CBlockMaker::ProcessSubFork(const CBlockMakerProfile& profile, const CDelegateAgreement& agreement,
@@ -665,14 +693,15 @@ void CBlockMaker::ProcessSubFork(const CBlockMakerProfile& profile, const CDeleg
             bool fContinue = false;
             do
             {
-                if (!ArrangeBlockTx(block, hashFork, profile))
+                bool fMoStatus = false;
+                if (!ArrangeBlockTx(block, hashFork, profile, fMoStatus))
                 {
                     StdError("blockmaker", "Process sub fork: Arrange Block Tx fail, fork: %s, block: %s",
                              hashFork.ToString().c_str(), block.GetHash().ToString().c_str());
                     fContinue = true;
                     break;
                 }
-                if (block.vtx.size() == 0)
+                if (block.vtx.size() == 0 && block.mapProve.size() == 0 && !fMoStatus)
                 {
                     fContinue = true;
                     break;
@@ -741,6 +770,20 @@ bool CBlockMaker::CreateDelegatedBlock(CBlock& block, const uint256& hashFork, c
     txMint.SetGasPrice(0);
     txMint.SetGasLimit(0);
 
+    bytes btBitmap;
+    bytes btAggSig;
+    uint256 hashVoteBlock;
+    if (pBlockChain->GetMakerVoteBlock(block.hashPrev, btBitmap, btAggSig, hashVoteBlock))
+    {
+        block.AddBlockVoteSig(CBlockVoteSig(hashVoteBlock, btBitmap, btAggSig));
+    }
+
+    std::map<CChainId, CBlockProve> mapCrosschainProve;
+    if (pBlockChain->GetCrosschainProveForPrevBlock(block.GetChainId(), block.hashPrev, mapCrosschainProve))
+    {
+        block.mapProve = mapCrosschainProve;
+    }
+
     CAddressContext ctxAddress;
     if (!pBlockChain->RetrieveAddressContext(hashFork, block.hashPrev, destSendTo, ctxAddress))
     {
@@ -755,7 +798,8 @@ bool CBlockMaker::CreateDelegatedBlock(CBlock& block, const uint256& hashFork, c
         txMint.SetToAddressData(CAddressContext(ctxTemplate));
     }
 
-    if (!ArrangeBlockTx(block, hashFork, profile))
+    bool fMoStatus = false;
+    if (!ArrangeBlockTx(block, hashFork, profile, fMoStatus))
     {
         StdError("blockmaker", "Create delegate block: Arrange block tx fail, hashPrev: %s", block.hashPrev.ToString().c_str());
         return false;
@@ -775,6 +819,7 @@ void CBlockMaker::PreparePiggyback(CBlock& block, const CDelegateAgreement& agre
     block.nType = CBlock::BLOCK_SUBSIDIARY;
     block.SetBlockTime(nRefBlockTime);
     block.nNumber = status.nLastBlockNumber + 1;
+    block.nHeight = CBlock::GetBlockHeightByHash(hashRefBlock);
     block.nSlot = 0;
 
     block.AddPiggybackProof(proof);
@@ -803,10 +848,25 @@ void CBlockMaker::CreateExtended(CBlock& block, const CBlockMakerProfile& profil
     block.nType = CBlock::BLOCK_EXTENDED;
     block.SetBlockTime(nPrevTime + EXTENDED_BLOCK_SPACING);
     block.nNumber = nExtendedPrevNumber + 1;
+    block.nHeight = CBlock::GetBlockHeightByHash(hashRefBlock);
     block.nSlot = nExtendedPrevSlot + 1;
     block.hashPrev = hashPrevBlock;
 
     block.AddPiggybackProof(proof);
+
+    bytes btBitmap;
+    bytes btAggSig;
+    uint256 hashVoteBlock;
+    if (pBlockChain->GetMakerVoteBlock(block.hashPrev, btBitmap, btAggSig, hashVoteBlock))
+    {
+        block.AddBlockVoteSig(CBlockVoteSig(hashVoteBlock, btBitmap, btAggSig));
+    }
+
+    std::map<CChainId, CBlockProve> mapCrosschainProve;
+    if (pBlockChain->GetCrosschainProveForPrevBlock(block.GetChainId(), block.hashPrev, mapCrosschainProve))
+    {
+        block.mapProve = mapCrosschainProve;
+    }
 
     CTransaction& txMint = block.txMint;
 
@@ -835,7 +895,7 @@ void CBlockMaker::CreateExtended(CBlock& block, const CBlockMakerProfile& profil
 
 bool CBlockMaker::CreateVacant(CBlock& block, const CBlockMakerProfile& profile, const CDelegateAgreement& agreement,
                                const uint256& hashRefBlock, const uint256& hashFork, const CChainId nChainId, const uint256& hashPrevBlock,
-                               const uint256& hashPrevStateRoot, const uint64 nTime, const uint64 nBlockNumber)
+                               const uint256& hashPrevStateRoot, const uint64 nTime, const uint64 nBlockNumber, const uint32 nBlockHeight)
 {
     CDestination destSendTo = profile.GetDestination();
 
@@ -849,6 +909,7 @@ bool CBlockMaker::CreateVacant(CBlock& block, const CBlockMakerProfile& profile,
     block.nType = CBlock::BLOCK_VACANT;
     block.SetBlockTime(nTime);
     block.nNumber = nBlockNumber;
+    block.nHeight = nBlockHeight;
     block.nSlot = 0;
     block.hashPrev = hashPrevBlock;
 
@@ -879,13 +940,14 @@ bool CBlockMaker::CreateVacant(CBlock& block, const CBlockMakerProfile& profile,
     }
 
     uint256 nTotalMintReward;
+    bool fMoStatus = false;
     if (!pBlockChain->CreateBlockStateRoot(hashFork, block, block.hashStateRoot, block.hashReceiptsRoot,
-                                           block.nGasUsed, block.btBloomData, nTotalMintReward))
+                                           block.hashCrosschainMerkleRoot, block.nGasUsed, block.btBloomData, nTotalMintReward, fMoStatus))
     {
         StdError("blockmaker", "Create vacant: Get block state root fail, prev block: %s", hashPrevBlock.ToString().c_str());
         return false;
     }
-    block.hashMerkleRoot = block.CalcMerkleTreeRoot();
+    block.UpdateMerkleRoot();
 
     return SignBlock(block, profile);
 }
@@ -905,7 +967,7 @@ bool CBlockMaker::ReplenishSubForkVacant(const uint256& hashFork, const CChainId
     while (nNextHeight < nPrimaryHeight)
     {
         CBlock block;
-        if (!CreateVacant(block, profile, agreement, hashRefBlock, hashFork, nChainId, hashLastBlock, hashLastStateRoot, vTime[nPrimaryHeight - nNextHeight], nLastBlockNumber + 1))
+        if (!CreateVacant(block, profile, agreement, hashRefBlock, hashFork, nChainId, hashLastBlock, hashLastStateRoot, vTime[nPrimaryHeight - nNextHeight], nLastBlockNumber + 1, nNextHeight))
         {
             StdError("blockmaker", "Replenish vacant: create vacane fail");
             return false;
@@ -915,15 +977,16 @@ bool CBlockMaker::ReplenishSubForkVacant(const uint256& hashFork, const CChainId
             StdError("blockmaker", "Replenish vacant: dispatch block fail");
             return false;
         }
-        StdTrace("blockmaker", "Replenish vacant: height: %d, block: %s, fork: %s",
-                 block.GetBlockHeight(), block.GetHash().GetHex().c_str(), hashFork.GetHex().c_str());
         hashLastBlock = block.GetHash();
         nNextHeight++;
         nLastBlockNumber++;
+        StdTrace("blockmaker", "Replenish vacant: height: %d, block: %s, fork: %s",
+                 block.GetBlockHeight(), hashLastBlock.GetHex().c_str(), hashFork.GetHex().c_str());
     }
     return true;
 }
 
+//---------------------------------------------------------------
 bool CBlockMaker::CreateProofOfWork()
 {
     int nConsensus = CM_CRYPTONIGHT;
@@ -1038,7 +1101,11 @@ void CBlockMaker::BlockMakerThreadFunc()
                 StdDebug("blockmaker", "Block Maker Thread Func: Wait next time, target height: %d, wait time: %ld, last height: %d, prev block: %s",
                          consParam.nPrevHeight + 1, consParam.nWaitTime, lastStatus.nBlockHeight, consParam.hashPrev.GetHex().c_str());
                 nWaitTime = consParam.nWaitTime;
-                continue;
+                if (nWaitTime < 1)
+                {
+                    nWaitTime = 1;
+                }
+                break;
             }
             nWaitTime = consParam.nWaitTime;
 
@@ -1060,14 +1127,27 @@ void CBlockMaker::BlockMakerThreadFunc()
             {
                 if (!consParam.agreement.IsProofOfWork())
                 {
-                    ProcessDelegatedProofOfStake(consParam);
+                    if (!ProcessDelegatedProofOfStake(consParam))
+                    {
+                        nWaitTime = 1;
+                    }
+                }
+                else
+                {
+                    if (nWaitTime < 1)
+                    {
+                        nWaitTime = 1;
+                    }
                 }
                 pDispatcher->SetConsensus(consParam);
             }
             catch (exception& e)
             {
                 StdError("blockmaker", "Block maker error: %s", e.what());
-                break;
+                if (nWaitTime < 1)
+                {
+                    nWaitTime = 1;
+                }
             }
             break;
         }

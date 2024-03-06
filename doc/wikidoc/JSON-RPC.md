@@ -13,6 +13,7 @@ Options:
   -conf=<file>                          Configuration file name
   -testnet                              Use the test network
   -fasttest                             Fast test
+  -testmainnet                          Mainnet test
   -nowallet                             Launch server without wallet
   -version                              Get metabasenet version
   -purge                                Purge database and blockfile
@@ -95,6 +96,18 @@ Options:
  - [createtransaction](#createtransaction): Create a transaction.
  - [signtransaction](#signtransaction): Sign a transaction.
  - [signmessage](#signmessage): Sign a message with the private key of an pubkey
+ - [addusercoin](#addusercoin): Add user coin
+ - [addcontractcoin](#addcontractcoin): Add contract coin
+ - [getcoininfo](#getcoininfo): Get coin information by symbol
+ - [listcoininfo](#listcoininfo): List coin information
+ - [getdexcoinpair](#getdexcoinpair): Get dex coin pair by symbol pair
+ - [listdexcoinpair](#listdexcoinpair): List dex coin pair
+ - [senddexordertx](#senddexordertx): Send dexorder transaction
+ - [listdexorder](#listdexorder): List dex order
+ - [getdexsymboltype](#getdexsymboltype): Get dex symbol type, sell symbol and buy symbol
+ - [listrealtimedexorder](#listrealtimedexorder): List realtime dex order
+ - [sendcrosstransfertx](#sendcrosstransfertx): Send crosschain transfer transaction
+ - [getcrosstransferamount](#getcrosstransferamount): Get crosschain transfer amount
  - [listaddress](#listaddress): List all of the addresses from pub keys and template ids
  - [exportwallet](#exportwallet): Export all of keys and templates from wallet to a specified file in JSON format.
  - [importwallet](#importwallet): Import keys and templates from an archived file to the wallet in JSON format.
@@ -124,6 +137,8 @@ Options:
  - [addblacklistaddress](#addblacklistaddress): Add blacklist address
  - [removeblacklistaddress](#removeblacklistaddress): Remove blacklist address
  - [listblacklistaddress](#listblacklistaddress): List blacklist address
+ - [setfunctionaddress](#setfunctionaddress): Set function address
+ - [listfunctionaddress](#listfunctionaddress): List function address
  - [setmintmingasprice](#setmintmingasprice): Set mint min gas price
  - [getmintmingasprice](#getmintmingasprice): Get mint min gas price
  - [listmintmingasprice](#listmintmingasprice): List mint min gas price
@@ -547,6 +562,7 @@ If true, list of all forks, or subscribed forks
        "lastnumber": 0,                 (uint, required) last block number
        "lastslot": 0,                   (uint, required) last block slot
        "lastblock": "",                 (string, required) last block hash
+       "lastconfirm": true|false,       (bool, required) last block confirm
        "totaltxcount": 0,               (uint, required) total tx count
        "rewardtxcount": 0,              (uint, required) reward tx count
        "usertxcount": 0,                (uint, required) user tx count
@@ -830,6 +846,8 @@ Return details of a block with given block-hash.
    "number": 0,                         (uint, required) block number
    "height": 0,                         (uint, required) block height
    "slot": 0,                           (uint, required) block slot
+   "confirm": true|false,               (bool, required) if confirm block
+   "prevconfirmblock": "",              (string, required) prev confirm block
    "reward": "",                        (string, required) block reward
    "stateroot": "",                     (string, required) state root
    "receiptsroot": "",                  (string, required) receipts root
@@ -843,11 +861,11 @@ Return details of a block with given block-hash.
 ```
 **Examples:**
 ```
->> metabasenet-cli getblock 0x000000006f74f68744402385431d917906efd928724ab27704ee5c596b2e3c55
-<< {"hash":"0x000000006f74f68744402385431d917906efd928724ab27704ee5c596b2e3c55","version":1,"type":"genesis","time":1690251993,"number":0,"stateroot":"0x81d35840a6e36f5ed343a59ebb0f2be312e2e4d9b08df0c769522039d9c3a083","receiptsroot":"0x","bloom":"0x","prev":"0x0000000000000000000000000000000000000000000000000000000000000000","chainid":201,"fork":"0x000000006f74f68744402385431d917906efd928724ab27704ee5c596b2e3c55","height":0,"txmint":"0xad988352e0e560a9766444c8fb0b7277332835da0b4903c0e65dd272a617fce4","tx":[]}
+>> metabasenet-cli getblock 0xc938f722d704ce2585f114c0005743e69d25b0f83a99d79705fb303c95e3c21b
+<< {"hash":"0xc938f722d704ce2585f114c0005743e69d25b0f83a99d79705fb303c95e3c21b","prev":"0xc937f77ee553b2b7b7fd50cf303a9077a1e71fc4d6c1e0336b2dd93cf1c5cbc3","chainid":201,"fork":"0xc9f7f70be6841102645505f96cdc28f00570d22c64d50dbfa3e44632e6ae3d5d","version":1,"type":"primary-stake","time":1691292094,"number":56,"height":56,"slot":0,"reward":"130.0","stateroot":"0xbedbcf8bd065c04d040a1873e310b5a576c4a1ba97ef36ad73b5d86aa06a0da3","receiptsroot":"0xf780fed5098460ecc4333c4deaa5abada70aa14479301462432f9567c7b43607","bloom":"0xfbe36bbadd36f7ce77ffe15befeff8f3db7edfef6f","txmint":"0xe5f3246178169493a351b29cb76064baf25980b12ea3746d5d78f73f14fa21fb","tx":["0x5a666daaa87477d923b890efd15952aa23004878c10aa63370245b72ecfc2bb2","0x1b777e66ea46754a49ebb2a606caab38672f965feb38e3a802d7356096ee19d2"]}
 
->> curl -d '{"id":10,"method":"getblock","jsonrpc":"2.0","params":{"block":"0x000000006f74f68744402385431d917906efd928724ab27704ee5c596b2e3c55"}}' http://127.0.0.1:8812
-<< {"id":10,"jsonrpc":"2.0","result":{"hash":"0x000000006f74f68744402385431d917906efd928724ab27704ee5c596b2e3c55","version":1,"type":"genesis","time":1690251993,"number":0,"stateroot":"0x81d35840a6e36f5ed343a59ebb0f2be312e2e4d9b08df0c769522039d9c3a083","receiptsroot":"0x","bloom":"0x","prev":"0x0000000000000000000000000000000000000000000000000000000000000000","chainid":201,"fork":"0x000000006f74f68744402385431d917906efd928724ab27704ee5c596b2e3c55","height":0,"txmint":"0xad988352e0e560a9766444c8fb0b7277332835da0b4903c0e65dd272a617fce4","tx":[]}}
+>> curl -d '{"id":10,"method":"getblock","jsonrpc":"2.0","params":{"block":"0xc938f722d704ce2585f114c0005743e69d25b0f83a99d79705fb303c95e3c21b"}}' http://127.0.0.1:8812
+<< {"id":10,"jsonrpc":"2.0","result":{"hash":"0xc938f722d704ce2585f114c0005743e69d25b0f83a99d79705fb303c95e3c21b","prev":"0xc937f77ee553b2b7b7fd50cf303a9077a1e71fc4d6c1e0336b2dd93cf1c5cbc3","chainid":201,"fork":"0xc9f7f70be6841102645505f96cdc28f00570d22c64d50dbfa3e44632e6ae3d5d","version":1,"type":"primary-stake","time":1691292094,"number":56,"height":56,"slot":0,"reward":"130.0","stateroot":"0xbedbcf8bd065c04d040a1873e310b5a576c4a1ba97ef36ad73b5d86aa06a0da3","receiptsroot":"0xf780fed5098460ecc4333c4deaa5abada70aa14479301462432f9567c7b43607","bloom":"0xfbe36bbadd36f7ce77ffe15befeff8f3db7edfef6f","txmint":"0xe5f3246178169493a351b29cb76064baf25980b12ea3746d5d78f73f14fa21fb","tx":["0x5a666daaa87477d923b890efd15952aa23004878c10aa63370245b72ecfc2bb2","0x1b777e66ea46754a49ebb2a606caab38672f965feb38e3a802d7356096ee19d2"]}}
 ```
 **Errors:**
 ```
@@ -887,6 +905,7 @@ Return details of a block with given block-hash.
    "number": 0,                         (uint, required) block number
    "height": 0,                         (uint, required) block height
    "slot": 0,                           (uint, required) block slot
+   "confirm": true|false,               (bool, required) if confirm block
    "reward": "",                        (string, required) block reward
    "stateroot": "",                     (string, required) state root
    "receiptsroot": "",                  (string, required) receipts root
@@ -935,11 +954,11 @@ Return details of a block with given block-hash.
 ```
 **Examples:**
 ```
->> metabasenet-cli getblockdetail 0x000000006f74f68744402385431d917906efd928724ab27704ee5c596b2e3c55
-<< {"hash":"0x000000006f74f68744402385431d917906efd928724ab27704ee5c596b2e3c55","version":1,"type":"genesis","time":1690251993,"number":0,"stateroot":"0x81d35840a6e36f5ed343a59ebb0f2be312e2e4d9b08df0c769522039d9c3a083","receiptsroot":"0x","bloom":"0x","bits":0,"prev":"0x0000000000000000000000000000000000000000000000000000000000000000","chainid":201,"fork":"0x000000006f74f68744402385431d917906efd928724ab27704ee5c596b2e3c55","height":0,"txmint":{"txid":"0xad988352e0e560a9766444c8fb0b7277332835da0b4903c0e65dd272a617fce4","type":"genesis","nonce":0,"from":"0x0000000000000000000000000000000000000000","to":"0x5962974eeb0b17b43edabfc9b747839317aa852f","amount":"200000000.0","gaslimit":0,"gasprice":"0.0","txfee":"0.0","data":"0x02110220001520000000000000000000000000000000000000000000a56fa5b99019a5c8000000","signhash":"0x74a1abd80618b0dfc476071687c6980673d01fca729748918ffaf703bc25a9b8","sig":"","fork":"0x000000006f74f68744402385431d917906efd928724ab27704ee5c596b2e3c55","height":0,"blockhash":"0x000000006f74f68744402385431d917906efd928724ab27704ee5c596b2e3c55","confirmations":1811},"tx":[]}
+>> metabasenet-cli getblockdetail 0xc938f722d704ce2585f114c0005743e69d25b0f83a99d79705fb303c95e3c21b
+<< {"hash":"0xc938f722d704ce2585f114c0005743e69d25b0f83a99d79705fb303c95e3c21b","version":1,"type":"genesis","time":1690251993,"number":0,"stateroot":"0x81d35840a6e36f5ed343a59ebb0f2be312e2e4d9b08df0c769522039d9c3a083","receiptsroot":"0x","bloom":"0x","bits":0,"prev":"0x0000000000000000000000000000000000000000000000000000000000000000","chainid":201,"fork":"0x000000006f74f68744402385431d917906efd928724ab27704ee5c596b2e3c55","height":0,"txmint":{"txid":"0xad988352e0e560a9766444c8fb0b7277332835da0b4903c0e65dd272a617fce4","type":"genesis","nonce":0,"from":"0x0000000000000000000000000000000000000000","to":"0x5962974eeb0b17b43edabfc9b747839317aa852f","amount":"200000000.0","gaslimit":0,"gasprice":"0.0","txfee":"0.0","data":"0x02110220001520000000000000000000000000000000000000000000a56fa5b99019a5c8000000","signhash":"0x74a1abd80618b0dfc476071687c6980673d01fca729748918ffaf703bc25a9b8","sig":"","fork":"0x000000006f74f68744402385431d917906efd928724ab27704ee5c596b2e3c55","height":0,"blockhash":"0x000000006f74f68744402385431d917906efd928724ab27704ee5c596b2e3c55","confirmations":1811},"tx":[]}
 
->> curl -d '{"id":10,"method":"getblockdetail","jsonrpc":"2.0","params":{"block":"0x000000006f74f68744402385431d917906efd928724ab27704ee5c596b2e3c55"}}' http://127.0.0.1:8812
-<< {"id":10,"jsonrpc":"2.0","result":{"hash":"0x000000006f74f68744402385431d917906efd928724ab27704ee5c596b2e3c55","version":1,"type":"genesis","time":1690251993,"number":0,"stateroot":"0x81d35840a6e36f5ed343a59ebb0f2be312e2e4d9b08df0c769522039d9c3a083","receiptsroot":"0x","bloom":"0x","bits":0,"prev":"0x0000000000000000000000000000000000000000000000000000000000000000","chainid":201,"fork":"0x000000006f74f68744402385431d917906efd928724ab27704ee5c596b2e3c55","height":0,"txmint":{"txid":"0xad988352e0e560a9766444c8fb0b7277332835da0b4903c0e65dd272a617fce4","type":"genesis","nonce":0,"from":"0x0000000000000000000000000000000000000000","to":"0x5962974eeb0b17b43edabfc9b747839317aa852f","amount":"200000000.0","gaslimit":0,"gasprice":"0.0","txfee":"0.0","data":"0x02110220001520000000000000000000000000000000000000000000a56fa5b99019a5c8000000","signhash":"0x74a1abd80618b0dfc476071687c6980673d01fca729748918ffaf703bc25a9b8","sig":"","fork":"0x000000006f74f68744402385431d917906efd928724ab27704ee5c596b2e3c55","height":0,"blockhash":"0x000000006f74f68744402385431d917906efd928724ab27704ee5c596b2e3c55","confirmations":1811},"tx":[]}}
+>> curl -d '{"id":10,"method":"getblockdetail","jsonrpc":"2.0","params":{"block":"0xc938f722d704ce2585f114c0005743e69d25b0f83a99d79705fb303c95e3c21b"}}' http://127.0.0.1:8812
+<< {"id":10,"jsonrpc":"2.0","result":{"hash":"0xc938f722d704ce2585f114c0005743e69d25b0f83a99d79705fb303c95e3c21b","version":1,"type":"genesis","time":1690251993,"number":0,"stateroot":"0x81d35840a6e36f5ed343a59ebb0f2be312e2e4d9b08df0c769522039d9c3a083","receiptsroot":"0x","bloom":"0x","bits":0,"prev":"0x0000000000000000000000000000000000000000000000000000000000000000","chainid":201,"fork":"0x000000006f74f68744402385431d917906efd928724ab27704ee5c596b2e3c55","height":0,"txmint":{"txid":"0xad988352e0e560a9766444c8fb0b7277332835da0b4903c0e65dd272a617fce4","type":"genesis","nonce":0,"from":"0x0000000000000000000000000000000000000000","to":"0x5962974eeb0b17b43edabfc9b747839317aa852f","amount":"200000000.0","gaslimit":0,"gasprice":"0.0","txfee":"0.0","data":"0x02110220001520000000000000000000000000000000000000000000a56fa5b99019a5c8000000","signhash":"0x74a1abd80618b0dfc476071687c6980673d01fca729748918ffaf703bc25a9b8","sig":"","fork":"0x000000006f74f68744402385431d917906efd928724ab27704ee5c596b2e3c55","height":0,"blockhash":"0x000000006f74f68744402385431d917906efd928724ab27704ee5c596b2e3c55","confirmations":1811},"tx":[]}}
 ```
 **Errors:**
 ```
@@ -988,6 +1007,8 @@ Return details of a block with given block hash or height or number.
    "number": 0,                         (uint, required) block number
    "height": 0,                         (uint, required) block height
    "slot": 0,                           (uint, required) block slot
+   "confirm": true|false,               (bool, required) if confirm block
+   "prevconfirmblock": "",              (string, required) prev confirm block
    "reward": "",                        (string, required) block reward
    "stateroot": "",                     (string, required) state root
    "receiptsroot": "",                  (string, required) receipts root
@@ -1001,11 +1022,11 @@ Return details of a block with given block hash or height or number.
 ```
 **Examples:**
 ```
->> metabasenet-cli getblockdata -b=0x000000006f74f68744402385431d917906efd928724ab27704ee5c596b2e3c55
-<< {"hash":"0x000000006f74f68744402385431d917906efd928724ab27704ee5c596b2e3c55","version":1,"type":"genesis","time":1690251993,"number":0,"stateroot":"0x81d35840a6e36f5ed343a59ebb0f2be312e2e4d9b08df0c769522039d9c3a083","receiptsroot":"0x","bloom":"0x","prev":"0x0000000000000000000000000000000000000000000000000000000000000000","chainid":201,"fork":"0x000000006f74f68744402385431d917906efd928724ab27704ee5c596b2e3c55","height":0,"txmint":"0xad988352e0e560a9766444c8fb0b7277332835da0b4903c0e65dd272a617fce4","tx":[]}
+>> metabasenet-cli getblockdata -b=0xc903f7c5e9e1c5ec990b02358e7f60f958e6479d5042d6be27a88456c83924bc
+<< {"hash":"0xc903f7c5e9e1c5ec990b02358e7f60f958e6479d5042d6be27a88456c83924bc","prev":"0xc902f73972f2aab9541f844b55a421bdd34167f7f66906dc16be76c5149874ac","chainid":201,"fork":"0xc9f7f70be6841102645505f96cdc28f00570d22c64d50dbfa3e44632e6ae3d5d","version":1,"type":"primary-poa","time":1691291829,"number":3,"height":3,"slot":0,"reward":"0.0","stateroot":"0x1c3ffbbf503d90059c5714e9a5870afc13c6da6b459f9dab4a2aaf3907dd5b45","receiptsroot":"0x","bloom":"0x04029200","txmint":{"txid":"0xc0b87f4b71d493d95d64d954a90801ec6f58c34e6506795d461ccd29294bd7bb","type":"poa","nonce":3,"from":"0x0000000000000000000000000000000000000000","to":"0xb35400ae1477971c22e51311c12edc87ce3cf79d","amount":"0.0","gaslimit":0,"gasprice":"0.0","txfee":"0.0","data":"","signhash":"","sig":"","fork":"0xc9f7f70be6841102645505f96cdc28f00570d22c64d50dbfa3e44632e6ae3d5d","height":3,"blockhash":"0xc903f7c5e9e1c5ec990b02358e7f60f958e6479d5042d6be27a88456c83924bc","confirmations":362},"tx":[]}
 
->> curl -d '{"id":10,"method":"getblockdata","jsonrpc":"2.0","params":{"blockhash":"0x000000006f74f68744402385431d917906efd928724ab27704ee5c596b2e3c55"}}' http://127.0.0.1:8812
-<< {"id":10,"jsonrpc":"2.0","result":{"hash":"0x000000006f74f68744402385431d917906efd928724ab27704ee5c596b2e3c55","version":1,"type":"genesis","time":1690251993,"number":0,"stateroot":"0x81d35840a6e36f5ed343a59ebb0f2be312e2e4d9b08df0c769522039d9c3a083","receiptsroot":"0x","bloom":"0x","prev":"0x0000000000000000000000000000000000000000000000000000000000000000","chainid":201,"fork":"0x000000006f74f68744402385431d917906efd928724ab27704ee5c596b2e3c55","height":0,"txmint":"0xad988352e0e560a9766444c8fb0b7277332835da0b4903c0e65dd272a617fce4","tx":[]}}
+>> curl -d '{"id":10,"method":"getblockdata","jsonrpc":"2.0","params":{"blockhash":"0xc903f7c5e9e1c5ec990b02358e7f60f958e6479d5042d6be27a88456c83924bc"}}' http://127.0.0.1:8812
+<< {"id":10,"jsonrpc":"2.0","result":{"hash":"0xc903f7c5e9e1c5ec990b02358e7f60f958e6479d5042d6be27a88456c83924bc","prev":"0xc902f73972f2aab9541f844b55a421bdd34167f7f66906dc16be76c5149874ac","chainid":201,"fork":"0xc9f7f70be6841102645505f96cdc28f00570d22c64d50dbfa3e44632e6ae3d5d","version":1,"type":"primary-poa","time":1691291829,"number":3,"height":3,"slot":0,"reward":"0.0","stateroot":"0x1c3ffbbf503d90059c5714e9a5870afc13c6da6b459f9dab4a2aaf3907dd5b45","receiptsroot":"0x","bloom":"0x04029200","txmint":{"txid":"0xc0b87f4b71d493d95d64d954a90801ec6f58c34e6506795d461ccd29294bd7bb","type":"poa","nonce":3,"from":"0x0000000000000000000000000000000000000000","to":"0xb35400ae1477971c22e51311c12edc87ce3cf79d","amount":"0.0","gaslimit":0,"gasprice":"0.0","txfee":"0.0","data":"","signhash":"","sig":"","fork":"0xc9f7f70be6841102645505f96cdc28f00570d22c64d50dbfa3e44632e6ae3d5d","height":3,"blockhash":"0xc903f7c5e9e1c5ec990b02358e7f60f958e6479d5042d6be27a88456c83924bc","confirmations":362},"tx":[]}}
 ```
 **Errors:**
 ```
@@ -1229,13 +1250,13 @@ Return the number of height in the given fork.
 >> metabasenet-cli getforkheight
 << 32081
 
->> metabasenet-cli getforkheight -f=0x000000006f74f68744402385431d917906efd928724ab27704ee5c596b2e3c55
+>> metabasenet-cli getforkheight -f=0xc9f7f70be6841102645505f96cdc28f00570d22c64d50dbfa3e44632e6ae3d5d
 << 32081
 
 >> curl -d '{"id":4,"method":"getforkheight","jsonrpc":"2.0","params":{}}' http://127.0.0.1:8812
 << {"id":4,"jsonrpc":"2.0","result":32081}
 
->> curl -d '{"id":4,"method":"getforkheight","jsonrpc":"2.0","params":{"fork":"0x000000006f74f68744402385431d917906efd928724ab27704ee5c596b2e3c55"}}' http://127.0.0.1:8812
+>> curl -d '{"id":4,"method":"getforkheight","jsonrpc":"2.0","params":{"fork":"0xc9f7f70be6841102645505f96cdc28f00570d22c64d50dbfa3e44632e6ae3d5d"}}' http://127.0.0.1:8812
 << {"id":4,"jsonrpc":"2.0","result":32081}
 ```
 **Errors:**
@@ -2254,7 +2275,7 @@ Return information about <address>.
 ### getbalance
 **Usage:**
 ```
-        getbalance (-f="fork") (-a="address") (-b="block") (-p=page) (-n=count)
+        getbalance (-f="fork") (-c="coinsymbol") (-a="address") (-b="block") (-p=page) (-n=count)
 
 Get balance of address.
 If (address) is not specified, return the balance for wallet's each address.
@@ -2263,6 +2284,7 @@ If (address) is specified, return the balance in the address.
 **Arguments:**
 ```
  -f="fork"                              (string, optional) fork hash, default is genesis
+ -c="coinsymbol"                        (string, optional) coin symbol
  -a="address"                           (string, optional) address, default is all
  -b="block"                             (string, optional) block hash or number or latest, default is latest block
  -p=page                                (uint, optional, default=0) page, default is 0
@@ -2273,6 +2295,7 @@ If (address) is specified, return the balance in the address.
  "param" :
  {
    "fork": "",                          (string, optional) fork hash, default is genesis
+   "coinsymbol": "",                    (string, optional) coin symbol
    "address": "",                       (string, optional) address, default is all
    "block": "",                         (string, optional) block hash or number or latest, default is latest block
    "page": 0,                           (uint, optional, default=0) page, default is 0
@@ -2287,6 +2310,7 @@ If (address) is specified, return the balance in the address.
      {
        "address": "",                   (string, required) address
        "type": "",                      (string, required) address type
+       "coinsymbol": "",                (string, required) coin symbol
        "nonce": 0,                      (uint, required) last tx nonce
        "avail": "",                     (string, required) balance available amount (big float)
        "locked": "",                    (string, required) locked amount (big float)
@@ -2385,7 +2409,7 @@ return up to (count) most recent transactions skipping the first (offset) transa
 ### sendfrom
 **Usage:**
 ```
-        sendfrom <"from"> <"to"> <"amount"> (-n=nonce) (-p="gasprice") (-g=gas) (-f="fork") (-d="data") (-fd="fdata") (-td="todata") (-cc="contractcode") (-cp="contractparam")
+        sendfrom <"from"> <"to"> <"amount"> (-n=nonce) (-p="gasprice") (-g=gas) (-f="fork") (-d="data") (-fd="fdata") (-td="todata") (-cc="contractcode") (-cp="contractparam") (-cs="coinsymbol")
 
 <amount> and <txfee> are real and rounded to the nearest 0.000001
 Return transaction id
@@ -2404,6 +2428,7 @@ Return transaction id
  -td="todata"                           (string, optional) If the 'to' address of transaction is a template, this option allows to save the template hex data. The hex data is equal output of RPC 'exporttemplate'
  -cc="contractcode"                     (string, optional) contract code, code or code hash or contract address
  -cp="contractparam"                    (string, optional) contract param
+ -cs="coinsymbol"                       (string, optional) coin symbol
 ```
 **Request:**
 ```
@@ -2420,7 +2445,8 @@ Return transaction id
    "fdata": "",                         (string, optional) format data
    "todata": "",                        (string, optional) If the 'to' address of transaction is a template, this option allows to save the template hex data. The hex data is equal output of RPC 'exporttemplate'
    "contractcode": "",                  (string, optional) contract code, code or code hash or contract address
-   "contractparam": ""                  (string, optional) contract param
+   "contractparam": "",                 (string, optional) contract param
+   "coinsymbol": ""                     (string, optional) coin symbol
  }
 ```
 **Response:**
@@ -2621,6 +2647,632 @@ Sign a message with the private key of an pubkey
 * {"code":-4,"message":"Unknown key"}
 * {"code":-405,"message":"Key is locked"}
 * {"code":-401,"message":"Failed to sign message"}
+```
+##### [Back to top](#commands)
+---
+### addusercoin
+**Usage:**
+```
+        addusercoin <"from"> <"symbol"> <chainid>
+
+Add user coin
+```
+**Arguments:**
+```
+ "from"                                 (string, required) from address
+ "symbol"                               (string, required) coin symbol
+ chainid                                (uint, required) at chainid
+```
+**Request:**
+```
+ "param" :
+ {
+   "from": "",                          (string, required) from address
+   "symbol": "",                        (string, required) coin symbol
+   "chainid": 0                         (uint, required) at chainid
+ }
+```
+**Response:**
+```
+ "result": "txid"                       (string, required) txid
+```
+**Examples:**
+```
+>> metabasenet-cli addusercoin 0xb955034fcefb66112bab47483c8d243b86cb2c1d ABC 202
+<< 0x4646c445d31e313764db47c894b3372d72e23b9d58ada120b7229cf4ea6b1d6f
+
+>> curl -d '{"id":1,"method":"addusercoin","jsonrpc":"2.0","params":{"from":"0xb955034fcefb66112bab47483c8d243b86cb2c1d","symbol":"ABC","chainid":202}}' http://127.0.0.1:8812
+<< {"id":0,"jsonrpc":"2.0","result":"0x4646c445d31e313764db47c894b3372d72e23b9d58ada120b7229cf4ea6b1d6f"}
+```
+**Errors:**
+```
+* {"code":-6,"message":"Invalid from"}
+* {"code":-6,"message":"Invalid symbol"}
+* {"code":-6,"message":"Invalid chainid"}
+* {"code":-4,"message":"Unknown chainid"}
+```
+##### [Back to top](#commands)
+---
+### addcontractcoin
+**Usage:**
+```
+        addcontractcoin <"from"> <"symbol"> <chainid> <"contractaddress">
+
+Add contract coin
+```
+**Arguments:**
+```
+ "from"                                 (string, required) from address
+ "symbol"                               (string, required) coin symbol
+ chainid                                (uint, required) at chainid
+ "contractaddress"                      (string, required) contract address
+```
+**Request:**
+```
+ "param" :
+ {
+   "from": "",                          (string, required) from address
+   "symbol": "",                        (string, required) coin symbol
+   "chainid": 0,                        (uint, required) at chainid
+   "contractaddress": ""                (string, required) contract address
+ }
+```
+**Response:**
+```
+ "result": "txid"                       (string, required) txid
+```
+**Examples:**
+```
+>> metabasenet-cli addcontractcoin 0xb955034fcefb66112bab47483c8d243b86cb2c1d ABC 202 0x3e80fb38ae4e71beaccb053b716921eb6b03519f
+<< 0x4646c445d31e313764db47c894b3372d72e23b9d58ada120b7229cf4ea6b1d6f
+
+>> curl -d '{"id":1,"method":"addcontractcoin","jsonrpc":"2.0","params":{"from":"0xb955034fcefb66112bab47483c8d243b86cb2c1d","symbol":"ABC","chainid":202,"contractaddress":"0x3e80fb38ae4e71beaccb053b716921eb6b03519f"}}' http://127.0.0.1:8812
+<< {"id":0,"jsonrpc":"2.0","result":"0x4646c445d31e313764db47c894b3372d72e23b9d58ada120b7229cf4ea6b1d6f"}
+```
+**Errors:**
+```
+* {"code":-6,"message":"Invalid from"}
+* {"code":-6,"message":"Invalid symbol"}
+* {"code":-6,"message":"Invalid contractaddress"}
+* {"code":-6,"message":"Invalid chainid"}
+* {"code":-4,"message":"Unknown chainid"}
+```
+##### [Back to top](#commands)
+---
+### getcoininfo
+**Usage:**
+```
+        getcoininfo <"symbol"> (-b="block")
+
+Get coin information by symbol
+```
+**Arguments:**
+```
+ "symbol"                               (string, required) coin symbol
+ -b="block"                             (string, optional) block hash
+```
+**Request:**
+```
+ "param" :
+ {
+   "symbol": "",                        (string, required) coin symbol
+   "block": ""                          (string, optional) block hash
+ }
+```
+**Response:**
+```
+ "result" :
+ {
+   "coinsymbol": "",                    (string, required) coin symbol
+   "cointype": "",                      (string, required) coin type
+   "fork": "",                          (string, required) at fork hash
+   "chainid": 0                         (uint, required) at fork chainid
+ }
+```
+**Examples:**
+```
+>> metabasenet-cli getcoininfo HAH
+<< {"coinsymbol":"HAH","cointype":"forkcoin","fork":"0xc9f7f76ed1f265880a269080b5a115470fc36b06717346c44c72caca03dddcc0","chainid":201}
+
+>> curl -d '{"id":1,"method":"getcoininfo","jsonrpc":"2.0","params":{"symbol":"HAH"}}' http://127.0.0.1:8812
+<< {"id":0,"jsonrpc":"2.0","result":{"coinsymbol":"HAH","cointype":"forkcoin","fork":"0xc9f7f76ed1f265880a269080b5a115470fc36b06717346c44c72caca03dddcc0","chainid":201}}
+```
+**Errors:**
+```
+* {"code":-6,"message":"Invalid symbol"}
+* {"code":-6,"message":"Invalid block"}
+* {"code":-4,"message":"Unknown symbol"}
+```
+##### [Back to top](#commands)
+---
+### listcoininfo
+**Usage:**
+```
+        listcoininfo (-b="block")
+
+List coin information
+```
+**Arguments:**
+```
+ -b="block"                             (string, optional) block hash
+```
+**Request:**
+```
+ "param" :
+ {
+   "block": ""                          (string, optional) block hash
+ }
+```
+**Response:**
+```
+ "result" :
+   "coindata":                          (array, required, default=RPCValid) 
+   [
+     {
+       "coinsymbol": "",                (string, required) coin symbol
+       "cointype": "",                  (string, required) coin type
+       "fork": "",                      (string, required) at fork hash
+       "chainid": 0,                    (uint, required) at fork chainid
+       "contractaddress": ""            (string, required) at contract address
+     }
+   ]
+```
+**Examples:**
+```
+>> metabasenet-cli listcoininfo
+<< [{"coinsymbol":"HAH","cointype":"forkcoin","fork":"0xc9f7f76ed1f265880a269080b5a115470fc36b06717346c44c72caca03dddcc0","chainid":201,"contractaddress":""}]
+
+>> curl -d '{"id":1,"method":"listcoininfo","jsonrpc":"2.0","params":{}}' http://127.0.0.1:8812
+<< {"id":0,"jsonrpc":"2.0","result":[{"coinsymbol":"HAH","cointype":"forkcoin","fork":"0xc9f7f76ed1f265880a269080b5a115470fc36b06717346c44c72caca03dddcc0","chainid":201,"contractaddress":""}]}
+```
+**Errors:**
+```
+* {"code":-6,"message":"Invalid block"}
+* {"code":-7,"message":"Get coin fail"}
+```
+##### [Back to top](#commands)
+---
+### getdexcoinpair
+**Usage:**
+```
+        getdexcoinpair <"symbol1"> <"symbol2"> (-b="block")
+
+Get dex coin pair by symbol pair
+```
+**Arguments:**
+```
+ "symbol1"                              (string, required) coin symbol1
+ "symbol2"                              (string, required) coin symbol2
+ -b="block"                             (string, optional) block hash
+```
+**Request:**
+```
+ "param" :
+ {
+   "symbol1": "",                       (string, required) coin symbol1
+   "symbol2": "",                       (string, required) coin symbol2
+   "block": ""                          (string, optional) block hash
+ }
+```
+**Response:**
+```
+ "result": coinpair                     (uint, required) coin pair
+```
+**Examples:**
+```
+>> metabasenet-cli getdexcoinpair HAH YUS
+<< 1
+
+>> curl -d '{"id":1,"method":"getdexcoinpair","jsonrpc":"2.0","params":{"symbol1":"HAH","symbol1":"YUS"}}' http://127.0.0.1:8812
+<< {"id":0,"jsonrpc":"2.0","result":1}
+```
+**Errors:**
+```
+* {"code":-6,"message":"Invalid symbol1"}
+* {"code":-6,"message":"Invalid symbol2"}
+* {"code":-6,"message":"Invalid block"}
+* {"code":-4,"message":"Unknown symbol"}
+```
+##### [Back to top](#commands)
+---
+### listdexcoinpair
+**Usage:**
+```
+        listdexcoinpair (-c=coinpair) (-s="coinsymbol") (-b="block")
+
+List dex coin pair
+```
+**Arguments:**
+```
+ -c=coinpair                            (uint, optional) coin pair
+ -s="coinsymbol"                        (string, optional) coin symbol
+ -b="block"                             (string, optional) block hash
+```
+**Request:**
+```
+ "param" :
+ {
+   "coinpair": 0,                       (uint, optional) coin pair
+   "coinsymbol": "",                    (string, optional) coin symbol
+   "block": ""                          (string, optional) block hash
+ }
+```
+**Response:**
+```
+ "result" :
+   "coinpairdata":                      (array, required, default=RPCValid) 
+   [
+     {
+       "coinpair": 0,                   (uint, required) coin pair
+       "coin1":                         (object, required) coin1
+       {
+         "coinsymbol": "",              (string, required) coin symbol
+         "cointype": "",                (string, required) coin type
+         "fork": "",                    (string, required) at fork hash
+         "chainid": 0                   (uint, required) at fork chainid
+       }
+       "coin2":                         (object, required) coin2
+       {
+         "coinsymbol": "",              (string, required) coin symbol
+         "cointype": "",                (string, required) coin type
+         "fork": "",                    (string, required) at fork hash
+         "chainid": 0                   (uint, required) at fork chainid
+       }
+     }
+   ]
+```
+**Examples:**
+```
+>> metabasenet-cli listdexcoinpair
+<< [{"coinpair":1,"coin1":{"coinsymbol":"HAHT","cointype":"forkcoin","fork":"0xc9f7f76ed1f265880a269080b5a115470fc36b06717346c44c72caca03dddcc0","chainid":201},"coin2":{"coinsymbol":"SY202","cointype":"forkcoin","fork":"0xcab0f744f00351c05d9035b22f737325596a3b94337542dbecf623f054a6172a","chainid":202}}]
+
+>> curl -d '{"id":1,"method":"listdexcoinpair","jsonrpc":"2.0","params":{}}' http://127.0.0.1:8812
+<< {"id":0,"jsonrpc":"2.0","result":[{"coinpair":1,"coin1":{"coinsymbol":"HAHT","cointype":"forkcoin","fork":"0xc9f7f76ed1f265880a269080b5a115470fc36b06717346c44c72caca03dddcc0","chainid":201},"coin2":{"coinsymbol":"SY202","cointype":"forkcoin","fork":"0xcab0f744f00351c05d9035b22f737325596a3b94337542dbecf623f054a6172a","chainid":202}}]}
+```
+**Errors:**
+```
+* {"code":-6,"message":"Invalid block"}
+* {"code":-7,"message":"Get coin pair fail"}
+* {"code":-7,"message":"Get coin context fail"}
+```
+##### [Back to top](#commands)
+---
+### senddexordertx
+**Usage:**
+```
+        senddexordertx <"from"> <"coinsymbolowner"> <"coinsymbolpeer"> <"amount"> <"price"> (-n=ordernumber) (-f="fork")
+
+Send dexorder transaction
+```
+**Arguments:**
+```
+ "from"                                 (string, required) from address
+ "coinsymbolowner"                      (string, required) coin symbol owner
+ "coinsymbolpeer"                       (string, required) coin symbol peer
+ "amount"                               (string, required) order amount (big float)
+ "price"                                (string, required) order amount (big float)
+ -n=ordernumber                         (uint, optional) order number, default is 0
+ -f="fork"                              (string, optional) fork hash or chainid, default is local fork
+```
+**Request:**
+```
+ "param" :
+ {
+   "from": "",                          (string, required) from address
+   "coinsymbolowner": "",               (string, required) coin symbol owner
+   "coinsymbolpeer": "",                (string, required) coin symbol peer
+   "amount": "",                        (string, required) order amount (big float)
+   "price": "",                         (string, required) order amount (big float)
+   "ordernumber": 0,                    (uint, optional) order number, default is 0
+   "fork": ""                           (string, optional) fork hash or chainid, default is local fork
+ }
+```
+**Response:**
+```
+ "result": "result"                     (string, required) transaction hash
+```
+**Examples:**
+```
+>> metabasenet-cli senddexordertx 0xc0f0ddde81c1dff508e038d20295d8001493d8bc AAA BBB 11 0 234.98 1.23
+<< 0x45b154d2ab82eac6e79b8babd97abaebe2b4ae7194f3afd946dd1419f012dd3f
+
+>> curl -d '{"id":4,"method":"senddexordertx","jsonrpc":"2.0","params":{"from":"0xc0f0ddde81c1dff508e038d20295d8001493d8bc","coinsymbolowner":"AAA","coinsymbolpeer":"BBB","ordernumber":0,"amount":"234.98","price":"1.23"}}' http://127.0.0.1:8812
+<< {"id":4,"jsonrpc":"2.0","result":"0x45b154d2ab82eac6e79b8babd97abaebe2b4ae7194f3afd946dd1419f012dd3f"}
+```
+**Errors:**
+```
+* {"code":-6,"message":"Invalid from"}
+* {"code":-6,"message":"Invalid coinsymbolowner"}
+* {"code":-6,"message":"Invalid coinsymbolpeer"}
+* {"code":-6,"message":"Invalid ordernumber"}
+* {"code":-6,"message":"Invalid amount"}
+* {"code":-6,"message":"Invalid price"}
+* {"code":-6,"message":"Invalid fork"}
+* {"code":-6,"message":"Unknown fork"}
+* {"code":-4,"message":"Get tx nonce fail"}
+* {"code":-401,"message":"Failed to sign transaction"}
+* {"code":-10,"message":"Tx rejected : xxx"}
+```
+##### [Back to top](#commands)
+---
+### listdexorder
+**Usage:**
+```
+        listdexorder <"address"> (-co="coinsymbolowner") (-cp="coinsymbolpeer") (-b=beginnumber) (-n=count) (-f="fork") (-h="block")
+
+List dex order
+```
+**Arguments:**
+```
+ "address"                              (string, required) order address
+ -co="coinsymbolowner"                  (string, optional) coin symbol owner
+ -cp="coinsymbolpeer"                   (string, optional) coin symbol owner
+ -b=beginnumber                         (uint, optional, default=0) begin order number
+ -n=count                               (uint, optional, default=1000) count, default is 1000
+ -f="fork"                              (string, optional) fork hash or chainid
+ -h="block"                             (string, optional) block hash
+```
+**Request:**
+```
+ "param" :
+ {
+   "address": "",                       (string, required) order address
+   "coinsymbolowner": "",               (string, optional) coin symbol owner
+   "coinsymbolpeer": "",                (string, optional) coin symbol owner
+   "beginnumber": 0,                    (uint, optional, default=0) begin order number
+   "count": 0,                          (uint, optional, default=1000) count, default is 1000
+   "fork": "",                          (string, optional) fork hash or chainid
+   "block": ""                          (string, optional) block hash
+ }
+```
+**Response:**
+```
+ "result" :
+   "dexorderdata":                      (array, required, default=RPCValid) 
+   [
+     {
+       "ordernumber": 0,                (uint, required) order number
+       "coinsymbolowner": "",           (string, required) coin symbol owner
+       "coinsymbolpeer": "",            (string, required) coin symbol peer
+       "amount": "",                    (string, required) order amount (big float)
+       "price": "",                     (string, required) order amount (big float)
+       "surplusamount": "",             (string, required) surplus amount (big float)
+       "completeamount": "",            (string, required) complete amount (big float)
+       "completecount": 0,              (uint, required) complete count
+       "height": 0,                     (uint, required) at height
+       "slot": 0                        (uint, required) at slot
+     }
+   ]
+```
+**Examples:**
+```
+>> metabasenet-cli listdexorder 0xb955034fcefb66112bab47483c8d243b86cb2c1d
+<< [{"ordernumber":1,"coinsymbolowner":"AAA","coinsymbolpeer":"BBB","amount":"100.45","price":"0.5","surplusamount":"30.0","completeamount":"70.5","completecount":2,"height":398,"slot":0}]
+
+>> curl -d '{"id":1,"method":"listdexorder","jsonrpc":"2.0","params":{"address":"0xb955034fcefb66112bab47483c8d243b86cb2c1d"}}' http://127.0.0.1:8812
+<< {"id":0,"jsonrpc":"2.0","result":[{"ordernumber":1,"coinsymbolowner":"AAA","coinsymbolpeer":"BBB","amount":"100.45","price":"0.5","surplusamount":"30.0","completeamount":"70.5","completecount":2,"height":398,"slot":0}]}
+```
+**Errors:**
+```
+* {"code":-6,"message":"Invalid address"}
+* {"code":-6,"message":"Invalid fork"}
+* {"code":-6,"message":"Unknown fork"}
+* {"code":-7,"message":"Query fail"}
+```
+##### [Back to top](#commands)
+---
+### getdexsymboltype
+**Usage:**
+```
+        getdexsymboltype <"coinsymbol1"> <"coinsymbol2">
+
+Get dex symbol type, sell symbol and buy symbol
+```
+**Arguments:**
+```
+ "coinsymbol1"                          (string, required) coin symbol1
+ "coinsymbol2"                          (string, required) coin symbol2
+```
+**Request:**
+```
+ "param" :
+ {
+   "coinsymbol1": "",                   (string, required) coin symbol1
+   "coinsymbol2": ""                    (string, required) coin symbol2
+ }
+```
+**Response:**
+```
+ "result" :
+ {
+   "coinsymbol1": "",                   (string, required) coin symbol1
+   "type1": "",                         (string, required) type1: SELL or BUY
+   "coinsymbol2": "",                   (string, required) coin symbol2
+   "type2": ""                          (string, required) type2: SELL or BUY
+ }
+```
+**Examples:**
+```
+>> metabasenet-cli getdexsymboltype AAA BBB
+<< {"coinsymbol1":"AAA","type1":"SELL","coinsymbol2":"BBB","type2":"BUY"}
+
+>> curl -d '{"id":1,"method":"getdexsymboltype","jsonrpc":"2.0","params":{"coinsymbol1":"AAA","coinsymbol2":"BBB"}}' http://127.0.0.1:8812
+<< {"id":0,"jsonrpc":"2.0","result":{"coinsymbol1":"AAA","type1":"SELL","coinsymbol2":"BBB","type2":"BUY"}}]}
+```
+**Errors:**
+```
+* {"code":-6,"message":"Invalid coinsymbol1"}
+* {"code":-6,"message":"Invalid coinsymbol2"}
+```
+##### [Back to top](#commands)
+---
+### listrealtimedexorder
+**Usage:**
+```
+        listrealtimedexorder <"coinsymbolsell"> <"coinsymbolbuy"> (-n=count) (-d|-nod*detail*) (-f="fork") (-h="block")
+
+List realtime dex order
+```
+**Arguments:**
+```
+ "coinsymbolsell"                       (string, required) coin symbol sell
+ "coinsymbolbuy"                        (string, required) coin symbol buy
+ -n=count                               (uint, optional, default=1000) count, default is 1000
+ -d|-nod*detail*                        (bool, optional, default=false) detail order, default is false
+ -f="fork"                              (string, optional) fork hash or chainid
+ -h="block"                             (string, optional) block hash
+```
+**Request:**
+```
+ "param" :
+ {
+   "coinsymbolsell": "",                (string, required) coin symbol sell
+   "coinsymbolbuy": "",                 (string, required) coin symbol buy
+   "count": 0,                          (uint, optional, default=1000) count, default is 1000
+   "detail": true|false,                (bool, optional, default=false) detail order, default is false
+   "fork": "",                          (string, optional) fork hash or chainid
+   "block": ""                          (string, optional) block hash
+ }
+```
+**Response:**
+```
+ "result" :
+ {
+   "coinsymbolsell": "",                (string, required) coin symbol sell
+   "coinsymbolbuy": "",                 (string, required) coin symbol buy
+   "prevcompleteprice": "",             (string, required) previous complete price
+   "sellchainid": 0,                    (uint, required) sell chain id
+   "buychainid": 0,                     (uint, required) buy chain id
+   "maxmatchheight": 0,                 (uint, required) max match height
+   "maxmatchslot": 0,                   (uint, required) max match slot
+   "sellorder":                         (array, required, default=RPCValid) sell order
+   [
+     {
+       "price": "",                     (string, required) price
+       "orderamount": "",               (string, required) order amount
+       "dealamount": "",                (string, required) deal amount
+       "orderaddress": "",              (string, optional) order address
+       "ordernumber": 0,                (uint, optional) order number
+       "oriorderamount": "",            (string, optional) original order amount
+       "height": 0,                     (uint, optional) at height
+       "slot": 0                        (uint, optional) at slot
+     }
+   ]
+   "buyorder":                          (array, required, default=RPCValid) buy order
+   [
+     {
+       "price": "",                     (string, required) price
+       "orderamount": "",               (string, required) order amount
+       "dealamount": "",                (string, required) deal amount
+       "orderaddress": "",              (string, optional) order address
+       "ordernumber": 0,                (uint, optional) order number
+       "oriorderamount": "",            (string, optional) original order amount
+       "height": 0,                     (uint, optional) at height
+       "slot": 0                        (uint, optional) at slot
+     }
+   ]
+ }
+```
+**Examples:**
+```
+>> metabasenet-cli listrealtimedexorder AAA BBB
+<< {"coinsymbolsell":"AAA","coinsymbolbuy":"BBB","prevcompleteprice":"1.2","sellorder":[{"price":"1.2","orderamount":"66.666666666666666667","dealamount":"80.0"}],"buyorder":[]}
+
+>> curl -d '{"id":1,"method":"listrealtimedexorder","jsonrpc":"2.0","params":{"coinsymbolsell":"AAA","coinsymbolbuy":"BBB"}}' http://127.0.0.1:8812
+<< {"id":0,"jsonrpc":"2.0","result":{"coinsymbolsell":"AAA","coinsymbolbuy":"BBB","prevcompleteprice":"1.2","sellorder":[{"price":"1.2","orderamount":"66.666666666666666667","dealamount":"80.0"}],"buyorder":[]}}]}
+```
+**Errors:**
+```
+* {"code":-6,"message":"Invalid coinsymbolsell"}
+* {"code":-6,"message":"Invalid coinsymbolbuy"}
+* {"code":-6,"message":"Invalid fork"}
+* {"code":-6,"message":"Unknown fork"}
+* {"code":-7,"message":"Query fail"}
+```
+##### [Back to top](#commands)
+---
+### sendcrosstransfertx
+**Usage:**
+```
+        sendcrosstransfertx <"address"> <peerchainid> <"amount"> (-f="fork")
+
+Send crosschain transfer transaction
+```
+**Arguments:**
+```
+ "address"                              (string, required) transfer address
+ peerchainid                            (uint, required) peer chainid
+ "amount"                               (string, required) transfer amount (big float)
+ -f="fork"                              (string, optional) fork hash or chainid
+```
+**Request:**
+```
+ "param" :
+ {
+   "address": "",                       (string, required) transfer address
+   "peerchainid": 0,                    (uint, required) peer chainid
+   "amount": "",                        (string, required) transfer amount (big float)
+   "fork": ""                           (string, optional) fork hash or chainid
+ }
+```
+**Response:**
+```
+ "result": "result"                     (string, required) transaction hash
+```
+**Examples:**
+```
+>> metabasenet-cli sendcrosstransfertx 0xcc963a4ca2a9032e41668756cc4ccb7c59f112be 201 33.67
+<< 0x45b154d2ab82eac6e79b8babd97abaebe2b4ae7194f3afd946dd1419f012dd3f
+
+>> curl -d '{"id":1,"method":"sendcrosstransfertx","jsonrpc":"2.0","params":{"address":"0xcc963a4ca2a9032e41668756cc4ccb7c59f112be","peerchainid":201,"amount":"33.67"}}' http://127.0.0.1:8812
+<< {"id":0,"jsonrpc":"2.0","result":"0x45b154d2ab82eac6e79b8babd97abaebe2b4ae7194f3afd946dd1419f012dd3f"}]}
+```
+**Errors:**
+```
+* {"code":-6,"message":"Invalid address"}
+* {"code":-6,"message":"Invalid peerchainid"}
+* {"code":-6,"message":"Invalid amount"}
+* {"code":-6,"message":"Invalid fork"}
+* {"code":-6,"message":"Unknown fork"}
+```
+##### [Back to top](#commands)
+---
+### getcrosstransferamount
+**Usage:**
+```
+        getcrosstransferamount (-f="fork") (-h="block")
+
+Get crosschain transfer amount
+```
+**Arguments:**
+```
+ -f="fork"                              (string, optional) fork hash or chainid
+ -h="block"                             (string, optional) block hash
+```
+**Request:**
+```
+ "param" :
+ {
+   "fork": "",                          (string, optional) fork hash or chainid
+   "block": ""                          (string, optional) block hash
+ }
+```
+**Response:**
+```
+ "result": "result"                     (string, required) transfer amount (big float)
+```
+**Examples:**
+```
+>> metabasenet-cli getcrosstransferamount
+<< 8845.987
+
+>> curl -d '{"id":1,"method":"sendcrosstransfertx","jsonrpc":"2.0","params":{}}' http://127.0.0.1:8812
+<< {"id":0,"jsonrpc":"2.0","result":"8845.987"}]}
+```
+**Errors:**
+```
+* {"code":-6,"message":"Invalid fork"}
+* {"code":-6,"message":"Unknown fork"}
 ```
 ##### [Back to top](#commands)
 ---
@@ -2854,11 +3506,11 @@ Return hex-encoded block.
 ```
 **Examples:**
 ```
->> metabasenet-cli makeorigin user 0x000000055d34d87b832051d897245d7c7c643c6fe7e32061bab2c5d5543d0938 0x5962974eeb0b17b43edabfc9b747839317aa852f 300000000 test-fork tfs 208 200 0
-<< {"hash":"0x000000066ca56076968219bf5c290ed432bcc5c5cdfa4e9363fe3a139906521e","hex":"0x0111fe5e44bf640038093d54d5c5b2ba6120e3e76f3c647c7c5d2497d85120837bd8345d05000000001e06865d7b088885d75f64c9d73d11d3dea6f6145016c9b5b63773929a0eb33800000000010168010000000309746573742d666f726b03746673d00bf8277896582678ac000000090ad78ebc5ac6200000074a9b6384488000002f85aa17938347b7c9bfda3eb4170beb4e976259553c2e6b595cee0477b24a7228d9ef0679911d438523404487f6746f000000000501d00000142f85aa17938347b7c9bfda3eb4170beb4e9762590bf8277896582678ac000000000002110220001520000000000000000000000000000000000000000000f8277896582678ac0000000000412e01171ce99e96e235fd29c49c916b8dd1f7b81ca8959623f95ab16b7b3935042ca42698d4068710767cbca3d254407a9514b419dc90dc86184b145d846da0aa01"}
+>> metabasenet-cli makeorigin user 0xc907f7b8e50ea811dce40844ef9435e60d59edd4a9cb0b209289e3c623b8cb68 0x5962974eeb0b17b43edabfc9b747839317aa852f 300000000 test-fork tfs 208 200 0
+<< {"hash":"0xca95f7efe0d568dd59d98e0423f80ce292d29590e5b98fb4e059d1e69aaeb288","hex":"0x0111fe5e44bf640038093d54d5c5b2ba6120e3e76f3c647c7c5d2497d85120837bd8345d05000000001e06865d7b088885d75f64c9d73d11d3dea6f6145016c9b5b63773929a0eb33800000000010168010000000309746573742d666f726b03746673d00bf8277896582678ac000000090ad78ebc5ac6200000074a9b6384488000002f85aa17938347b7c9bfda3eb4170beb4e976259553c2e6b595cee0477b24a7228d9ef0679911d438523404487f6746f000000000501d00000142f85aa17938347b7c9bfda3eb4170beb4e9762590bf8277896582678ac000000000002110220001520000000000000000000000000000000000000000000f8277896582678ac0000000000412e01171ce99e96e235fd29c49c916b8dd1f7b81ca8959623f95ab16b7b3935042ca42698d4068710767cbca3d254407a9514b419dc90dc86184b145d846da0aa01"}
 
->> curl -d '{"id":4,"method":"makeorigin","jsonrpc":"2.0","params":{"type":"user","prev":"0x000000055d34d87b832051d897245d7c7c643c6fe7e32061bab2c5d5543d0938","owner":"0x5962974eeb0b17b43edabfc9b747839317aa852f","amount":"300000000","name":"test-fork","symbol":"tfs","reward":"200","chainid":208,"halvecycle":0}}' http://127.0.0.1:8812
-<< {"id":4,"jsonrpc":"2.0","result":{"hash":"0x000000066ca56076968219bf5c290ed432bcc5c5cdfa4e9363fe3a139906521e","hex":"0x0111fe5e44bf640038093d54d5c5b2ba6120e3e76f3c647c7c5d2497d85120837bd8345d05000000001e06865d7b088885d75f64c9d73d11d3dea6f6145016c9b5b63773929a0eb33800000000010168010000000309746573742d666f726b03746673d00bf8277896582678ac000000090ad78ebc5ac6200000074a9b6384488000002f85aa17938347b7c9bfda3eb4170beb4e976259553c2e6b595cee0477b24a7228d9ef0679911d438523404487f6746f000000000501d00000142f85aa17938347b7c9bfda3eb4170beb4e9762590bf8277896582678ac000000000002110220001520000000000000000000000000000000000000000000f8277896582678ac0000000000412e01171ce99e96e235fd29c49c916b8dd1f7b81ca8959623f95ab16b7b3935042ca42698d4068710767cbca3d254407a9514b419dc90dc86184b145d846da0aa01"}}
+>> curl -d '{"id":4,"method":"makeorigin","jsonrpc":"2.0","params":{"type":"user","prev":"0xc907f7b8e50ea811dce40844ef9435e60d59edd4a9cb0b209289e3c623b8cb68","owner":"0x5962974eeb0b17b43edabfc9b747839317aa852f","amount":"300000000","name":"test-fork","symbol":"tfs","reward":"200","chainid":208,"halvecycle":0}}' http://127.0.0.1:8812
+<< {"id":4,"jsonrpc":"2.0","result":{"hash":"0xca95f7efe0d568dd59d98e0423f80ce292d29590e5b98fb4e059d1e69aaeb288","hex":"0x0111fe5e44bf640038093d54d5c5b2ba6120e3e76f3c647c7c5d2497d85120837bd8345d05000000001e06865d7b088885d75f64c9d73d11d3dea6f6145016c9b5b63773929a0eb33800000000010168010000000309746573742d666f726b03746673d00bf8277896582678ac000000090ad78ebc5ac6200000074a9b6384488000002f85aa17938347b7c9bfda3eb4170beb4e976259553c2e6b595cee0477b24a7228d9ef0679911d438523404487f6746f000000000501d00000142f85aa17938347b7c9bfda3eb4170beb4e9762590bf8277896582678ac000000000002110220001520000000000000000000000000000000000000000000f8277896582678ac0000000000412e01171ce99e96e235fd29c49c916b8dd1f7b81ca8959623f95ab16b7b3935042ca42698d4068710767cbca3d254407a9514b419dc90dc86184b145d846da0aa01"}}
 ```
 **Errors:**
 ```
@@ -4022,6 +4674,99 @@ List blacklist address
 ```
 ##### [Back to top](#commands)
 ---
+### setfunctionaddress
+**Usage:**
+```
+        setfunctionaddress <funcid> <"newaddress"> (-d|-nod*disablemodify*)
+
+Set function address
+```
+**Arguments:**
+```
+ funcid                                 (uint, required) function id
+ "newaddress"                           (string, required) new address
+ -d|-nod*disablemodify*                 (bool, optional, default=false) if disable modify
+```
+**Request:**
+```
+ "param" :
+ {
+   "funcid": 0,                         (uint, required) function id
+   "newaddress": "",                    (string, required) new address
+   "disablemodify": true|false          (bool, optional, default=false) if disable modify
+ }
+```
+**Response:**
+```
+ "result": "txid"                       (string, required) transaction id
+```
+**Examples:**
+```
+>> metabasenet-cli setfunctionaddress 1 0xf7d47e4e74084441d5bf3b6d8a9dd6e59d151115
+<< 0xc175947a6265c969165efa03170b35a1fca3d4c9d424c012648bf9250b4ce5ed
+
+>> curl -d '{"id":3,"method":"setfunctionaddress","jsonrpc":"2.0","params":{"funcid":1,"newaddress":"0xf7d47e4e74084441d5bf3b6d8a9dd6e59d151115"}}' http://127.0.0.1:8812
+<< {"id":3,"jsonrpc":"2.0","result":"0xc175947a6265c969165efa03170b35a1fca3d4c9d424c012648bf9250b4ce5ed"}
+```
+**Errors:**
+```
+* {"code":-32600,"message":"Only suitable for the main chain"}
+* {"code":-6,"message":"Invalid from"}
+* {"code":-6,"message":"Invalid funcid"}
+* {"code":-6,"message":"Invalid newaddress"}
+* {"code":-4,"message":"Default address not import"}
+* {"code":-401,"message":"Default address is locked"}
+* {"code":-9"message":"Verify tx fail"}
+* {"code":-10"message":"Rejected modify"}
+```
+##### [Back to top](#commands)
+---
+### listfunctionaddress
+**Usage:**
+```
+        listfunctionaddress (-b="block")
+
+List function address
+```
+**Arguments:**
+```
+ -b="block"                             (string, optional) block hash or number or latest (default latest block)
+```
+**Request:**
+```
+ "param" :
+ {
+   "block": ""                          (string, optional) block hash or number or latest (default latest block)
+ }
+```
+**Response:**
+```
+ "result" :
+   "functionaddresslist":               (array, required, default=RPCValid) 
+   [
+     {
+       "funcid": 0,                     (uint, required) function id
+       "funcname": "",                  (string, required) function name
+       "defaultaddress": "",            (string, required) default function address
+       "funcaddress": "",               (string, required) function address
+       "disablemodify": true|false      (bool, required) if disable modify
+     }
+   ]
+```
+**Examples:**
+```
+>> metabasenet-cli listfunctionaddress
+<< [{"funcid":1,"funcname":"Pledge surplus reward address","defaultaddress":"0x420757b308d1273215ddd5e8dfea1802e2983245","funcaddress":"0xf7d47e4e74084441d5bf3b6d8a9dd6e59d151115","disablemodify":false}]
+
+>> curl -d '{"id":3,"method":"listfunctionaddress","jsonrpc":"2.0","params":{}}' http://127.0.0.1:8812
+<< {"id":3,"jsonrpc":"2.0","result":[{"funcid":1,"funcname":"Pledge surplus reward address","defaultaddress":"0x420757b308d1273215ddd5e8dfea1802e2983245","funcaddress":"0xf7d47e4e74084441d5bf3b6d8a9dd6e59d151115","disablemodify":false}]}
+```
+**Errors:**
+```
+* {"code":-32600,"message":"Only suitable for the main chain"}
+```
+##### [Back to top](#commands)
+---
 ### setmintmingasprice
 **Usage:**
 ```
@@ -4086,10 +4831,10 @@ Get mint min gas price
 ```
 **Examples:**
 ```
->> metabasenet-cli getmintmingasprice 0x000000152e03037902d6bdc1d10b29b4a940a2972dfe06976ebcc8c4353cc7d0
+>> metabasenet-cli getmintmingasprice 0xc9f7f70be6841102645505f96cdc28f00570d22c64d50dbfa3e44632e6ae3d5d
 << 0.00001
 
->> curl -d '{"id":3,"method":"getmintmingasprice","jsonrpc":"2.0","params":{"fork":"0x000000152e03037902d6bdc1d10b29b4a940a2972dfe06976ebcc8c4353cc7d0"}}' http://127.0.0.1:8812
+>> curl -d '{"id":3,"method":"getmintmingasprice","jsonrpc":"2.0","params":{"fork":"0xc9f7f70be6841102645505f96cdc28f00570d22c64d50dbfa3e44632e6ae3d5d"}}' http://127.0.0.1:8812
 << {"id":3,"jsonrpc":"2.0","result":"0.00001"}
 ```
 **Errors:**
@@ -4128,10 +4873,10 @@ List mint min gas price
 **Examples:**
 ```
 >> metabasenet-cli listmintmingasprice
-<< [{"fork":"0x000000152e03037902d6bdc1d10b29b4a940a2972dfe06976ebcc8c4353cc7d0","mingasprice":"0.0000001"}]
+<< [{"fork":"0xc9f7f70be6841102645505f96cdc28f00570d22c64d50dbfa3e44632e6ae3d5d","mingasprice":"0.0000001"}]
 
 >> curl -d '{"id":3,"method":"listmintmingasprice","jsonrpc":"2.0","params":{}}' http://127.0.0.1:8812
-<< {"id":3,"jsonrpc":"2.0","result":[{"fork":"0x000000152e03037902d6bdc1d10b29b4a940a2972dfe06976ebcc8c4353cc7d0","mingasprice":"0.0000001"}]}
+<< {"id":3,"jsonrpc":"2.0","result":[{"fork":"0xc9f7f70be6841102645505f96cdc28f00570d22c64d50dbfa3e44632e6ae3d5d","mingasprice":"0.0000001"}]}
 ```
 **Errors:**
 ```
@@ -5427,24 +6172,29 @@ Check if the data is in bloomfilter
 ```
  "result" :
  {
-   "number": "",                        (string, optional) block number
-   "hash": "",                          (string, optional) block hash
-   "parentHash": "",                    (string, optional) parent block hash
-   "nonce": "",                         (string, optional) block nonce
-   "sha3Uncles": "",                    (string, optional) block sha3Uncles
-   "logsBloom": "",                     (string, optional) block logsBloom
-   "transactionsRoot": "",              (string, optional) block transactionsRoot
-   "stateRoot": "",                     (string, optional) block stateRoot
-   "receiptsRoot": "",                  (string, optional) block receiptsRoot
-   "miner": "",                         (string, optional) block miner
-   "difficulty": "",                    (string, optional) block difficulty
-   "totalDifficulty": "",               (string, optional) block totalDifficulty
-   "extraData": "",                     (string, optional) block extraData
-   "size": "",                          (string, optional) block size
-   "gasLimit": "",                      (string, optional) block gasLimit
-   "gasUsed": "",                       (string, optional) block gasUsed
-   "timestamp": "",                     (string, optional) block timestamp
-   "transactionids":                    (array, optional) transaction hash list
+   "number": "",                        (string, required) block number
+   "hash": "",                          (string, required) block hash
+   "parentHash": "",                    (string, required) parent block hash
+   "nonce": "",                         (string, required) block nonce
+   "sha3Uncles": "",                    (string, required) block sha3Uncles
+   "logsBloom": "",                     (string, required) block logsBloom
+   "transactionsRoot": "",              (string, required) block transactionsRoot
+   "stateRoot": "",                     (string, required) block stateRoot
+   "receiptsRoot": "",                  (string, required) block receiptsRoot
+   "miner": "",                         (string, required) block miner
+   "mixHash": "",                       (string, required) block mix hash
+   "difficulty": "",                    (string, required) block difficulty
+   "totalDifficulty": "",               (string, required) block totalDifficulty
+   "extraData": "",                     (string, required) block extraData
+   "size": "",                          (string, required) block size
+   "gasLimit": "",                      (string, required) block gasLimit
+   "gasUsed": "",                       (string, required) block gasUsed
+   "timestamp": "",                     (string, required) block timestamp
+   "uncles":                            (array, required, default=RPCValid) block uncle list
+   [
+     "uncle": ""                        (string, required) block uncle hash
+   ]
+   "transactions":                      (array, optional) transaction hash list
    [
      "tx": ""                           (string, required) transaction hash
    ]
@@ -5461,12 +6211,13 @@ Check if the data is in bloomfilter
        "value": "",                     (string, optional) tx value
        "gasPrice": "",                  (string, optional) tx gas price
        "gas": "",                       (string, optional) tx gas
-       "input": ""                      (string, optional) tx input data
+       "input": "",                     (string, optional) tx input data
+       "type": "",                      (string, optional) tx type
+       "chainId": "",                   (string, optional) chain id
+       "v": "",                         (string, optional) v
+       "r": "",                         (string, optional) r
+       "s": ""                          (string, optional) s
      }
-   ]
-   "uncles":                            (array, optional) block uncle list
-   [
-     "uncle": ""                        (string, required) block uncle hash
    ]
  }
 ```
@@ -5508,24 +6259,29 @@ Check if the data is in bloomfilter
 ```
  "result" :
  {
-   "number": "",                        (string, optional) block number
-   "hash": "",                          (string, optional) block hash
-   "parentHash": "",                    (string, optional) parent block hash
-   "nonce": "",                         (string, optional) block nonce
-   "sha3Uncles": "",                    (string, optional) block sha3Uncles
-   "logsBloom": "",                     (string, optional) block logsBloom
-   "transactionsRoot": "",              (string, optional) block transactionsRoot
-   "stateRoot": "",                     (string, optional) block stateRoot
-   "receiptsRoot": "",                  (string, optional) block receiptsRoot
-   "miner": "",                         (string, optional) block miner
-   "difficulty": "",                    (string, optional) block difficulty
-   "totalDifficulty": "",               (string, optional) block totalDifficulty
-   "extraData": "",                     (string, optional) block extraData
-   "size": "",                          (string, optional) block size
-   "gasLimit": "",                      (string, optional) block gasLimit
-   "gasUsed": "",                       (string, optional) block gasUsed
-   "timestamp": "",                     (string, optional) block timestamp
-   "transactionids":                    (array, optional) transaction hash list
+   "number": "",                        (string, required) block number
+   "hash": "",                          (string, required) block hash
+   "parentHash": "",                    (string, required) parent block hash
+   "nonce": "",                         (string, required) block nonce
+   "sha3Uncles": "",                    (string, required) block sha3Uncles
+   "logsBloom": "",                     (string, required) block logsBloom
+   "transactionsRoot": "",              (string, required) block transactionsRoot
+   "stateRoot": "",                     (string, required) block stateRoot
+   "receiptsRoot": "",                  (string, required) block receiptsRoot
+   "miner": "",                         (string, required) block miner
+   "mixHash": "",                       (string, required) block mix hash
+   "difficulty": "",                    (string, required) block difficulty
+   "totalDifficulty": "",               (string, required) block totalDifficulty
+   "extraData": "",                     (string, required) block extraData
+   "size": "",                          (string, required) block size
+   "gasLimit": "",                      (string, required) block gasLimit
+   "gasUsed": "",                       (string, required) block gasUsed
+   "timestamp": "",                     (string, required) block timestamp
+   "uncles":                            (array, required, default=RPCValid) block uncle list
+   [
+     "uncle": ""                        (string, required) block uncle hash
+   ]
+   "transactions":                      (array, optional) transaction hash list
    [
      "tx": ""                           (string, required) transaction hash
    ]
@@ -5542,12 +6298,13 @@ Check if the data is in bloomfilter
        "value": "",                     (string, optional) tx value
        "gasPrice": "",                  (string, optional) tx gas price
        "gas": "",                       (string, optional) tx gas
-       "input": ""                      (string, optional) tx input data
+       "input": "",                     (string, optional) tx input data
+       "type": "",                      (string, optional) tx type
+       "chainId": "",                   (string, optional) chain id
+       "v": "",                         (string, optional) v
+       "r": "",                         (string, optional) r
+       "s": ""                          (string, optional) s
      }
-   ]
-   "uncles":                            (array, optional) block uncle list
-   [
-     "uncle": ""                        (string, required) block uncle hash
    ]
  }
 ```
@@ -5600,7 +6357,12 @@ Check if the data is in bloomfilter
    "value": "",                         (string, optional) tx value
    "gasPrice": "",                      (string, optional) tx gas price
    "gas": "",                           (string, optional) tx gas
-   "input": ""                          (string, optional) tx input data
+   "input": "",                         (string, optional) tx input data
+   "type": "",                          (string, optional) tx type
+   "chainId": "",                       (string, optional) chain id
+   "v": "",                             (string, optional) v
+   "r": "",                             (string, optional) r
+   "s": ""                              (string, optional) s
  }
 ```
 **Examples:**
@@ -5651,7 +6413,12 @@ Check if the data is in bloomfilter
    "value": "",                         (string, optional) tx value
    "gasPrice": "",                      (string, optional) tx gas price
    "gas": "",                           (string, optional) tx gas
-   "input": ""                          (string, optional) tx input data
+   "input": "",                         (string, optional) tx input data
+   "type": "",                          (string, optional) tx type
+   "chainId": "",                       (string, optional) chain id
+   "v": "",                             (string, optional) v
+   "r": "",                             (string, optional) r
+   "s": ""                              (string, optional) s
  }
 ```
 **Examples:**
@@ -5703,7 +6470,12 @@ Check if the data is in bloomfilter
    "value": "",                         (string, optional) tx value
    "gasPrice": "",                      (string, optional) tx gas price
    "gas": "",                           (string, optional) tx gas
-   "input": ""                          (string, optional) tx input data
+   "input": "",                         (string, optional) tx input data
+   "type": "",                          (string, optional) tx type
+   "chainId": "",                       (string, optional) chain id
+   "v": "",                             (string, optional) v
+   "r": "",                             (string, optional) r
+   "s": ""                              (string, optional) s
  }
 ```
 **Examples:**
@@ -5745,16 +6517,15 @@ Check if the data is in bloomfilter
 ```
  "result" :
  {
-   "transactionHash": "",               (string, optional) transaction hash
-   "transactionIndex": 0,               (uint, optional) transaction index
-   "blockHash": "",                     (string, optional) block hash
-   "blockNumber": 0,                    (uint, optional) block number
-   "from": "",                          (string, optional) tx from
-   "to": "",                            (string, optional) tx to
-   "cumulativeGasUsed": "",             (string, optional) cumulative gas used
-   "gasUsed": "",                       (string, optional) gas used
-   "contractAddress": "",               (string, optional) contract address
-   "logs":                              (array, optional) 
+   "transactionHash": "",               (string, required) transaction hash
+   "transactionIndex": 0,               (uint, required) transaction index
+   "blockHash": "",                     (string, required) block hash
+   "blockNumber": 0,                    (uint, required) block number
+   "from": "",                          (string, required) tx from
+   "to": "",                            (string, required) tx to
+   "cumulativeGasUsed": "",             (string, required) cumulative gas used
+   "gasUsed": "",                       (string, required) gas used
+   "logs":                              (array, required, default=RPCValid) 
    [
      {
        "removed": true|false,           (bool, optional) removed
@@ -5773,10 +6544,11 @@ Check if the data is in bloomfilter
        "id": ""                         (string, optional) id
      }
    ]
-   "logsBloom": "",                     (string, optional) logs bloom
-   "root": "",                          (string, optional) root
-   "status": "",                        (string, optional) status, 0x1: ok, 0x0: fail
-   "effectiveGasPrice": ""              (string, optional) effective gas price
+   "logsBloom": "",                     (string, required) logs bloom
+   "status": "",                        (string, required) status, 0x1: ok, 0x0: fail
+   "effectiveGasPrice": "",             (string, required) effective gas price
+   "contractAddress": "",               (string, optional) contract address
+   "root": ""                           (string, optional) root
  }
 ```
 **Examples:**
@@ -5818,24 +6590,29 @@ Check if the data is in bloomfilter
 ```
  "result" :
  {
-   "number": "",                        (string, optional) block number
-   "hash": "",                          (string, optional) block hash
-   "parentHash": "",                    (string, optional) parent block hash
-   "nonce": "",                         (string, optional) block nonce
-   "sha3Uncles": "",                    (string, optional) block sha3Uncles
-   "logsBloom": "",                     (string, optional) block logsBloom
-   "transactionsRoot": "",              (string, optional) block transactionsRoot
-   "stateRoot": "",                     (string, optional) block stateRoot
-   "receiptsRoot": "",                  (string, optional) block receiptsRoot
-   "miner": "",                         (string, optional) block miner
-   "difficulty": "",                    (string, optional) block difficulty
-   "totalDifficulty": "",               (string, optional) block totalDifficulty
-   "extraData": "",                     (string, optional) block extraData
-   "size": "",                          (string, optional) block size
-   "gasLimit": "",                      (string, optional) block gasLimit
-   "gasUsed": "",                       (string, optional) block gasUsed
-   "timestamp": "",                     (string, optional) block timestamp
-   "transactionids":                    (array, optional) transaction hash list
+   "number": "",                        (string, required) block number
+   "hash": "",                          (string, required) block hash
+   "parentHash": "",                    (string, required) parent block hash
+   "nonce": "",                         (string, required) block nonce
+   "sha3Uncles": "",                    (string, required) block sha3Uncles
+   "logsBloom": "",                     (string, required) block logsBloom
+   "transactionsRoot": "",              (string, required) block transactionsRoot
+   "stateRoot": "",                     (string, required) block stateRoot
+   "receiptsRoot": "",                  (string, required) block receiptsRoot
+   "miner": "",                         (string, required) block miner
+   "mixHash": "",                       (string, required) block mix hash
+   "difficulty": "",                    (string, required) block difficulty
+   "totalDifficulty": "",               (string, required) block totalDifficulty
+   "extraData": "",                     (string, required) block extraData
+   "size": "",                          (string, required) block size
+   "gasLimit": "",                      (string, required) block gasLimit
+   "gasUsed": "",                       (string, required) block gasUsed
+   "timestamp": "",                     (string, required) block timestamp
+   "uncles":                            (array, required, default=RPCValid) block uncle list
+   [
+     "uncle": ""                        (string, required) block uncle hash
+   ]
+   "transactions":                      (array, optional) transaction hash list
    [
      "tx": ""                           (string, required) transaction hash
    ]
@@ -5852,12 +6629,13 @@ Check if the data is in bloomfilter
        "value": "",                     (string, optional) tx value
        "gasPrice": "",                  (string, optional) tx gas price
        "gas": "",                       (string, optional) tx gas
-       "input": ""                      (string, optional) tx input data
+       "input": "",                     (string, optional) tx input data
+       "type": "",                      (string, optional) tx type
+       "chainId": "",                   (string, optional) chain id
+       "v": "",                         (string, optional) v
+       "r": "",                         (string, optional) r
+       "s": ""                          (string, optional) s
      }
-   ]
-   "uncles":                            (array, optional) block uncle list
-   [
-     "uncle": ""                        (string, required) block uncle hash
    ]
  }
 ```
@@ -5898,24 +6676,29 @@ Check if the data is in bloomfilter
 ```
  "result" :
  {
-   "number": "",                        (string, optional) block number
-   "hash": "",                          (string, optional) block hash
-   "parentHash": "",                    (string, optional) parent block hash
-   "nonce": "",                         (string, optional) block nonce
-   "sha3Uncles": "",                    (string, optional) block sha3Uncles
-   "logsBloom": "",                     (string, optional) block logsBloom
-   "transactionsRoot": "",              (string, optional) block transactionsRoot
-   "stateRoot": "",                     (string, optional) block stateRoot
-   "receiptsRoot": "",                  (string, optional) block receiptsRoot
-   "miner": "",                         (string, optional) block miner
-   "difficulty": "",                    (string, optional) block difficulty
-   "totalDifficulty": "",               (string, optional) block totalDifficulty
-   "extraData": "",                     (string, optional) block extraData
-   "size": "",                          (string, optional) block size
-   "gasLimit": "",                      (string, optional) block gasLimit
-   "gasUsed": "",                       (string, optional) block gasUsed
-   "timestamp": "",                     (string, optional) block timestamp
-   "transactionids":                    (array, optional) transaction hash list
+   "number": "",                        (string, required) block number
+   "hash": "",                          (string, required) block hash
+   "parentHash": "",                    (string, required) parent block hash
+   "nonce": "",                         (string, required) block nonce
+   "sha3Uncles": "",                    (string, required) block sha3Uncles
+   "logsBloom": "",                     (string, required) block logsBloom
+   "transactionsRoot": "",              (string, required) block transactionsRoot
+   "stateRoot": "",                     (string, required) block stateRoot
+   "receiptsRoot": "",                  (string, required) block receiptsRoot
+   "miner": "",                         (string, required) block miner
+   "mixHash": "",                       (string, required) block mix hash
+   "difficulty": "",                    (string, required) block difficulty
+   "totalDifficulty": "",               (string, required) block totalDifficulty
+   "extraData": "",                     (string, required) block extraData
+   "size": "",                          (string, required) block size
+   "gasLimit": "",                      (string, required) block gasLimit
+   "gasUsed": "",                       (string, required) block gasUsed
+   "timestamp": "",                     (string, required) block timestamp
+   "uncles":                            (array, required, default=RPCValid) block uncle list
+   [
+     "uncle": ""                        (string, required) block uncle hash
+   ]
+   "transactions":                      (array, optional) transaction hash list
    [
      "tx": ""                           (string, required) transaction hash
    ]
@@ -5932,12 +6715,13 @@ Check if the data is in bloomfilter
        "value": "",                     (string, optional) tx value
        "gasPrice": "",                  (string, optional) tx gas price
        "gas": "",                       (string, optional) tx gas
-       "input": ""                      (string, optional) tx input data
+       "input": "",                     (string, optional) tx input data
+       "type": "",                      (string, optional) tx type
+       "chainId": "",                   (string, optional) chain id
+       "v": "",                         (string, optional) v
+       "r": "",                         (string, optional) r
+       "s": ""                          (string, optional) s
      }
-   ]
-   "uncles":                            (array, optional) block uncle list
-   [
-     "uncle": ""                        (string, required) block uncle hash
    ]
  }
 ```

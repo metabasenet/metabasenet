@@ -184,10 +184,20 @@ class CBufStream : public boost::asio::streambuf, public CStream
 public:
     CBufStream()
       : CStream(this) {}
+    CBufStream(const char* pData, const std::size_t nSize)
+      : CStream(this)
+    {
+        Write(pData, nSize);
+    }
     CBufStream(const std::vector<uint8>& vData)
       : CStream(this)
     {
         Write((char*)vData.data(), vData.size());
+    }
+    CBufStream(const std::string& strData)
+      : CStream(this)
+    {
+        Write(strData.data(), strData.size());
     }
 
     void Clear()
@@ -424,8 +434,96 @@ class CVarInt
 public:
     CVarInt()
       : nValue(0) {}
+    CVarInt(const int8 nValueIn)
+      : nValue(nValueIn) {}
+    CVarInt(const int16 nValueIn)
+      : nValue(nValueIn) {}
+    CVarInt(const int nValueIn)
+      : nValue(nValueIn) {}
+    CVarInt(const uint8 nValueIn)
+      : nValue(nValueIn) {}
+    CVarInt(const uint16 nValueIn)
+      : nValue(nValueIn) {}
+    CVarInt(const uint32 nValueIn)
+      : nValue(nValueIn) {}
     CVarInt(const uint64 nValueIn)
       : nValue(nValueIn) {}
+
+    void SetValue(const uint64 nValueIn)
+    {
+        nValue = nValueIn;
+    }
+    uint64 GetValue() const
+    {
+        return nValue;
+    }
+
+    std::size_t SetBytes(const uint8* pData, std::size_t nSize);
+    std::size_t SetBytes(const bytes& btData);
+    std::size_t SetBytes(const std::string& strData);
+    void GetBytes(bytes& btData) const;
+    bytes GetBytes() const;
+
+    CVarInt& operator=(const int8 b)
+    {
+        nValue = b;
+        return *this;
+    }
+    CVarInt& operator=(const int16 b)
+    {
+        nValue = b;
+        return *this;
+    }
+    CVarInt& operator=(const int b)
+    {
+        nValue = b;
+        return *this;
+    }
+    CVarInt& operator=(const uint8 b)
+    {
+        nValue = b;
+        return *this;
+    }
+    CVarInt& operator=(const uint16 b)
+    {
+        nValue = b;
+        return *this;
+    }
+    CVarInt& operator=(const uint32 b)
+    {
+        nValue = b;
+        return *this;
+    }
+    CVarInt& operator=(const uint64 b)
+    {
+        nValue = b;
+        return *this;
+    }
+
+    friend inline bool operator==(const CVarInt& a, const CVarInt& b)
+    {
+        return (a.nValue == b.nValue);
+    }
+    friend inline bool operator!=(const CVarInt& a, const CVarInt& b)
+    {
+        return (a.nValue != b.nValue);
+    }
+    friend inline bool operator>(const CVarInt& a, const CVarInt& b)
+    {
+        return (a.nValue > b.nValue);
+    }
+    friend inline bool operator>=(const CVarInt& a, const CVarInt& b)
+    {
+        return (a.nValue >= b.nValue);
+    }
+    friend inline bool operator<(const CVarInt& a, const CVarInt& b)
+    {
+        return (a.nValue < b.nValue);
+    }
+    friend inline bool operator<=(const CVarInt& a, const CVarInt& b)
+    {
+        return (a.nValue <= b.nValue);
+    }
 
 protected:
     const uint8 nDataImmLenStart = 0xF7;

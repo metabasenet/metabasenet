@@ -45,7 +45,7 @@ const char* GetGitVersion();
 ///////////////////////////////
 // static function
 
-static CBlockData BlockToJSON(const uint256& hashBlock, const CBlock& block, const CChainId nChainId, const uint256& hashFork, const uint32 nHeight, const uint256& nBlockReward)
+static CBlockData BlockToJSON(const uint256& hashBlock, const CBlock& block, const CChainId nChainId, const uint256& hashFork, const uint32 nHeight, const uint256& nBlockReward, const bool fConfirmBlock)
 {
     CBlockData data;
     data.strHash = hashBlock.GetHex();
@@ -76,6 +76,18 @@ static CBlockData BlockToJSON(const uint256& hashBlock, const CBlock& block, con
     {
         data.strBloom = "0x";
     }
+    data.fConfirm = fConfirmBlock;
+
+    CBlockVoteSig proofVote;
+    if (block.GetBlockVoteSig(proofVote) && !proofVote.IsNull())
+    {
+        data.strPrevconfirmblock = proofVote.hashBlockVote.ToString();
+    }
+    else
+    {
+        data.strPrevconfirmblock = "0x";
+    }
+
     data.strTxmint = block.txMint.GetHash().GetHex();
     for (const CTransaction& tx : block.vtx)
     {
@@ -227,9 +239,9 @@ static CEthTransaction EthTxToJSON(const uint256& txid, const CTransaction& tx, 
     uint8 v;
     if (crypto::GetEthSignRsv(tx.GetSignData(), r, s, v))
     {
-        txData.strV = r.ToString();
-        txData.strR = s.ToString();
-        txData.strS = ToHexString((uint32)v);
+        txData.strR = r.ToString();
+        txData.strS = s.ToString();
+        txData.strV = ToHexString((uint32)v);
     }
 
     return txData;
@@ -323,6 +335,7 @@ CRPCMod::CRPCMod()
     pDataStat = nullptr;
     pForkManager = nullptr;
     pBlockMaker = nullptr;
+    pWsService = nullptr;
 
     std::map<std::string, RPCFunc> temp_map = boost::assign::map_list_of
         /* System */
@@ -423,6 +436,30 @@ CRPCMod::CRPCMod()
         ("signtransaction", &CRPCMod::RPCSignTransaction)
         //
         ("signmessage", &CRPCMod::RPCSignMessage)
+        //
+        ("addusercoin", &CRPCMod::RPCAddUserCoin)
+        //
+        ("addcontractcoin", &CRPCMod::RPCAddContractCoin)
+        //
+        ("getcoininfo", &CRPCMod::RPCGetCoinInfo)
+        //
+        ("listcoininfo", &CRPCMod::RPCListCoinInfo)
+        //
+        ("getdexcoinpair", &CRPCMod::RPCGetDexCoinPair)
+        //
+        ("listdexcoinpair", &CRPCMod::RPCListDexCoinPair)
+        //
+        ("senddexordertx", &CRPCMod::RPCSendDexOrderTx)
+        //
+        ("listdexorder", &CRPCMod::RPCListDexOrder)
+        //
+        ("getdexsymboltype", &CRPCMod::RPCGetDexSymbolType)
+        //
+        ("listrealtimedexorder", &CRPCMod::RPCListRealtimeDexOrder)
+        //
+        ("sendcrosstransfertx", &CRPCMod::RPCSendCrossTransferTx)
+        //
+        ("getcrosstransferamount", &CRPCMod::RPCGetCrossTransferAmount)
         //
         ("listaddress", &CRPCMod::RPCListAddress)
         //
@@ -582,6 +619,10 @@ CRPCMod::CRPCMod()
         //
         ("eth_getLogs", &CRPCMod::RPCEthGetLogs)
         //
+        ("eth_subscribe", &CRPCMod::RPCEthSubscribe)
+        //
+        ("eth_unsubscribe", &CRPCMod::RPCEthUnsubscribe)
+        //
         ;
     mapRPCFunc = temp_map;
     fWriteRPCLog = true;
@@ -626,6 +667,12 @@ bool CRPCMod::HandleInitialize()
         Error("Failed to request blockmaker");
         return false;
     }
+    if (!GetObject("wsservice", pWsService))
+    {
+        Error("Failed to request wsservice");
+        return false;
+    }
+
     fWriteRPCLog = RPCServerConfig()->fRPCLogEnable;
 
     if (BasicConfig()->nModRpcThreads > 1)
@@ -643,6 +690,7 @@ void CRPCMod::HandleDeinitialize()
     pDataStat = nullptr;
     pForkManager = nullptr;
     pBlockMaker = nullptr;
+    pWsService = nullptr;
 }
 
 bool CRPCMod::HandleEvent(CEventHttpReq& eventHttpReq)
@@ -662,14 +710,18 @@ bool CRPCMod::HandleEvent(CEventHttpReq& eventHttpReq)
     try
     {
         // check version
-        string strVersion = eventHttpReq.data.mapHeader["url"].substr(1);
-        if (!strVersion.empty())
+        auto nt = eventHttpReq.data.mapHeader.find("url");
+        if (nt != eventHttpReq.data.mapHeader.end() && !nt->second.empty())
         {
-            if (!CheckVersion(strVersion))
+            string strVersion = nt->second.substr(1);
+            if (!strVersion.empty())
             {
-                throw CRPCException(RPC_VERSION_OUT_OF_DATE,
-                                    string("Out of date version. Server version is v") + VERSION_STR
-                                        + ", but client version is v" + strVersion);
+                if (!CheckVersion(strVersion))
+                {
+                    throw CRPCException(RPC_VERSION_OUT_OF_DATE,
+                                        string("Out of date version. Server version is v") + VERSION_STR
+                                            + ", but client version is v" + strVersion);
+                }
             }
         }
 
@@ -693,9 +745,10 @@ bool CRPCMod::HandleEvent(CEventHttpReq& eventHttpReq)
                 throw CRPCException(RPC_REQUEST_FUNC_OBSOLETE, string("chain id error, chain id is ") + to_string(eventHttpReq.data.nReqChainId));
             }
         }
-        CReqContext ctxReq(hashReqFork, eventHttpReq.data.nReqChainId, eventHttpReq.data.nListenPort, eventHttpReq.data.strPeerIp, eventHttpReq.data.nPeerPort);
+        CReqContext ctxReq(nNonce, hashReqFork, eventHttpReq.data.nSourceType, eventHttpReq.data.nReqChainId,
+                           eventHttpReq.data.nListenPort, eventHttpReq.data.strPeerIp, eventHttpReq.data.nPeerPort);
 
-        const std::set<std::string> setNoParserMethod = { "eth_getBlockByHash", "eth_getBlockByNumber", "eth_call", "eth_estimateGas", "eth_newFilter", "eth_getLogs" };
+        const std::set<std::string> setNoParserMethod = { "eth_getBlockByHash", "eth_getBlockByNumber", "eth_call", "eth_estimateGas", "eth_newFilter", "eth_getLogs", "eth_subscribe" };
 
         bool fArray = false;
         CRPCReqVec vecReq;
@@ -784,7 +837,7 @@ bool CRPCMod::HandleEvent(CEventHttpReq& eventHttpReq)
     // no result means no return
     if (!strResult.empty())
     {
-        JsonReply(nNonce, strResult);
+        JsonReply(eventHttpReq.data.nSourceType, eventHttpReq.data.nReqChainId, nNonce, strResult);
     }
 
     return true;
@@ -796,16 +849,23 @@ bool CRPCMod::HandleEvent(CEventHttpBroken& eventHttpBroken)
     return true;
 }
 
-void CRPCMod::JsonReply(uint64 nNonce, const std::string& result)
+void CRPCMod::JsonReply(const uint8 nReqSourceType, const CChainId nChainId, const uint64 nNonce, const std::string& result)
 {
-    CEventHttpRsp eventHttpRsp(nNonce);
-    eventHttpRsp.data.nStatusCode = 200;
-    eventHttpRsp.data.mapHeader["content-type"] = "application/json";
-    eventHttpRsp.data.mapHeader["connection"] = "Keep-Alive";
-    eventHttpRsp.data.mapHeader["server"] = "metabasenet-rpc";
-    eventHttpRsp.data.strContent = result + "\n";
+    if (nReqSourceType == REQ_SOURCE_TYPE_HTTP)
+    {
+        CEventHttpRsp eventHttpRsp(nNonce);
+        eventHttpRsp.data.nStatusCode = 200;
+        eventHttpRsp.data.mapHeader["content-type"] = "application/json";
+        eventHttpRsp.data.mapHeader["connection"] = "Keep-Alive";
+        eventHttpRsp.data.mapHeader["server"] = "metabasenet-rpc";
+        eventHttpRsp.data.strContent = result + "\n";
 
-    pHttpServer->DispatchEvent(&eventHttpRsp);
+        pHttpServer->DispatchEvent(&eventHttpRsp);
+    }
+    else if (nReqSourceType == REQ_SOURCE_TYPE_WS)
+    {
+        pWsService->SendWsMsg(nChainId, nNonce, result);
+    }
 }
 
 int CRPCMod::GetInt(const CRPCInt64& i, int valDefault)
@@ -1040,7 +1100,7 @@ CLogsFilter CRPCMod::GetLogFilterFromJson(const uint256& hashFork, const std::st
         {
             throw CRPCException(RPC_INVALID_REQUEST, "toBlock type error");
         }
-        if (from_block.get_str() == std::string("latest") || from_block.get_str() == std::string("pending"))
+        if (to_block.get_str() == std::string("latest") || to_block.get_str() == std::string("pending"))
         {
             logFilter.withToBlock(0);
         }
@@ -1138,6 +1198,23 @@ CLogsFilter CRPCMod::GetLogFilterFromJson(const uint256& hashFork, const std::st
     return logFilter;
 }
 
+bool CRPCMod::GetVmExecResultInfo(const int nStatus, const bytes& btResult, string& strError)
+{
+    //EVMC_REVERT: 2
+    if (nStatus == 2 && btResult.size() >= (4 + 32 * 3))
+    {
+        uint256 nTemp;
+        nTemp.FromBigEndian(btResult.data() + (4 + 32), 32);
+        uint64 nInfoLen = std::min(nTemp.Get64(), btResult.size() - (4 + 32 * 2));
+        if (nInfoLen > 0)
+        {
+            strError.assign(btResult.data() + (4 + 32 * 2), btResult.data() + (4 + 32 * 2) + nInfoLen);
+            return true;
+        }
+    }
+    return false;
+}
+
 /////////////////////////////////////////////////////////////////////////////////////
 /* System */
 CRPCResultPtr CRPCMod::RPCHelp(const CReqContext& ctxReq, CRPCParamPtr param)
@@ -1159,7 +1236,7 @@ CRPCResultPtr CRPCMod::RPCStop(const CReqContext& ctxReq, CRPCParamPtr param)
 
 CRPCResultPtr CRPCMod::RPCVersion(const CReqContext& ctxReq, CRPCParamPtr param)
 {
-    string strVersion = string("metabasenet server version is v") + VERSION_STR + string(", git commit id is ") + GetGitVersion();
+    string strVersion = string("MetabaseNet server version is v") + VERSION_STR + string(", git commit id is ") + GetGitVersion();
     return MakeCVersionResultPtr(strVersion);
 }
 
@@ -1333,6 +1410,7 @@ CRPCResultPtr CRPCMod::RPCListFork(const CReqContext& ctxReq, CRPCParamPtr param
         displayProfile.nLastnumber = lastStatus.nBlockNumber;
         displayProfile.nLastslot = lastStatus.nBlockSlot;
         displayProfile.strLastblock = lastStatus.hashBlock.ToString();
+        displayProfile.fLastconfirm = pService->IsBlockConfirm(lastStatus.hashBlock);
         displayProfile.nTotaltxcount = lastStatus.nTotalTxCount;
         displayProfile.nRewardtxcount = lastStatus.nRewardTxCount;
         displayProfile.nUsertxcount = lastStatus.nUserTxCount;
@@ -1494,7 +1572,7 @@ CRPCResultPtr CRPCMod::RPCGetBlock(const CReqContext& ctxReq, CRPCParamPtr param
         throw CRPCException(RPC_INVALID_PARAMETER, "Unknown block");
     }
 
-    return MakeCGetBlockResultPtr(BlockToJSON(hashBlock, block, nChainId, fork, height, block.GetBlockTotalReward()));
+    return MakeCGetBlockResultPtr(BlockToJSON(hashBlock, block, nChainId, fork, height, block.GetBlockTotalReward(), pService->IsBlockConfirm(hashBlock)));
 }
 
 CRPCResultPtr CRPCMod::RPCGetBlockDetail(const CReqContext& ctxReq, CRPCParamPtr param)
@@ -1544,6 +1622,8 @@ CRPCResultPtr CRPCMod::RPCGetBlockDetail(const CReqContext& ctxReq, CRPCParamPtr
     {
         data.strBloom = "0x";
     }
+    data.fConfirm = pService->IsBlockConfirm(hashBlock);
+
     int nDepth = height < 0 ? 0 : pService->GetForkHeight(hashFork) - height;
     data.txmint = TxToJSON(block.txMint.GetHash(), block.txMint, hashFork, hashBlock, nDepth);
     for (int i = 0; i < block.vtx.size(); i++)
@@ -1614,7 +1694,7 @@ CRPCResultPtr CRPCMod::RPCGetBlockData(const CReqContext& ctxReq, CRPCParamPtr p
         throw CRPCException(RPC_INVALID_PARAMETER, "Unknown block");
     }
 
-    return MakeCGetBlockDataResultPtr(BlockToJSON(hashBlock, block, nChainId, fork, height, block.GetBlockTotalReward()));
+    return MakeCGetBlockDataResultPtr(BlockToJSON(hashBlock, block, nChainId, fork, height, block.GetBlockTotalReward(), pService->IsBlockConfirm(hashBlock)));
 }
 
 CRPCResultPtr CRPCMod::RPCGetTxPool(const CReqContext& ctxReq, CRPCParamPtr param)
@@ -2615,6 +2695,8 @@ CRPCResultPtr CRPCMod::RPCGetBalance(const CReqContext& ctxReq, CRPCParamPtr par
         throw CRPCException(RPC_INVALID_PARAMETER, "Unknown fork");
     }
 
+    uint256 hashBlock = GetRefBlock(hashFork, spParam->strBlock, true);
+
     vector<tuple<CDestination, uint8, uint512>> vDes;
     if (spParam->strAddress.IsValid())
     {
@@ -2624,7 +2706,12 @@ CRPCResultPtr CRPCMod::RPCGetBalance(const CReqContext& ctxReq, CRPCParamPtr par
         {
             throw CRPCException(RPC_INVALID_PARAMETER, "Invalid address");
         }
-        vDes.push_back(make_tuple(address, 0, uint512()));
+        CAddressContext ctxAddress;
+        if (!pService->RetrieveAddressContext(hashFork, address, ctxAddress, hashBlock))
+        {
+            ctxAddress.SetType(CDestination::PREFIX_PUBKEY, 0);
+        }
+        vDes.push_back(make_tuple(address, ctxAddress.nType, uint512()));
     }
     else
     {
@@ -2641,22 +2728,49 @@ CRPCResultPtr CRPCMod::RPCGetBalance(const CReqContext& ctxReq, CRPCParamPtr par
         ListDestination(vDes, nPage, nCount);
     }
 
-    uint256 hashBlock = GetRefBlock(hashFork, spParam->strBlock, true);
+    CCoinContext ctxCoin;
+    std::string strCoinSymbol;
+    if (spParam->strCoinsymbol.IsValid() && !spParam->strCoinsymbol.empty())
+    {
+        strCoinSymbol = spParam->strCoinsymbol;
+        StringToUpper(strCoinSymbol);
+
+        if (!pService->GetCoinContext(strCoinSymbol, ctxCoin, hashBlock))
+        {
+            throw CRPCException(RPC_INVALID_PARAMETER, "Invalid coinsymbol");
+        }
+    }
+    else
+    {
+        CForkContext ctxFork;
+        if (!pService->GetForkContext(hashFork, ctxFork))
+        {
+            throw CRPCException(RPC_INVALID_PARAMETER, "Unknown fork");
+        }
+        strCoinSymbol = ctxFork.strSymbol;
+    }
 
     auto spResult = MakeCGetBalanceResultPtr();
     for (const auto& vd : vDes)
     {
         const CDestination dest = std::get<0>(vd);
+        const uint8 nType = std::get<1>(vd);
+        const uint8 nDestType = (nType >> 5);
+
+        if (ctxCoin.nCoinType == CCoinContext::CT_COIN_TYPE_CONTRACT && nDestType != CDestination::PREFIX_PUBKEY)
+        {
+            continue;
+        }
+
         CWalletBalance balance;
-        if (!pService->GetBalance(hashFork, hashBlock, dest, balance))
+        if (!pService->GetBalance(hashFork, hashBlock, dest, ctxCoin, balance))
         {
             balance.SetNull();
         }
 
         if (balance.nDestType == 0)
         {
-            const uint8 nType = std::get<1>(vd);
-            balance.nDestType = (nType >> 5);
+            balance.nDestType = nDestType;
             balance.nTemplateType = (nType & 0x1F);
         }
 
@@ -2667,11 +2781,8 @@ CRPCResultPtr CRPCMod::RPCGetBalance(const CReqContext& ctxReq, CRPCParamPtr par
             strDestType = "pubkey";
             break;
         case CDestination::PREFIX_TEMPLATE:
-        {
-            strDestType = "template-";
-            strDestType += CTemplate::GetTypeName(balance.nTemplateType);
+            strDestType = std::string("template-") + CTemplate::GetTypeName(balance.nTemplateType);
             break;
-        }
         case CDestination::PREFIX_CONTRACT:
             strDestType = "contract";
             break;
@@ -2683,6 +2794,7 @@ CRPCResultPtr CRPCMod::RPCGetBalance(const CReqContext& ctxReq, CRPCParamPtr par
         CGetBalanceResult::CBalance b;
         b.strAddress = dest.ToString();
         b.strType = strDestType;
+        b.strCoinsymbol = strCoinSymbol;
         b.nNonce = balance.nTxNonce;
         b.strAvail = CoinToTokenBigFloat(balance.nAvailable);
         b.strLocked = CoinToTokenBigFloat(balance.nLocked);
@@ -2853,6 +2965,41 @@ CRPCResultPtr CRPCMod::RPCSendFrom(const CReqContext& ctxReq, CRPCParamPtr param
     if (spParam->strContractparam.IsValid())
     {
         btContractParam = ParseHexString(spParam->strContractparam);
+    }
+
+    if (spParam->strCoinsymbol.IsValid() && !spParam->strCoinsymbol.empty())
+    {
+        std::string strCoinSymbol = spParam->strCoinsymbol;
+        StringToUpper(strCoinSymbol);
+
+        CCoinContext ctxCoin;
+        if (!pService->GetCoinContext(strCoinSymbol, ctxCoin))
+        {
+            throw CRPCException(RPC_INVALID_PARAMETER, "Invalid coinsymbol");
+        }
+
+        if (ctxCoin.nCoinType == CCoinContext::CT_COIN_TYPE_CONTRACT)
+        {
+            //function transfer(address to, uint tokens) external returns (bool);
+
+            std::vector<bytes> vParamList;
+            vParamList.push_back(to.ToHash().GetBytes());
+            vParamList.push_back(nAmount.ToBigEndian());
+
+            bytes btData = MakeEthTxCallData("transfer(address,uint256)", vParamList);
+
+            if (nGas == 0)
+            {
+                nGas = DEF_TX_GAS_LIMIT;
+            }
+
+            uint256 txid;
+            if (!pService->SendEthTransaction(hashFork, from, ctxCoin.destContract, 0, 0, nGasPrice, nGas, btData, 0, txid))
+            {
+                throw CRPCException(RPC_TRANSACTION_ERROR, "Send tx fail");
+            }
+            return MakeCSendFromResultPtr(txid.GetHex());
+        }
     }
 
     CTransaction txNew;
@@ -3153,6 +3300,744 @@ CRPCResultPtr CRPCMod::RPCSignMessage(const CReqContext& ctxReq, CRPCParamPtr pa
         }
     }
     return MakeCSignMessageResultPtr(ToHexString(vchSig));
+}
+
+CRPCResultPtr CRPCMod::RPCAddUserCoin(const CReqContext& ctxReq, CRPCParamPtr param)
+{
+    if (ctxReq.hashFork != pCoreProtocol->GetGenesisBlockHash())
+    {
+        throw CRPCException(RPC_INVALID_REQUEST, "Only suitable for the main chain");
+    }
+
+    auto spParam = CastParamPtr<CAddUserCoinParam>(param);
+
+    CDestination from;
+    std::string strSymbol;
+    uint32 nChainId;
+
+    from.ParseString(spParam->strFrom);
+    if (from.IsNull())
+    {
+        throw CRPCException(RPC_INVALID_PARAMETER, "Invalid from");
+    }
+    if (!spParam->strSymbol.IsValid() || spParam->strSymbol.empty() || spParam->strSymbol.size() > MAX_COIN_SYMBOL_SIZE)
+    {
+        throw CRPCException(RPC_INVALID_PARAMETER, "Invalid symbol");
+    }
+    strSymbol = spParam->strSymbol;
+    StringToUpper(strSymbol);
+    if (spParam->nChainid == 0)
+    {
+        throw CRPCException(RPC_INVALID_PARAMETER, "Invalid chainid");
+    }
+    nChainId = spParam->nChainid;
+
+    uint256 hashAtFork;
+    if (!pService->GetForkHashByChainId(nChainId, hashAtFork))
+    {
+        throw CRPCException(RPC_INVALID_ADDRESS_OR_KEY, "Unknown chainid");
+    }
+
+    CCoinContext ctxCoin;
+    if (pService->GetForkCoinCtxByForkSymbol(strSymbol, ctxCoin))
+    {
+        throw CRPCException(RPC_INVALID_ADDRESS_OR_KEY, "Symbol existed");
+    }
+
+    bytes btSymbolData;
+    btSymbolData.resize(32);
+    std::copy(strSymbol.begin(), strSymbol.end(), btSymbolData.data());
+
+    std::vector<bytes> vParamList;
+    vParamList.push_back(uint256((uint64)0x40).ToBigEndian()); // var pos
+    vParamList.push_back(uint256(nChainId).ToBigEndian());
+    vParamList.push_back(uint256(strSymbol.size()).ToBigEndian()); // var size
+    vParamList.push_back(btSymbolData);                            // string
+    bytes btData = MakeEthTxCallData("addUserCoin(string,uint32)", vParamList);
+
+    uint256 txid;
+    if (!pService->SendEthTransaction(ctxReq.hashFork, from, FUNCTION_CONTRACT_ADDRESS, 0, 0, 0, 0, btData, FUNCTION_TX_GAS_BASE, txid))
+    {
+        throw CRPCException(RPC_TRANSACTION_ERROR, "Verify tx fail");
+    }
+
+    StdDebug("CRPCMod", "Send add user coin tx success, txid: %s", txid.ToString().c_str());
+
+    return MakeCAddUserCoinResultPtr(txid.ToString());
+}
+
+CRPCResultPtr CRPCMod::RPCAddContractCoin(const CReqContext& ctxReq, CRPCParamPtr param)
+{
+    if (ctxReq.hashFork != pCoreProtocol->GetGenesisBlockHash())
+    {
+        throw CRPCException(RPC_INVALID_REQUEST, "Only suitable for the main chain");
+    }
+
+    auto spParam = CastParamPtr<CAddContractCoinParam>(param);
+
+    CDestination from;
+    std::string strSymbol;
+    uint32 nChainId;
+    CDestination destContract;
+
+    from.ParseString(spParam->strFrom);
+    if (from.IsNull())
+    {
+        throw CRPCException(RPC_INVALID_PARAMETER, "Invalid from");
+    }
+
+    if (!spParam->strSymbol.IsValid() || spParam->strSymbol.empty() || spParam->strSymbol.size() > MAX_COIN_SYMBOL_SIZE)
+    {
+        throw CRPCException(RPC_INVALID_PARAMETER, "Invalid symbol");
+    }
+    strSymbol = spParam->strSymbol;
+    StringToUpper(strSymbol);
+    if (spParam->nChainid == 0)
+    {
+        throw CRPCException(RPC_INVALID_PARAMETER, "Invalid chainid");
+    }
+    nChainId = spParam->nChainid;
+
+    destContract.ParseString(spParam->strContractaddress);
+    if (destContract.IsNull())
+    {
+        throw CRPCException(RPC_INVALID_PARAMETER, "Invalid contractaddress");
+    }
+
+    uint256 hashAtFork;
+    if (!pService->GetForkHashByChainId(nChainId, hashAtFork))
+    {
+        throw CRPCException(RPC_INVALID_ADDRESS_OR_KEY, "Unknown chainid");
+    }
+
+    CCoinContext ctxCoin;
+    if (pService->GetForkCoinCtxByForkSymbol(strSymbol, ctxCoin))
+    {
+        throw CRPCException(RPC_INVALID_ADDRESS_OR_KEY, "Symbol existed");
+    }
+
+    CAddressContext ctxContractAddress;
+    if (!pService->RetrieveAddressContext(hashAtFork, destContract, ctxContractAddress, {}))
+    {
+        throw CRPCException(RPC_INVALID_ADDRESS_OR_KEY, "Unknown contractaddress");
+    }
+    if (!ctxContractAddress.IsContract())
+    {
+        throw CRPCException(RPC_INVALID_ADDRESS_OR_KEY, "Unknown contractaddress");
+    }
+
+    bytes btSymbolData;
+    btSymbolData.resize(32);
+    std::copy(strSymbol.begin(), strSymbol.end(), btSymbolData.data());
+
+    std::vector<bytes> vParamList;
+    vParamList.push_back(uint256((uint64)0x60).ToBigEndian()); // var pos
+    vParamList.push_back(uint256(nChainId).ToBigEndian());
+    vParamList.push_back(destContract.ToHash().GetBytes());
+    vParamList.push_back(uint256(strSymbol.size()).ToBigEndian()); // var size
+    vParamList.push_back(btSymbolData);                            // string
+    bytes btData = MakeEthTxCallData("addContractCoin(string,uint32,address)", vParamList);
+
+    uint256 txid;
+    if (!pService->SendEthTransaction(ctxReq.hashFork, from, FUNCTION_CONTRACT_ADDRESS, 0, 0, 0, 0, btData, FUNCTION_TX_GAS_BASE, txid))
+    {
+        throw CRPCException(RPC_TRANSACTION_ERROR, "Verify tx fail");
+    }
+
+    StdDebug("CRPCMod", "Send add contract coin tx success, txid: %s", txid.ToString().c_str());
+
+    return MakeCAddContractCoinResultPtr(txid.ToString());
+}
+
+CRPCResultPtr CRPCMod::RPCGetCoinInfo(const CReqContext& ctxReq, CRPCParamPtr param)
+{
+    auto spParam = CastParamPtr<CGetCoinInfoParam>(param);
+
+    if (ctxReq.hashFork != pCoreProtocol->GetGenesisBlockHash())
+    {
+        throw CRPCException(RPC_INVALID_REQUEST, "Only suitable for the main chain");
+    }
+
+    if (!spParam->strSymbol.IsValid() || spParam->strSymbol.empty() || spParam->strSymbol.size() > MAX_COIN_SYMBOL_SIZE)
+    {
+        throw CRPCException(RPC_INVALID_PARAMETER, "Invalid symbol");
+    }
+    std::string strSymbol = spParam->strSymbol;
+    StringToUpper(strSymbol);
+    uint256 hashBlock = GetRefBlock(ctxReq.hashFork, spParam->strBlock);
+    if (hashBlock == 0)
+    {
+        throw CRPCException(RPC_INVALID_PARAMETER, "Invalid block");
+    }
+
+    CCoinContext ctxCoin;
+    if (!pService->GetForkCoinCtxByForkSymbol(strSymbol, ctxCoin, hashBlock))
+    {
+        throw CRPCException(RPC_INVALID_ADDRESS_OR_KEY, "Unknown symbol");
+    }
+
+    auto spResult = MakeCGetCoinInfoResultPtr();
+
+    spResult->strCoinsymbol = strSymbol;
+    spResult->strCointype = ctxCoin.GetCoinTypeStr();
+    spResult->strFork = ctxCoin.hashAtFork.ToString();
+    spResult->nChainid = CBlock::GetBlockChainIdByHash(ctxCoin.hashAtFork);
+
+    return spResult;
+}
+
+CRPCResultPtr CRPCMod::RPCListCoinInfo(const CReqContext& ctxReq, CRPCParamPtr param)
+{
+    auto spParam = CastParamPtr<CListCoinInfoParam>(param);
+
+    if (ctxReq.hashFork != pCoreProtocol->GetGenesisBlockHash())
+    {
+        throw CRPCException(RPC_INVALID_REQUEST, "Only suitable for the main chain");
+    }
+
+    uint256 hashBlock = GetRefBlock(ctxReq.hashFork, spParam->strBlock);
+    if (hashBlock == 0)
+    {
+        throw CRPCException(RPC_INVALID_PARAMETER, "Invalid block");
+    }
+
+    std::map<std::string, CCoinContext> mapSymbolCoin;
+    if (!pService->ListCoinContext(mapSymbolCoin, hashBlock))
+    {
+        throw CRPCException(RPC_DATABASE_ERROR, "Get coin fail");
+    }
+
+    auto spResult = MakeCListCoinInfoResultPtr();
+    for (auto& kv : mapSymbolCoin)
+    {
+        CListCoinInfoResult::CCoindata item;
+
+        item.strCoinsymbol = kv.first;
+        item.strCointype = kv.second.GetCoinTypeStr();
+        item.strFork = kv.second.hashAtFork.ToString();
+        item.nChainid = CBlock::GetBlockChainIdByHash(kv.second.hashAtFork);
+        if (kv.second.destContract.IsNull())
+        {
+            item.strContractaddress = "";
+        }
+        else
+        {
+            item.strContractaddress = kv.second.destContract.ToString();
+        }
+
+        spResult->vecCoindata.push_back(item);
+    }
+
+    return spResult;
+}
+
+CRPCResultPtr CRPCMod::RPCGetDexCoinPair(const CReqContext& ctxReq, CRPCParamPtr param)
+{
+    auto spParam = CastParamPtr<CGetDexCoinPairParam>(param);
+
+    if (ctxReq.hashFork != pCoreProtocol->GetGenesisBlockHash())
+    {
+        throw CRPCException(RPC_INVALID_REQUEST, "Only suitable for the main chain");
+    }
+
+    if (!spParam->strSymbol1.IsValid() || spParam->strSymbol1.empty() || spParam->strSymbol1.size() > MAX_COIN_SYMBOL_SIZE)
+    {
+        throw CRPCException(RPC_INVALID_PARAMETER, "Invalid symbol1");
+    }
+    if (!spParam->strSymbol2.IsValid() || spParam->strSymbol2.empty() || spParam->strSymbol2.size() > MAX_COIN_SYMBOL_SIZE)
+    {
+        throw CRPCException(RPC_INVALID_PARAMETER, "Invalid symbol2");
+    }
+    if (spParam->strSymbol1 == spParam->strSymbol2)
+    {
+        throw CRPCException(RPC_INVALID_PARAMETER, "Invalid symbol");
+    }
+
+    uint256 hashBlock = GetRefBlock(ctxReq.hashFork, spParam->strBlock);
+    if (hashBlock == 0)
+    {
+        throw CRPCException(RPC_INVALID_PARAMETER, "Invalid block");
+    }
+
+    uint32 nCoinPair = 0;
+    if (!pService->GetDexCoinPairBySymbolPair(spParam->strSymbol1, spParam->strSymbol2, nCoinPair, hashBlock))
+    {
+        throw CRPCException(RPC_INVALID_ADDRESS_OR_KEY, "Unknown symbol");
+    }
+
+    return MakeCGetDexCoinPairResultPtr(nCoinPair);
+}
+
+CRPCResultPtr CRPCMod::RPCListDexCoinPair(const CReqContext& ctxReq, CRPCParamPtr param)
+{
+    auto spParam = CastParamPtr<CListDexCoinPairParam>(param);
+
+    if (ctxReq.hashFork != pCoreProtocol->GetGenesisBlockHash())
+    {
+        throw CRPCException(RPC_INVALID_REQUEST, "Only suitable for the main chain");
+    }
+
+    uint32 nCoinPair = 0;
+    std::string strCoinSymbol;
+    if (spParam->nCoinpair != 0)
+    {
+        nCoinPair = spParam->nCoinpair;
+    }
+    else
+    {
+        if (spParam->strCoinsymbol.IsValid() && !spParam->strCoinsymbol.empty() && spParam->strCoinsymbol.size() <= MAX_COIN_SYMBOL_SIZE)
+        {
+            strCoinSymbol = spParam->strCoinsymbol;
+        }
+    }
+
+    uint256 hashBlock = GetRefBlock(ctxReq.hashFork, spParam->strBlock);
+    if (hashBlock == 0)
+    {
+        throw CRPCException(RPC_INVALID_PARAMETER, "Invalid block");
+    }
+
+    std::map<uint32, std::pair<std::string, std::string>> mapDexCoinPair;
+    if (!pService->ListDexCoinPair(nCoinPair, strCoinSymbol, mapDexCoinPair, hashBlock))
+    {
+        throw CRPCException(RPC_DATABASE_ERROR, "Get coin pair fail");
+    }
+
+    std::map<std::string, CCoinContext> mapSymbolCoin;
+    if (!pService->ListCoinContext(mapSymbolCoin, hashBlock))
+    {
+        throw CRPCException(RPC_DATABASE_ERROR, "Get coin context fail");
+    }
+
+    auto spResult = MakeCListDexCoinPairResultPtr();
+    for (const auto& kv : mapDexCoinPair)
+    {
+        CListDexCoinPairResult::CCoinpairdata item;
+
+        item.nCoinpair = kv.first;
+
+        item.coin1.strCoinsymbol = kv.second.first;
+        auto it = mapSymbolCoin.find(kv.second.first);
+        if (it != mapSymbolCoin.end())
+        {
+            item.coin1.strCointype = it->second.GetCoinTypeStr();
+            item.coin1.strFork = it->second.hashAtFork.ToString();
+            item.coin1.nChainid = CBlock::GetBlockChainIdByHash(it->second.hashAtFork);
+        }
+
+        item.coin2.strCoinsymbol = kv.second.second;
+        auto mt = mapSymbolCoin.find(kv.second.second);
+        if (mt != mapSymbolCoin.end())
+        {
+            item.coin2.strCointype = mt->second.GetCoinTypeStr();
+            item.coin2.strFork = mt->second.hashAtFork.ToString();
+            item.coin2.nChainid = CBlock::GetBlockChainIdByHash(mt->second.hashAtFork);
+        }
+
+        spResult->vecCoinpairdata.push_back(item);
+    }
+
+    return spResult;
+}
+
+CRPCResultPtr CRPCMod::RPCSendDexOrderTx(const CReqContext& ctxReq, CRPCParamPtr param)
+{
+    auto spParam = CastParamPtr<CSendDexOrderTxParam>(param);
+
+    CDestination from;
+    std::string strCoinSymbolOwner;
+    std::string strCoinSymbolPeer;
+    uint64 nOrderNumber;
+    uint256 nOrderAmount;
+    uint256 nOrderPrice;
+    uint256 hashFork;
+
+    from.ParseString(spParam->strFrom);
+    if (from.IsNull())
+    {
+        throw CRPCException(RPC_INVALID_PARAMETER, "Invalid from");
+    }
+
+    if (!spParam->strCoinsymbolowner.IsValid() || spParam->strCoinsymbolowner.empty() || spParam->strCoinsymbolowner.size() > MAX_COIN_SYMBOL_SIZE)
+    {
+        throw CRPCException(RPC_INVALID_PARAMETER, "Invalid coinsymbolowner");
+    }
+    strCoinSymbolOwner = spParam->strCoinsymbolowner;
+    StringToUpper(strCoinSymbolOwner);
+
+    if (!spParam->strCoinsymbolpeer.IsValid() || spParam->strCoinsymbolpeer.empty() || spParam->strCoinsymbolpeer.size() > MAX_COIN_SYMBOL_SIZE)
+    {
+        throw CRPCException(RPC_INVALID_PARAMETER, "Invalid coinsymbolpeer");
+    }
+    strCoinSymbolPeer = spParam->strCoinsymbolpeer;
+    StringToUpper(strCoinSymbolPeer);
+
+    if (strCoinSymbolOwner == strCoinSymbolPeer)
+    {
+        throw CRPCException(RPC_INVALID_PARAMETER, "Coinsymbolowner and coinsymbolpeer are same");
+    }
+
+    nOrderNumber = spParam->nOrdernumber;
+    if (!TokenBigFloatToCoin(spParam->strAmount, nOrderAmount))
+    {
+        throw CRPCException(RPC_INVALID_PARAMETER, "Invalid amount");
+    }
+    if (!TokenBigFloatToCoin(spParam->strPrice, nOrderPrice))
+    {
+        throw CRPCException(RPC_INVALID_PARAMETER, "Invalid price");
+    }
+    if (!GetForkHashOfDef(spParam->strFork, ctxReq.hashFork, hashFork))
+    {
+        throw CRPCException(RPC_INVALID_PARAMETER, "Invalid fork");
+    }
+    if (!pService->HaveFork(hashFork))
+    {
+        throw CRPCException(RPC_INVALID_PARAMETER, "Unknown fork");
+    }
+
+    bytes btCoinSymbolDataOwner, btCoinSymbolDataPeer;
+    btCoinSymbolDataOwner.resize(32);
+    std::copy(strCoinSymbolOwner.begin(), strCoinSymbolOwner.end(), btCoinSymbolDataOwner.data());
+    btCoinSymbolDataPeer.resize(32);
+    std::copy(strCoinSymbolPeer.begin(), strCoinSymbolPeer.end(), btCoinSymbolDataPeer.data());
+
+    std::vector<bytes> vParamList;
+    vParamList.push_back(uint256((uint64)0xA0).ToBigEndian()); // first var pos
+    vParamList.push_back(uint256((uint64)0xE0).ToBigEndian()); // second var pos
+    vParamList.push_back(uint256(nOrderNumber).ToBigEndian());
+    vParamList.push_back(nOrderAmount.ToBigEndian());
+    vParamList.push_back(nOrderPrice.ToBigEndian());
+    vParamList.push_back(uint256((uint64)strCoinSymbolOwner.size()).ToBigEndian()); // first var size
+    vParamList.push_back(btCoinSymbolDataOwner);
+    vParamList.push_back(uint256((uint64)strCoinSymbolPeer.size()).ToBigEndian()); // second var size
+    vParamList.push_back(btCoinSymbolDataPeer);
+
+    bytes btData = MakeEthTxCallData("addDexOrder(string,string,uint64,uint256,uint256)", vParamList);
+
+    uint256 txid;
+    if (!pService->SendEthTransaction(hashFork, from, FUNCTION_CONTRACT_ADDRESS, 0, 0, 0, 0, btData, FUNCTION_TX_GAS_BASE, txid))
+    {
+        throw CRPCException(RPC_TRANSACTION_ERROR, "Verify tx fail");
+    }
+
+    StdDebug("CRPCMod", "Send dexorder tx success, txid: %s", txid.ToString().c_str());
+
+    return MakeCSendDexOrderTxResultPtr(txid.ToString());
+}
+
+CRPCResultPtr CRPCMod::RPCListDexOrder(const CReqContext& ctxReq, CRPCParamPtr param)
+{
+    auto spParam = CastParamPtr<CListDexOrderParam>(param);
+
+    CDestination destOrder;
+    std::string strCoinSymbolOwner;
+    std::string strCoinSymbolPeer;
+    uint64 nBeginNumber;
+    uint32 nCount;
+    uint256 hashFork;
+
+    destOrder.ParseString(spParam->strAddress);
+    if (destOrder.IsNull())
+    {
+        throw CRPCException(RPC_INVALID_PARAMETER, "Invalid address");
+    }
+    if (spParam->strCoinsymbolowner.IsValid() && !spParam->strCoinsymbolowner.empty() && spParam->strCoinsymbolowner.size() <= MAX_COIN_SYMBOL_SIZE)
+    {
+        strCoinSymbolOwner = spParam->strCoinsymbolowner;
+        StringToUpper(strCoinSymbolOwner);
+    }
+    if (spParam->strCoinsymbolpeer.IsValid() && !spParam->strCoinsymbolpeer.empty() && spParam->strCoinsymbolpeer.size() <= MAX_COIN_SYMBOL_SIZE)
+    {
+        strCoinSymbolPeer = spParam->strCoinsymbolpeer;
+        StringToUpper(strCoinSymbolPeer);
+    }
+    nBeginNumber = spParam->nBeginnumber;
+    nCount = spParam->nCount;
+
+    if (strCoinSymbolOwner.empty() || strCoinSymbolPeer.empty())
+    {
+        nBeginNumber = 0;
+    }
+
+    if (!GetForkHashOfDef(spParam->strFork, ctxReq.hashFork, hashFork))
+    {
+        throw CRPCException(RPC_INVALID_PARAMETER, "Invalid fork");
+    }
+    if (!pService->HaveFork(hashFork))
+    {
+        throw CRPCException(RPC_INVALID_PARAMETER, "Unknown fork");
+    }
+
+    uint256 hashBlock = GetRefBlock(hashFork, spParam->strBlock);
+
+    std::map<CDexOrderHeader, CDexOrderSave> mapDexOrder;
+    if (!pService->ListAddressDexOrder(hashBlock, destOrder, strCoinSymbolOwner, strCoinSymbolPeer, nBeginNumber, nCount, mapDexOrder))
+    {
+        throw CRPCException(RPC_DATABASE_ERROR, "Query fail");
+    }
+
+    auto spResult = MakeCListDexOrderResultPtr();
+    for (auto& kv : mapDexOrder)
+    {
+        const CDexOrderHeader& orderHeader = kv.first;
+        const CDexOrderSave& dexOrderSave = kv.second;
+        const CDexOrderBody& dexOrderBody = dexOrderSave.dexOrder;
+
+        uint256 nSurplusAmount;
+        uint256 nCompleteAmount;
+        uint64 nCompleteOrderCount = 0;
+        // if (!pService->GetCompleteOrder(hashBlock, orderHeader.GetOrderAddress(), dexOrderBody.strCoinSymbolOwner, dexOrderBody.strCoinSymbolPeer,
+        //                                 orderHeader.GetOrderNumber(), nCompleteAmount, nCompleteOrderCount))
+        if (!pService->GetCompleteOrder(hashBlock, orderHeader.GetDexOrderHash(), nCompleteAmount, nCompleteOrderCount))
+        {
+            nCompleteAmount = 0;
+            nCompleteOrderCount = 0;
+            //StdDebug("TEST", "RPCListDexOrder: GetCompleteOrder fail, hashDexOrder: %s, hashBlock: %s", orderHeader.GetDexOrderHash().ToString().c_str(), hashBlock.ToString().c_str());
+        }
+        if (dexOrderBody.nOrderAmount > nCompleteAmount)
+        {
+            nSurplusAmount = dexOrderBody.nOrderAmount - nCompleteAmount;
+        }
+
+        CListDexOrderResult::CDexorderdata item;
+
+        item.nOrdernumber = orderHeader.GetOrderNumber();
+        item.strCoinsymbolowner = dexOrderBody.strCoinSymbolOwner;
+        item.strCoinsymbolpeer = dexOrderBody.strCoinSymbolPeer;
+        item.strAmount = CoinToTokenBigFloat(dexOrderBody.nOrderAmount);
+        item.strPrice = CoinToTokenBigFloat(dexOrderBody.nOrderPrice);
+        item.strSurplusamount = CoinToTokenBigFloat(nSurplusAmount);
+        item.strCompleteamount = CoinToTokenBigFloat(nCompleteAmount);
+        item.nCompletecount = nCompleteOrderCount;
+        item.nHeight = CBlock::GetBlockHeightByHash(dexOrderSave.hashAtBlock);
+        item.nSlot = CBlock::GetBlockSlotByHash(dexOrderSave.hashAtBlock);
+
+        spResult->vecDexorderdata.push_back(item);
+    }
+
+    return spResult;
+}
+
+CRPCResultPtr CRPCMod::RPCGetDexSymbolType(const CReqContext& ctxReq, CRPCParamPtr param)
+{
+    auto spParam = CastParamPtr<CGetDexSymbolTypeParam>(param);
+
+    if (!spParam->strCoinsymbol1.IsValid() || spParam->strCoinsymbol1.empty() || spParam->strCoinsymbol1.size() > MAX_COIN_SYMBOL_SIZE)
+    {
+        throw CRPCException(RPC_INVALID_PARAMETER, "Invalid coinsymbol1");
+    }
+    if (!spParam->strCoinsymbol2.IsValid() || spParam->strCoinsymbol2.empty() || spParam->strCoinsymbol2.size() > MAX_COIN_SYMBOL_SIZE)
+    {
+        throw CRPCException(RPC_INVALID_PARAMETER, "Invalid coinsymbol2");
+    }
+    std::string strCoinSymbol1 = spParam->strCoinsymbol1;
+    std::string strCoinSymbol2 = spParam->strCoinsymbol2;
+    StringToUpper(strCoinSymbol1);
+    StringToUpper(strCoinSymbol2);
+
+    auto spResult = MakeCGetDexSymbolTypeResultPtr();
+    spResult->strCoinsymbol1 = spParam->strCoinsymbol1;
+    spResult->strCoinsymbol2 = spParam->strCoinsymbol2;
+    if (CDexOrderHeader::GetSellCoinSymbolStatic(strCoinSymbol1, strCoinSymbol2) == strCoinSymbol1)
+    {
+        spResult->strType1 = "SELL";
+        spResult->strType2 = "BUY";
+    }
+    else
+    {
+        spResult->strType1 = "BUY";
+        spResult->strType2 = "SELL";
+    }
+    return spResult;
+}
+
+CRPCResultPtr CRPCMod::RPCListRealtimeDexOrder(const CReqContext& ctxReq, CRPCParamPtr param)
+{
+    auto spParam = CastParamPtr<CListRealtimeDexOrderParam>(param);
+
+    std::string strCoinSymbolSell;
+    std::string strCoinSymbolBuy;
+    uint64 nCount;
+    uint256 hashFork;
+
+    if (spParam->strCoinsymbolsell.IsValid() && !spParam->strCoinsymbolsell.empty() && spParam->strCoinsymbolsell.size() <= MAX_COIN_SYMBOL_SIZE)
+    {
+        strCoinSymbolSell = spParam->strCoinsymbolsell;
+        StringToUpper(strCoinSymbolSell);
+    }
+    else
+    {
+        throw CRPCException(RPC_INVALID_PARAMETER, "Invalid coinsymbolsell");
+    }
+    if (spParam->strCoinsymbolbuy.IsValid() && !spParam->strCoinsymbolbuy.empty() && spParam->strCoinsymbolbuy.size() <= MAX_COIN_SYMBOL_SIZE)
+    {
+        strCoinSymbolBuy = spParam->strCoinsymbolbuy;
+        StringToUpper(strCoinSymbolBuy);
+    }
+    else
+    {
+        throw CRPCException(RPC_INVALID_PARAMETER, "Invalid coinsymbolbuy");
+    }
+    nCount = spParam->nCount;
+    if (nCount == 0)
+    {
+        nCount = 1000;
+    }
+    const bool fDetailOrder = spParam->fDetail;
+
+    if (!GetForkHashOfDef(spParam->strFork, ctxReq.hashFork, hashFork))
+    {
+        throw CRPCException(RPC_INVALID_PARAMETER, "Invalid fork");
+    }
+    if (!pService->HaveFork(hashFork))
+    {
+        throw CRPCException(RPC_INVALID_PARAMETER, "Unknown fork");
+    }
+
+    uint256 hashBlock = GetRefBlock(hashFork, spParam->strBlock);
+
+    CRealtimeDexOrder realDexOrder;
+    if (!pService->ListMatchDexOrder(hashBlock, strCoinSymbolSell, strCoinSymbolBuy, nCount, realDexOrder))
+    {
+        throw CRPCException(RPC_DATABASE_ERROR, "Query fail");
+    }
+
+    auto spResult = MakeCListRealtimeDexOrderResultPtr();
+
+    spResult->strCoinsymbolsell = realDexOrder.strCoinSymbolSell;
+    spResult->strCoinsymbolbuy = realDexOrder.strCoinSymbolBuy;
+    spResult->strPrevcompleteprice = CoinToTokenBigFloat(realDexOrder.nPrevCompletePrice);
+    spResult->nSellchainid = realDexOrder.nSellChainId;
+    spResult->nBuychainid = realDexOrder.nBuyChainId;
+    spResult->nMaxmatchheight = realDexOrder.nMaxMatchHeight;
+    spResult->nMaxmatchslot = realDexOrder.nMaxMatchSlot;
+
+    for (auto& mso : realDexOrder.vSell)
+    {
+        CListRealtimeDexOrderResult::CSellorder item;
+        item.strPrice = CoinToTokenBigFloat(mso.nPrice);
+        item.strOrderamount = CoinToTokenBigFloat(mso.nOrderAmount);
+        item.strDealamount = CoinToTokenBigFloat(mso.nDealAmount);
+        if (fDetailOrder)
+        {
+            item.strOrderaddress = mso.destOrder.ToString();
+            item.nOrdernumber = mso.nOrderNumber;
+            item.strOriorderamount = CoinToTokenBigFloat(mso.nOriOrderAmount);
+            item.nHeight = mso.nAtHeight;
+            item.nSlot = mso.nAtSlot;
+        }
+        spResult->vecSellorder.push_back(item);
+    }
+    for (auto& mso : realDexOrder.vBuy)
+    {
+        CListRealtimeDexOrderResult::CBuyorder item;
+        item.strPrice = CoinToTokenBigFloat(mso.nPrice);
+        item.strOrderamount = CoinToTokenBigFloat(mso.nOrderAmount);
+        item.strDealamount = CoinToTokenBigFloat(mso.nDealAmount);
+        if (fDetailOrder)
+        {
+            item.strOrderaddress = mso.destOrder.ToString();
+            item.nOrdernumber = mso.nOrderNumber;
+            item.strOriorderamount = CoinToTokenBigFloat(mso.nOriOrderAmount);
+            item.nHeight = mso.nAtHeight;
+            item.nSlot = mso.nAtSlot;
+        }
+        spResult->vecBuyorder.push_back(item);
+    }
+
+    return spResult;
+}
+
+CRPCResultPtr CRPCMod::RPCSendCrossTransferTx(const CReqContext& ctxReq, CRPCParamPtr param)
+{
+    auto spParam = CastParamPtr<CSendCrossTransferTxParam>(param);
+
+    CDestination address;
+    CChainId nPeerChainId;
+    uint256 nTransferAmount;
+    uint256 hashFork;
+
+    address.ParseString(spParam->strAddress);
+    if (address.IsNull())
+    {
+        throw CRPCException(RPC_INVALID_PARAMETER, "Invalid address");
+    }
+    if (spParam->nPeerchainid == 0)
+    {
+        throw CRPCException(RPC_INVALID_PARAMETER, "Invalid peerchainid");
+    }
+    nPeerChainId = spParam->nPeerchainid;
+    if (!TokenBigFloatToCoin(spParam->strAmount, nTransferAmount) || nTransferAmount == 0)
+    {
+        throw CRPCException(RPC_INVALID_PARAMETER, "Invalid amount");
+    }
+
+    if (!GetForkHashOfDef(spParam->strFork, ctxReq.hashFork, hashFork))
+    {
+        throw CRPCException(RPC_INVALID_PARAMETER, "Invalid fork");
+    }
+    if (!pService->HaveFork(hashFork))
+    {
+        throw CRPCException(RPC_INVALID_PARAMETER, "Unknown fork");
+    }
+
+    if (nPeerChainId == CBlock::GetBlockChainIdByHash(hashFork))
+    {
+        throw CRPCException(RPC_INVALID_PARAMETER, "Invalid peerchainid");
+    }
+
+    uint256 hashBlock = GetRefBlock(hashFork, string(), false);
+
+    CWalletBalance balance;
+    if (!pService->GetBalance(hashFork, hashBlock, address, {}, balance))
+    {
+        balance.SetNull();
+    }
+    if (balance.nAvailable < nTransferAmount)
+    {
+        throw CRPCException(RPC_INVALID_PARAMETER, "Invalid amount");
+    }
+
+    std::vector<bytes> vParamList;
+    vParamList.push_back(uint256((uint32)nPeerChainId).ToBigEndian());
+    vParamList.push_back(nTransferAmount.ToBigEndian());
+
+    bytes btData = MakeEthTxCallData("transferCoin(uint32,uint256)", vParamList);
+
+    uint256 txid;
+    if (!pService->SendEthTransaction(hashFork, address, FUNCTION_CONTRACT_ADDRESS, 0, 0, 0, 0, btData, FUNCTION_TX_GAS_BASE, txid))
+    {
+        throw CRPCException(RPC_TRANSACTION_ERROR, "Verify tx fail");
+    }
+
+    StdDebug("CRPCMod", "Send crosschain transfer tx success, txid: %s", txid.ToString().c_str());
+
+    return MakeCSendCrossTransferTxResultPtr(txid.ToString());
+}
+
+CRPCResultPtr CRPCMod::RPCGetCrossTransferAmount(const CReqContext& ctxReq, CRPCParamPtr param)
+{
+    auto spParam = CastParamPtr<CGetCrossTransferAmountParam>(param);
+
+    uint256 hashFork;
+    if (!GetForkHashOfDef(spParam->strFork, ctxReq.hashFork, hashFork))
+    {
+        throw CRPCException(RPC_INVALID_PARAMETER, "Invalid fork");
+    }
+    if (!pService->HaveFork(hashFork))
+    {
+        throw CRPCException(RPC_INVALID_PARAMETER, "Unknown fork");
+    }
+
+    uint256 hashBlock = GetRefBlock(hashFork, spParam->strBlock, true);
+
+    CWalletBalance balance;
+    if (!pService->GetBalance(hashFork, hashBlock, FUNCTION_CROSSCHAIN_ADDRESS, {}, balance))
+    {
+        balance.SetNull();
+    }
+
+    return MakeCGetCrossTransferAmountResultPtr(CoinToTokenBigFloat(balance.nAvailable));
 }
 
 CRPCResultPtr CRPCMod::RPCListAddress(const CReqContext& ctxReq, CRPCParamPtr param)
@@ -3463,8 +4348,8 @@ CRPCResultPtr CRPCMod::RPCMakeOrigin(const CReqContext& ctxReq, CRPCParamPtr par
     }
     uint64 nHalvecycle = spParam->nHalvecycle;
 
-    if (spParam->strName.empty() || spParam->strName.size() > 128
-        || spParam->strSymbol.empty() || spParam->strSymbol.size() > 16)
+    if (spParam->strName.empty() || spParam->strName.size() > MAX_FORK_NAME_SIZE
+        || spParam->strSymbol.empty() || spParam->strSymbol.size() > MAX_COIN_SYMBOL_SIZE)
     {
         throw CRPCException(RPC_INVALID_PARAMETER, "Invalid name or symbol");
     }
@@ -3501,11 +4386,6 @@ CRPCResultPtr CRPCMod::RPCMakeOrigin(const CReqContext& ctxReq, CRPCParamPtr par
         throw CRPCException(RPC_INVALID_PARAMETER, "Failed to query main chain reference block");
     }
 
-    if (!pService->VerifyForkNameAndChainId(hashParent, (CChainId)(spParam->nChainid), spParam->strName))
-    {
-        throw CRPCException(RPC_VERIFY_ALREADY_IN_CHAIN, "Fork name or chainid is existed");
-    }
-
     if (nForkType == CProfile::PROFILE_FORK_TYPE_CLONEMAP)
     {
         CBlockStatus statusGen;
@@ -3521,6 +4401,13 @@ CRPCResultPtr CRPCMod::RPCMakeOrigin(const CReqContext& ctxReq, CRPCParamPtr par
         nAmount = 0;
         nMintReward = 0;
         nHalvecycle = 0;
+    }
+    else
+    {
+        if (!fCreateUserForkEnable)
+        {
+            throw CRPCException(RPC_INVALID_PARAMETER, "Disable create user fork");
+        }
     }
 
     CProfile profile;
@@ -3540,6 +4427,9 @@ CRPCResultPtr CRPCMod::RPCMakeOrigin(const CReqContext& ctxReq, CRPCParamPtr par
     block.nVersion = 1;
     block.nType = CBlock::BLOCK_ORIGIN;
     block.SetBlockTime(nTimeRef);
+    block.nNumber = 0;
+    block.nHeight = CBlock::GetBlockHeightByHash(hashPrev) + 1;
+    block.nSlot = 0;
     block.hashPrev = hashPrev;
 
     block.AddForkProfile(profile);
@@ -3557,8 +4447,13 @@ CRPCResultPtr CRPCMod::RPCMakeOrigin(const CReqContext& ctxReq, CRPCParamPtr par
     tx.SetToAddressData(CAddressContext(CPubkeyAddressContext()));
 
     block.AddMintCoinProof(tx.GetAmount());
+    block.UpdateMerkleRoot();
 
-    block.hashMerkleRoot = block.CalcMerkleTreeRoot();
+    uint256 hashBlock = block.GetHash();
+    if (!pService->VerifyForkFlag(hashBlock, (CChainId)(spParam->nChainid), spParam->strSymbol, spParam->strName))
+    {
+        throw CRPCException(RPC_VERIFY_ALREADY_IN_CHAIN, "Fork name or chainid is existed");
+    }
 
     int nVersion;
     bool fLocked, fPublic;
@@ -3575,8 +4470,6 @@ CRPCResultPtr CRPCMod::RPCMakeOrigin(const CReqContext& ctxReq, CRPCParamPtr par
     {
         throw CRPCException(RPC_WALLET_UNLOCK_NEEDED, "Key is locked");
     }
-
-    uint256 hashBlock = block.GetHash();
 
     if (!pService->SignSignature(destOwner, hashBlock, block.vchSig))
     {
@@ -3667,7 +4560,17 @@ CRPCResultPtr CRPCMod::RPCCallContract(const CReqContext& ctxReq, CRPCParamPtr p
     bytes btResult;
     if (!pService->CallContract(false, hashFork, uint256(), from, to, nAmount, nGasPrice, nGas, btContractParam, nUsedGas, nGasLeft, nStatus, btResult))
     {
-        throw CRPCException(RPC_INTERNAL_ERROR, "Call fail");
+        string strError;
+        if (GetVmExecResultInfo(nStatus, btResult, strError))
+        {
+            StdLog("CRPCMod", "RPC Call Contract: call execution reverted, err: %s, to: %s", strError.c_str(), to.ToString().c_str());
+            throw CRPCException(RPC_ETH_EXECUTION_REVERTED, std::string("execution reverted: ") + strError, json_spirit::Value(ToHexString(btResult)));
+        }
+        else
+        {
+            StdLog("CRPCMod", "RPC Call Contract: call fail, to: %s", to.ToString().c_str());
+            throw CRPCException(RPC_ETH_EXECUTION_REVERTED, "execution failed");
+        }
     }
 
     auto spResult = MakeCCallContractResultPtr();
@@ -3758,17 +4661,13 @@ CRPCResultPtr CRPCMod::RPCGetTransactionReceipt(const CReqContext& ctxReq, CRPCP
             spResult->vecLogs.push_back(logs);
         }
     }
-    if (receipt.vLogs.size() == 0)
-    {
-        CGetTransactionReceiptResult::CLogs logs;
-        spResult->vecLogs.push_back(logs);
-    }
+    // if (receipt.vLogs.size() == 0)
+    // {
+    //     CGetTransactionReceiptResult::CLogs logs;
+    //     spResult->vecLogs.push_back(logs);
+    // }
 
-    if (receipt.nLogsBloom.IsNull())
-    {
-        spResult->strLogsbloom = "";
-    }
-    else
+    if (!receipt.nLogsBloom.IsNull())
     {
         spResult->strLogsbloom = receipt.nLogsBloom.ToString();
     }
@@ -3787,11 +4686,11 @@ CRPCResultPtr CRPCMod::RPCGetTransactionReceipt(const CReqContext& ctxReq, CRPCP
         itx.strAmount = CoinToTokenBigFloat(vd.nAmount);
         spResult->vecInternaltx.push_back(itx);
     }
-    if (receipt.vTransfer.size() == 0)
-    {
-        CGetTransactionReceiptResult::CInternaltx itx;
-        spResult->vecInternaltx.push_back(itx);
-    }
+    // if (receipt.vTransfer.size() == 0)
+    // {
+    //     CGetTransactionReceiptResult::CInternaltx itx;
+    //     spResult->vecInternaltx.push_back(itx);
+    // }
 
     return spResult;
 }
@@ -4247,7 +5146,7 @@ CRPCResultPtr CRPCMod::RPCSetFunctionAddress(const CReqContext& ctxReq, CRPCPara
     vParamList.push_back(uint256(nFuncid).ToBigEndian());
     vParamList.push_back(newAddress.ToHash().GetBytes());
     vParamList.push_back(uint256(nDisableModify).ToBigEndian());
-    bytes btData = pService->MakeEthTxCallData("setFunctionAddress(uint32,address,bool)", vParamList);
+    bytes btData = MakeEthTxCallData("setFunctionAddress(uint32,address,bool)", vParamList);
 
     uint256 txid;
     if (!pService->SendEthTransaction(pCoreProtocol->GetGenesisBlockHash(), destDefaultFunction, FUNCTION_CONTRACT_ADDRESS, 0, 0, 0, 0, btData, FUNCTION_TX_GAS_BASE, txid))
@@ -5024,7 +5923,7 @@ CRPCResultPtr CRPCMod::RPCEthGetBalance(const CReqContext& ctxReq, CRPCParamPtr 
     uint256 hashBlock = GetRefBlock(ctxReq.hashFork, (spParam->vecParamlist.size() > 1 ? spParam->vecParamlist.at(1) : string()), true);
 
     CWalletBalance balance;
-    if (!pService->GetBalance(ctxReq.hashFork, hashBlock, address, balance))
+    if (!pService->GetBalance(ctxReq.hashFork, hashBlock, address, {}, balance))
     {
         StdLog("CRPCMod", "RPC Eth Get Balance: Get balance fail, address: %s, block: %s", address.ToString().c_str(), hashBlock.ToString().c_str());
         return nullptr;
@@ -5146,7 +6045,7 @@ CRPCResultPtr CRPCMod::RPCEthGetTransactionCount(const CReqContext& ctxReq, CRPC
     uint256 hashBlock = GetRefBlock(ctxReq.hashFork, (spParam->vecParamlist.size() > 1 ? spParam->vecParamlist.at(1) : string()));
 
     CWalletBalance balance;
-    if (!pService->GetBalance(ctxReq.hashFork, hashBlock, address, balance))
+    if (!pService->GetBalance(ctxReq.hashFork, hashBlock, address, {}, balance))
     {
         StdLog("CRPCMod", "RPC EthGetTransactionCount: Get balance fail, address: %s, block: %s, fork: %s", address.ToString().c_str(), hashBlock.ToString().c_str(), ctxReq.hashFork.ToString().c_str());
         return nullptr;
@@ -5638,8 +6537,17 @@ CRPCResultPtr CRPCMod::RPCEthCall(const CReqContext& ctxReq, CRPCParamPtr param)
     bytes btResult;
     if (!pService->CallContract(true, hashFork, hashBlock, destFrom, destTo, nAmount, nGasPrice, nGas, btData, nUsedGas, nGasLeft, nStatus, btResult))
     {
-        StdLog("CRPCMod", "Rpc eth call: call fail, to: %s", destTo.ToString().c_str());
-        return nullptr;
+        string strError;
+        if (GetVmExecResultInfo(nStatus, btResult, strError))
+        {
+            StdLog("CRPCMod", "Rpc eth call: call execution reverted, err: %s, to: %s", strError.c_str(), destTo.ToString().c_str());
+            throw CRPCException(RPC_ETH_EXECUTION_REVERTED, std::string("execution reverted: ") + strError, json_spirit::Value(ToHexString(btResult)));
+        }
+        else
+        {
+            StdLog("CRPCMod", "Rpc eth call: call fail, to: %s", destTo.ToString().c_str());
+            throw CRPCException(RPC_ETH_EXECUTION_REVERTED, "execution failed");
+        }
     }
 
     return MakeCeth_callResultPtr(ToHexString(btResult));
@@ -5743,8 +6651,17 @@ CRPCResultPtr CRPCMod::RPCEthEstimateGas(const CReqContext& ctxReq, CRPCParamPtr
         bytes btResult;
         if (!pService->CallContract(true, ctxReq.hashFork, hashBlock, destFrom, destTo, nAmount, nGasPrice, nGasLimit, btData, nUsedGas, nGasLeft, nStatus, btResult))
         {
-            StdLog("rpcmod", "RPC EthEstimateGas: execution reverted");
-            throw CRPCException(RPC_ETH_EXECUTION_REVERTED, "execution reverted");
+            string strError;
+            if (GetVmExecResultInfo(nStatus, btResult, strError))
+            {
+                StdLog("CRPCMod", "RPC EthEstimateGas: call execution reverted, err: %s, to: %s", strError.c_str(), destTo.ToString().c_str());
+                throw CRPCException(RPC_ETH_EXECUTION_REVERTED, std::string("execution reverted: ") + strError, json_spirit::Value(ToHexString(btResult)));
+            }
+            else
+            {
+                StdLog("CRPCMod", "RPC EthEstimateGas: call fail, to: %s", destTo.ToString().c_str());
+                throw CRPCException(RPC_ETH_EXECUTION_REVERTED, "execution failed");
+            }
         }
         else
         {
@@ -5812,8 +6729,17 @@ CRPCResultPtr CRPCMod::RPCEthEstimateGas(const CReqContext& ctxReq, CRPCParamPtr
             bytes btResult;
             if (!pService->CallContract(true, ctxReq.hashFork, hashBlock, destFrom, destTo, nAmount, nGasPrice, nGasLimit, btData, nUsedGas, nGasLeft, nStatus, btResult))
             {
-                StdLog("rpcmod", "RPC EthEstimateGas: execution reverted");
-                throw CRPCException(RPC_ETH_EXECUTION_REVERTED, "execution reverted");
+                string strError;
+                if (GetVmExecResultInfo(nStatus, btResult, strError))
+                {
+                    StdLog("CRPCMod", "RPC EthEstimateGas: call execution reverted, err: %s, to: %s", strError.c_str(), destTo.ToString().c_str());
+                    throw CRPCException(RPC_ETH_EXECUTION_REVERTED, std::string("execution reverted: ") + strError, json_spirit::Value(ToHexString(btResult)));
+                }
+                else
+                {
+                    StdLog("CRPCMod", "RPC EthEstimateGas: call fail, to: %s", destTo.ToString().c_str());
+                    throw CRPCException(RPC_ETH_EXECUTION_REVERTED, "execution failed");
+                }
             }
             else
             {
@@ -6035,9 +6961,9 @@ CRPCResultPtr CRPCMod::RPCEthGetTransactionReceipt(const CReqContext& ctxReq, CR
     auto spResult = MakeCeth_getTransactionReceiptResultPtr();
 
     spResult->strTransactionhash = txid.GetHex();
-    spResult->nTransactionindex = receipt.nTxIndex;
+    spResult->strTransactionindex = ToHexString(receipt.nTxIndex);
     spResult->strBlockhash = receipt.hashBlock.GetHex();
-    spResult->nBlocknumber = receipt.nBlockNumber;
+    spResult->strBlocknumber = ToHexString(receipt.nBlockNumber);
     spResult->strFrom = receipt.from.ToString();
     spResult->strTo = receipt.to.ToString();
     spResult->strCumulativegasused = receipt.nBlockGasUsed.GetValueHex();
@@ -6057,11 +6983,11 @@ CRPCResultPtr CRPCMod::RPCEthGetTransactionReceipt(const CReqContext& ctxReq, CR
             Ceth_getTransactionReceiptResult::CLogs logs;
 
             //__optional__ CRPCBool fRemoved;
-            logs.nLogindex = i;
-            logs.nTransactionindex = receipt.nTxIndex;
+            logs.strLogindex = ToHexString(i);
+            logs.strTransactionindex = ToHexString(receipt.nTxIndex);
             logs.strTransactionhash = txid.GetHex();
             logs.strBlockhash = receipt.hashBlock.GetHex();
-            logs.nBlocknumber = receipt.nBlockNumber;
+            logs.strBlocknumber = ToHexString(receipt.nBlockNumber);
 
             logs.strAddress = txLogs.address.ToString();
             if (txLogs.data.empty())
@@ -6122,19 +7048,19 @@ CRPCResultPtr CRPCMod::RPCEthNewFilter(const CReqContext& ctxReq, CRPCParamPtr p
 {
     CLogsFilter logFilter = GetLogFilterFromJson(ctxReq.hashFork, param->GetParamJson());
 
-    // StdLog("CRPCMod", "RPC EthNewFilter: fromBlock: %s", logFilter.hashFromBlock.ToString().c_str());
-    // StdLog("CRPCMod", "RPC EthNewFilter: toBlock: %s", logFilter.hashToBlock.ToString().c_str());
-    // for (auto& dest : logFilter.setAddress)
-    // {
-    //     StdLog("CRPCMod", "RPC EthNewFilter: address: %s", dest.ToString().c_str());
-    // }
-    // for (int i = 0; i < 4; i++)
-    // {
-    //     for (auto& topics : logFilter.arrayTopics[i])
-    //     {
-    //         StdLog("CRPCMod", "RPC EthNewFilter: [%d] topics: %s", i, topics.ToString().c_str());
-    //     }
-    // }
+    StdDebug("CRPCMod", "RPC EthNewFilter: fromBlock: %s", logFilter.hashFromBlock.GetBhString().c_str());
+    StdDebug("CRPCMod", "RPC EthNewFilter: toBlock: %s", logFilter.hashToBlock.GetBhString().c_str());
+    for (auto& dest : logFilter.setAddress)
+    {
+        StdDebug("CRPCMod", "RPC EthNewFilter: address: %s", dest.ToString().c_str());
+    }
+    for (int i = 0; i < 4; i++)
+    {
+        for (auto& topics : logFilter.arrayTopics[i])
+        {
+            StdDebug("CRPCMod", "RPC EthNewFilter: [%d] topics: %s", i, topics.ToString().c_str());
+        }
+    }
 
     mtbase::CBufStream ss;
     ss << ctxReq.strPeerIp << ctxReq.nPeerPort;
@@ -6411,6 +7337,180 @@ CRPCResultPtr CRPCMod::RPCEthGetLogs(const CReqContext& ctxReq, CRPCParamPtr par
         }
     }
     return spResult;
+}
+
+CRPCResultPtr CRPCMod::RPCEthSubscribe(const CReqContext& ctxReq, CRPCParamPtr param)
+{
+    if (ctxReq.nReqSourceType != REQ_SOURCE_TYPE_WS)
+    {
+        throw CRPCException(RPC_PARSE_ERROR, "No websocket");
+    }
+
+    json_spirit::Value valParam;
+    if (!json_spirit::read_string(param->GetParamJson(), valParam, RPC_MAX_DEPTH))
+    {
+        throw CRPCException(RPC_PARSE_ERROR, "Parse Error: request json string error.");
+    }
+    if (valParam.type() != json_spirit::array_type)
+    {
+        throw CRPCException(RPC_PARSE_ERROR, "Parse error: request must be an array.");
+    }
+    const json_spirit::Array& arrayParam = valParam.get_array();
+    if (arrayParam.size() == 0)
+    {
+        throw CRPCException(RPC_PARSE_ERROR, "Parse error: request must non empty.");
+    }
+
+    // newHeads
+    // {"jsonrpc":"2.0", "id": 1, "method": "eth_subscribe", "params": ["newHeads"]}
+
+    // logs
+    // {"jsonrpc":"2.0", "id": 1, "method": "eth_subscribe", "params": ["logs", {"address": "0x06963e6599ae8a485491a9008bf01c778bdf80c2", "topics": ["0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef"]}]}
+
+    // newPendingTransactions
+    // {"jsonrpc":"2.0", "id": 1, "method": "eth_subscribe", "params": ["newPendingTransactions"]}
+
+    // syncing
+    // {"jsonrpc":"2.0", "id": 1, "method": "eth_subscribe", "params": ["syncing"]}
+
+    uint128 nSubsId;
+    uint8 nSubscibleType = 0;
+    std::set<CDestination> setSubsAddress;
+    std::set<uint256> setSubsTopics;
+
+    for (auto& v : arrayParam)
+    {
+        if (v.type() == json_spirit::str_type)
+        {
+            const string str = v.get_str();
+            if (str == "newHeads")
+            {
+                nSubscibleType = WSCS_SUBS_TYPE_NEW_BLOCK;
+                break;
+            }
+            else if (str == "logs")
+            {
+                nSubscibleType = WSCS_SUBS_TYPE_LOGS;
+            }
+            else if (str == "newPendingTransactions")
+            {
+                nSubscibleType = WSCS_SUBS_TYPE_NEW_PENDING_TX;
+                break;
+            }
+            else if (str == "syncing")
+            {
+                nSubscibleType = WSCS_SUBS_TYPE_SYNCING;
+                break;
+            }
+        }
+        else if (v.type() == json_spirit::obj_type)
+        {
+            const Object& obj = v.get_obj();
+
+            const json_spirit::Value& vAddress = json_spirit::find_value(obj, "address");
+            if (vAddress.type() == json_spirit::str_type)
+            {
+                const string str = vAddress.get_str();
+                if (!str.empty())
+                {
+                    CDestination addr;
+                    if (addr.ParseString(str) && !addr.IsNull())
+                    {
+                        setSubsAddress.insert(addr);
+                    }
+                }
+            }
+            else if (vAddress.type() == json_spirit::array_type)
+            {
+                const json_spirit::Array& arrayAddress = vAddress.get_array();
+                for (auto& m : arrayAddress)
+                {
+                    if (m.type() == json_spirit::str_type)
+                    {
+                        const string str = m.get_str();
+                        if (!str.empty())
+                        {
+                            CDestination addr;
+                            if (addr.ParseString(str) && !addr.IsNull())
+                            {
+                                setSubsAddress.insert(addr);
+                            }
+                        }
+                    }
+                }
+            }
+
+            const json_spirit::Value& vTopics = json_spirit::find_value(obj, "topics");
+            if (vTopics.type() == json_spirit::str_type)
+            {
+                const string str = vTopics.get_str();
+                if (!str.empty())
+                {
+                    uint256 hash(str);
+                    if (hash != 0)
+                    {
+                        setSubsTopics.insert(hash);
+                    }
+                }
+            }
+            else if (vTopics.type() == json_spirit::array_type)
+            {
+                const json_spirit::Array& arrayTopics = vTopics.get_array();
+                for (auto& m : arrayTopics)
+                {
+                    if (m.type() == json_spirit::str_type)
+                    {
+                        const string str = m.get_str();
+                        if (!str.empty())
+                        {
+                            uint256 hash(str);
+                            if (hash != 0)
+                            {
+                                setSubsTopics.insert(hash);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    switch (nSubscibleType)
+    {
+    case WSCS_SUBS_TYPE_NEW_BLOCK:
+        pWsService->AddNewBlockSubscribe(ctxReq.nReqChainId, ctxReq.nNonce, nSubsId);
+        break;
+    case WSCS_SUBS_TYPE_LOGS:
+        pWsService->AddLogsSubscribe(ctxReq.nReqChainId, ctxReq.nNonce, setSubsAddress, setSubsTopics, nSubsId);
+        break;
+    case WSCS_SUBS_TYPE_NEW_PENDING_TX:
+        pWsService->AddNewPendingTxSubscribe(ctxReq.nReqChainId, ctxReq.nNonce, nSubsId);
+        break;
+    case WSCS_SUBS_TYPE_SYNCING:
+        pWsService->AddSyncingSubscribe(ctxReq.nReqChainId, ctxReq.nNonce, nSubsId);
+        break;
+    }
+    if (nSubsId == 0)
+    {
+        throw CRPCException(RPC_INVALID_REQUEST, "Invalid request");
+    }
+    return MakeCeth_subscribeResultPtr(nSubsId.GetHex());
+}
+
+CRPCResultPtr CRPCMod::RPCEthUnsubscribe(const CReqContext& ctxReq, CRPCParamPtr param)
+{
+    auto spParam = CastParamPtr<Ceth_unsubscribeParam>(param);
+    if (!spParam->vecParamlist.IsValid() || spParam->vecParamlist.size() == 0)
+    {
+        throw CRPCException(RPC_PARSE_ERROR, "Parse Error: request json string error.");
+    }
+
+    uint128 nSubsId;
+    nSubsId.SetHex(spParam->vecParamlist.at(0));
+    if (nSubsId == 0)
+    {
+        throw CRPCException(RPC_PARSE_ERROR, "Parse Error: subscribe id error.");
+    }
+    return MakeCeth_unsubscribeResultPtr(pWsService->RemoveSubscribe(ctxReq.nReqChainId, ctxReq.nNonce, nSubsId));
 }
 
 } // namespace metabasenet

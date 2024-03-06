@@ -52,7 +52,7 @@ void CForkTxIndexDB::Deinitialize()
     Close();
 }
 
-bool CForkTxIndexDB::AddBlockTxIndexReceipt(const uint256& hashBlock, const std::map<uint256, CTxIndex>& mapBlockTxIndex, const std::map<uint256, CTransactionReceipt>& mapBlockTxReceipts)
+bool CForkTxIndexDB::AddBlockTxIndexReceipt(const uint256& hashBlock, const std::map<uint256, CTxIndex>& mapBlockTxIndex, const std::vector<CTransactionReceipt>& vTxReceipts)
 {
     CWriteLock wlock(rwAccess);
     if (!TxnBegin())
@@ -77,15 +77,15 @@ bool CForkTxIndexDB::AddBlockTxIndexReceipt(const uint256& hashBlock, const std:
         }
     }
 
-    for (const auto& kv : mapBlockTxReceipts)
+    for (const auto& receipt : vTxReceipts)
     {
         mtbase::CBufStream ss;
-        ss << hashBlock << kv.first;
+        ss << hashBlock << receipt.txid;
         uint256 hash = crypto::CryptoKeccakHash(ss.GetData(), ss.GetSize());
 
         mtbase::CBufStream ssKey, ssValue;
         ssKey << DB_TXINDEX_KEY_NAME_TXRECEIPT << hash;
-        ssValue << kv.second;
+        ssValue << receipt;
 
         if (!Write(ssKey, ssValue))
         {
@@ -321,14 +321,14 @@ void CTxIndexDB::Clear()
     }
 }
 
-bool CTxIndexDB::AddBlockTxIndexReceipt(const uint256& hashFork, const uint256& hashBlock, const std::map<uint256, CTxIndex>& mapBlockTxIndex, const std::map<uint256, CTransactionReceipt>& mapBlockTxReceipts)
+bool CTxIndexDB::AddBlockTxIndexReceipt(const uint256& hashFork, const uint256& hashBlock, const std::map<uint256, CTxIndex>& mapBlockTxIndex, const std::vector<CTransactionReceipt>& vTxReceipts)
 {
     CReadLock rlock(rwAccess);
 
     auto it = mapTxIndexDB.find(hashFork);
     if (it != mapTxIndexDB.end())
     {
-        return it->second->AddBlockTxIndexReceipt(hashBlock, mapBlockTxIndex, mapBlockTxReceipts);
+        return it->second->AddBlockTxIndexReceipt(hashBlock, mapBlockTxIndex, vTxReceipts);
     }
     return false;
 }

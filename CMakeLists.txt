@@ -1,7 +1,7 @@
 # ------------------------------------------------------------------------------
 # CMake file for MetabaseNet
 #
-# Copyright (c) 2021-2023 The MetabaseNet developers
+# Copyright (c) 2022-2024 The MetabaseNet developers
 # Distributed under the MIT/X11 software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 # ------------------------------------------------------------------------------
@@ -63,7 +63,7 @@ endif()
 
 # warnings
 if(UNIX AND NOT CYGWIN)
-    string(APPEND CMAKE_CXX_FLAGS " -Wall -Wextra -Werror -Wno-char-subscripts -Wno-unused-parameter -Wno-sign-compare -Wno-reorder -Wno-unused-local-typedefs -Wno-implicit-fallthrough -Wno-overloaded-virtual -Wno-strict-aliasing -Wno-narrowing -Wno-unused-variable -Wno-uninitialized")
+    string(APPEND CMAKE_CXX_FLAGS " -Wall -Wextra -Werror -Wno-deprecated-copy -Wno-unused-variable -Wno-unused-but-set-variable -Wno-unused-variable -Wno-char-subscripts -Wno-unused-parameter -Wno-sign-compare -Wno-reorder -Wno-unused-local-typedefs -Wno-implicit-fallthrough -Wno-overloaded-virtual -Wno-strict-aliasing -Wno-narrowing -Wno-unused-variable -Wno-uninitialized -Wno-type-limits")
 
     if(APPLE)
         string(APPEND CMAKE_CXX_FLAGS " -fvisibility-inlines-hidden -fvisibility=hidden -Wno-unknown-warning-option -Wno-tautological-overlap-compare")

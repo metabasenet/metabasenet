@@ -12,7 +12,7 @@ namespace po = boost::program_options;
 
 CNetworkConfig::CNetworkConfig()
 {
-    po::options_description desc("MetabaseNetwork");
+    po::options_description desc("MetabaseNetNetwork");
 
     CNetworkConfigOption::AddOptionsImpl(desc);
 

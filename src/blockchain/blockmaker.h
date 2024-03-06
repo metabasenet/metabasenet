@@ -89,27 +89,28 @@ protected:
     bool InterruptedPoW(const uint256& hashPrimary);
     bool WaitExit(const int64 nSeconds);
     bool WaitUpdateEvent(const int64 nSeconds);
-    void PrepareBlock(CBlock& block, const uint256& hashPrev, const uint64 nPrevTime,
+    bool PrepareBlock(CBlock& block, const uint256& hashPrev, const uint64 nPrevTime,
                       const uint32 nPrevHeight, const uint32 nPrevNumber, const CDelegateAgreement& agreement);
-    bool ArrangeBlockTx(CBlock& block, const uint256& hashFork, const CBlockMakerProfile& profile);
+    bool ArrangeBlockTx(CBlock& block, const uint256& hashFork, const CBlockMakerProfile& profile, bool& fMoStatus);
     bool SignBlock(CBlock& block, const CBlockMakerProfile& profile);
     bool DispatchBlock(const uint256& hashFork, const CBlock& block);
-    void ProcessDelegatedProofOfStake(const CAgreementBlock& consParam);
+    bool ProcessDelegatedProofOfStake(const CAgreementBlock& consParam);
     void ProcessSubFork(const CBlockMakerProfile& profile, const CDelegateAgreement& agreement,
                         const uint256& hashRefBlock, const uint64 nRefBlockTime, const int32 nPrevHeight, const uint16 nPrevMintType);
     bool CreateDelegatedBlock(CBlock& block, const uint256& hashFork, const CChainId nChainId, const uint256& hashMainChainRefBlock, const CBlockMakerProfile& profile);
-    bool CreateProofOfWork();
     void PreparePiggyback(CBlock& block, const CDelegateAgreement& agreement, const uint256& hashRefBlock,
                           const uint64 nRefBlockTime, const int32 nPrevHeight, const CForkStatus& status, const uint16 nPrevMintType);
     void CreateExtended(CBlock& block, const CBlockMakerProfile& profile, const CDelegateAgreement& agreement, const uint256& hashRefBlock, const uint256& hashFork,
                         const CChainId nChainId, const uint256& hashPrevBlock, const uint64 nPrevTime, const uint64 nExtendedPrevNumber, const uint16 nExtendedPrevSlot);
     bool CreateVacant(CBlock& block, const CBlockMakerProfile& profile, const CDelegateAgreement& agreement,
                       const uint256& hashRefBlock, const uint256& hashFork, const CChainId nChainId, const uint256& hashPrevBlock,
-                      const uint256& hashPrevStateRoot, const uint64 nTime, const uint64 nBlockNumber);
+                      const uint256& hashPrevStateRoot, const uint64 nTime, const uint64 nBlockNumber, const uint32 nBlockHeight);
     bool ReplenishSubForkVacant(const uint256& hashFork, const CChainId nChainId, int nLastBlockHeight, uint256& hashLastBlock, const uint256& hashLastStateRoot, uint64& nLastBlockNumber,
                                 const CBlockMakerProfile& profile, const CDelegateAgreement& agreement, const uint256& hashRefBlock, const int32 nPrevHeight);
 
 private:
+    bool CreateProofOfWork();
+
     void BlockMakerThreadFunc();
     void PowThreadFunc();
 

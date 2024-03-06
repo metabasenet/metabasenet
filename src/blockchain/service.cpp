@@ -28,7 +28,7 @@ namespace metabasenet
 // CService
 
 CService::CService()
-  : pCoreProtocol(nullptr), pBlockChain(nullptr), pTxPool(nullptr), pDispatcher(nullptr), pWallet(nullptr), pNetwork(nullptr), pForkManager(nullptr), pNetChannel(nullptr)
+  : pCoreProtocol(nullptr), pBlockChain(nullptr), pTxPool(nullptr), pDispatcher(nullptr), pWallet(nullptr), pNetwork(nullptr), pForkManager(nullptr), pNetChannel(nullptr), pBlockFilter(nullptr)
 {
 }
 
@@ -86,6 +86,12 @@ bool CService::HandleInitialize()
         return false;
     }
 
+    if (!GetObject("blockfilter", pBlockFilter))
+    {
+        Error("Failed to request blockfilter");
+        return false;
+    }
+
     return true;
 }
 
@@ -99,6 +105,7 @@ void CService::HandleDeinitialize()
     pNetwork = nullptr;
     pForkManager = nullptr;
     pNetChannel = nullptr;
+    pBlockFilter = nullptr;
 }
 
 bool CService::HandleInvoke()
@@ -165,25 +172,13 @@ bool CService::GetForkRpcPort(const uint256& hashFork, uint16& nRpcPort)
     {
         return false;
     }
-    CForkContext ctxFork;
-    if (!pBlockChain->GetForkContext(hashFork, ctxFork))
-    {
-        return false;
-    }
     if (hashFork == pCoreProtocol->GetGenesisBlockHash())
     {
         nRpcPort = pRpcSrv->nRPCPort;
         return true;
     }
-    for (auto& vd : pRpcSrv->vecChainIdRpcPort)
-    {
-        if (vd.first == ctxFork.nChainId)
-        {
-            nRpcPort = vd.second;
-            return true;
-        }
-    }
-    return false;
+    nRpcPort = pRpcSrv->GetRpcPort(CBlock::GetBlockChainIdByHash(hashFork));
+    return (nRpcPort != 0);
 }
 
 int CService::GetForkCount()
@@ -255,9 +250,85 @@ bool CService::GetForkContext(const uint256& hashFork, CForkContext& ctxtFork, c
     return pBlockChain->GetForkContext(hashFork, ctxtFork, hashMainChainRefBlock);
 }
 
-bool CService::VerifyForkNameAndChainId(const uint256& hashFork, const CChainId nChainIdIn, const std::string& strForkName, const uint256& hashBlock)
+bool CService::VerifyForkFlag(const uint256& hashNewFork, const CChainId nChainIdIn, const std::string& strForkSymbol, const std::string& strForkName, const uint256& hashBlock)
 {
-    return pBlockChain->VerifyForkNameAndChainId(hashFork, nChainIdIn, strForkName, hashBlock);
+    return pBlockChain->VerifyForkFlag(hashNewFork, nChainIdIn, strForkSymbol, strForkName, hashBlock);
+}
+
+bool CService::GetForkCoinCtxByForkSymbol(const std::string& strForkSymbol, CCoinContext& ctxCoin, const uint256& hashMainChainRefBlock)
+{
+    return pBlockChain->GetForkCoinCtxByForkSymbol(strForkSymbol, ctxCoin, hashMainChainRefBlock);
+}
+
+bool CService::GetForkHashByChainId(const CChainId nChainIdIn, uint256& hashFork)
+{
+    uint256 hashLastBlock;
+    if (!pBlockChain->RetrieveForkLast(pCoreProtocol->GetGenesisBlockHash(), hashLastBlock))
+    {
+        return false;
+    }
+    return pBlockChain->GetForkHashByChainId(nChainIdIn, hashFork, hashLastBlock);
+}
+
+bool CService::GetCoinContext(const std::string& strCoinSymbol, CCoinContext& ctxCoin, const uint256& hashLastBlock)
+{
+    uint256 hashMainChainRefBlock;
+    if (hashLastBlock != 0)
+    {
+        if (CBlock::GetBlockChainIdByHash(hashLastBlock) != CBlock::GetBlockChainIdByHash(pCoreProtocol->GetGenesisBlockHash()))
+        {
+            CBlockStatus status;
+            if (!pBlockChain->GetBlockStatus(hashLastBlock, status))
+            {
+                StdLog("CService", "Get balance: Get coin context fail, last block: %s", hashLastBlock.GetBhString().c_str());
+                return false;
+            }
+            hashMainChainRefBlock = status.hashRefBlock;
+        }
+        else
+        {
+            hashMainChainRefBlock = hashLastBlock;
+        }
+    }
+    return pBlockChain->GetForkCoinCtxByForkSymbol(strCoinSymbol, ctxCoin, hashMainChainRefBlock);
+}
+
+bool CService::ListCoinContext(std::map<std::string, CCoinContext>& mapSymbolCoin, const uint256& hashLastBlock)
+{
+    uint256 hashMainChainRefBlock;
+    if (hashLastBlock != 0)
+    {
+        if (CBlock::GetBlockChainIdByHash(hashLastBlock) != CBlock::GetBlockChainIdByHash(pCoreProtocol->GetGenesisBlockHash()))
+        {
+            CBlockStatus status;
+            if (!pBlockChain->GetBlockStatus(hashLastBlock, status))
+            {
+                StdLog("CService", "Get balance: List coin context fail, last block: %s", hashLastBlock.GetBhString().c_str());
+                return false;
+            }
+            hashMainChainRefBlock = status.hashRefBlock;
+        }
+        else
+        {
+            hashMainChainRefBlock = hashLastBlock;
+        }
+    }
+    return pBlockChain->ListCoinContext(mapSymbolCoin, hashMainChainRefBlock);
+}
+
+bool CService::GetDexCoinPairBySymbolPair(const std::string& strSymbol1, const std::string& strSymbol2, uint32& nCoinPair, const uint256& hashMainChainRefBlock)
+{
+    return pBlockChain->GetDexCoinPairBySymbolPair(strSymbol1, strSymbol2, nCoinPair, hashMainChainRefBlock);
+}
+
+bool CService::GetSymbolPairByDexCoinPair(const uint32 nCoinPair, std::string& strSymbol1, std::string& strSymbol2, const uint256& hashMainChainRefBlock)
+{
+    return pBlockChain->GetSymbolPairByDexCoinPair(nCoinPair, strSymbol1, strSymbol2, hashMainChainRefBlock);
+}
+
+bool CService::ListDexCoinPair(const uint32 nCoinPair, const std::string& strCoinSymbol, std::map<uint32, std::pair<std::string, std::string>>& mapDexCoinPair, const uint256& hashMainChainRefBlock)
+{
+    return pBlockChain->ListDexCoinPair(nCoinPair, strCoinSymbol, mapDexCoinPair, hashMainChainRefBlock);
 }
 
 bool CService::GetForkGenealogy(const uint256& hashFork, vector<pair<uint256, int>>& vAncestry, vector<pair<int, uint256>>& vSubline)
@@ -359,6 +430,11 @@ bool CService::GetBlockStatus(const uint256& hashBlock, CBlockStatus& status)
 bool CService::GetLastBlockStatus(const uint256& hashFork, CBlockStatus& status)
 {
     return pBlockChain->GetLastBlockStatus(hashFork, status);
+}
+
+bool CService::IsBlockConfirm(const uint256& hashBlock)
+{
+    return pBlockChain->IsBlockConfirm(hashBlock);
 }
 
 void CService::GetTxPool(const uint256& hashFork, vector<pair<uint256, size_t>>& vTxPool)
@@ -525,16 +601,6 @@ bool CService::CallContract(const bool fEthCall, const uint256& hashFork, const 
     return pBlockChain->CallContract(fEthCall, hashFork, hashBlock, from, to, nAmount, nGasPrice, nGas, btContractParam, nUsedGas, nGasLeft, nStatus, btResult);
 }
 
-bool CService::GetForkHashByChainId(const CChainId nChainIdIn, uint256& hashFork)
-{
-    uint256 hashLastBlock;
-    if (!pBlockChain->RetrieveForkLast(pCoreProtocol->GetGenesisBlockHash(), hashLastBlock))
-    {
-        return false;
-    }
-    return pBlockChain->GetForkHashByChainId(nChainIdIn, hashFork, hashLastBlock);
-}
-
 bool CService::RetrieveContractKvValue(const uint256& hashFork, const uint256& hashBlock, const CDestination& dest, const uint256& key, bytes& value)
 {
     return pBlockChain->RetrieveContractKvValue(hashFork, hashBlock, dest, key, value);
@@ -542,42 +608,73 @@ bool CService::RetrieveContractKvValue(const uint256& hashFork, const uint256& h
 
 uint256 CService::AddLogsFilter(const uint256& hashClient, const uint256& hashFork, const CLogsFilter& logsFilter)
 {
-    return pBlockChain->AddLogsFilter(hashClient, hashFork, logsFilter);
+    std::map<uint256, std::vector<CTransactionReceipt>, CustomBlockHashCompare> mapBlockReceipts; // key: block hash
+    pBlockChain->GetBlockReceiptsByBlock(hashFork, logsFilter.hashFromBlock, logsFilter.hashToBlock, mapBlockReceipts);
+    return pBlockFilter->AddLogsFilter(hashClient, hashFork, logsFilter, mapBlockReceipts);
 }
 
 void CService::RemoveFilter(const uint256& nFilterId)
 {
-    pBlockChain->RemoveFilter(nFilterId);
+    pBlockFilter->RemoveFilter(nFilterId);
 }
 
 bool CService::GetTxReceiptLogsByFilterId(const uint256& nFilterId, const bool fAll, ReceiptLogsVec& receiptLogs)
 {
-    return pBlockChain->GetTxReceiptLogsByFilterId(nFilterId, fAll, receiptLogs);
+    return pBlockFilter->GetTxReceiptLogsByFilterId(nFilterId, fAll, receiptLogs);
 }
 
 bool CService::GetTxReceiptsByLogsFilter(const uint256& hashFork, const CLogsFilter& logsFilter, ReceiptLogsVec& vReceiptLogs)
 {
-    return pBlockChain->GetTxReceiptsByLogsFilter(hashFork, logsFilter, vReceiptLogs);
+    std::map<uint256, std::vector<CTransactionReceipt>, CustomBlockHashCompare> mapBlockReceipts; // key: block hash
+    if (!pBlockChain->GetBlockReceiptsByBlock(hashFork, logsFilter.hashFromBlock, logsFilter.hashToBlock, mapBlockReceipts))
+    {
+        return false;
+    }
+    for (const auto& kv : mapBlockReceipts)
+    {
+        const uint256& hashBlock = kv.first;
+        for (const auto& receipt : kv.second)
+        {
+            MatchLogsVec vLogs;
+            logsFilter.matchesLogs(receipt, vLogs);
+            if (!vLogs.empty())
+            {
+                CReceiptLogs r(vLogs);
+                r.nTxIndex = receipt.nTxIndex;
+                r.txid = receipt.txid;
+                r.nBlockNumber = receipt.nBlockNumber;
+                r.hashBlock = hashBlock;
+                vReceiptLogs.push_back(r);
+
+                if (vReceiptLogs.size() > MAX_FILTER_CACHE_COUNT)
+                {
+                    StdLog("CService", "Get tx receipts by logs filter: Query returned more than %lu results", MAX_FILTER_CACHE_COUNT);
+                    return false;
+                }
+            }
+        }
+    }
+    return true;
 }
 
 uint256 CService::AddBlockFilter(const uint256& hashClient, const uint256& hashFork)
 {
-    return pBlockChain->AddBlockFilter(hashClient, hashFork);
+    return pBlockFilter->AddBlockFilter(hashClient, hashFork);
 }
 
 bool CService::GetFilterBlockHashs(const uint256& hashFork, const uint256& nFilterId, const bool fAll, std::vector<uint256>& vBlockHash)
 {
-    return pBlockChain->GetFilterBlockHashs(hashFork, nFilterId, fAll, vBlockHash);
+    return pBlockFilter->GetFilterBlockHashs(hashFork, nFilterId, fAll, vBlockHash);
 }
 
 uint256 CService::AddPendingTxFilter(const uint256& hashClient, const uint256& hashFork)
 {
-    return pBlockChain->AddPendingTxFilter(hashClient, hashFork);
+    return pBlockFilter->AddPendingTxFilter(hashClient, hashFork);
 }
 
 bool CService::GetFilterTxids(const uint256& hashFork, const uint256& nFilterId, const bool fAll, std::vector<uint256>& vTxid)
 {
-    return pBlockChain->GetFilterTxids(hashFork, nFilterId, fAll, vTxid);
+    return pBlockFilter->GetFilterTxids(hashFork, nFilterId, fAll, vTxid);
 }
 
 bool CService::HaveKey(const CDestination& dest, const int32 nVersion)
@@ -655,8 +752,22 @@ bool CService::Unlock(const CDestination& dest, const crypto::CCryptoString& str
     return pWallet->Unlock(dest, strPassphrase, nTimeout);
 }
 
-bool CService::GetBalance(const uint256& hashFork, const uint256& hashLastBlock, const CDestination& dest, CWalletBalance& balance)
+bool CService::GetBalance(const uint256& hashFork, const uint256& hashLastBlock, const CDestination& dest, const CCoinContext& ctxCoin, CWalletBalance& balance)
 {
+    if (ctxCoin.nCoinType == CCoinContext::CT_COIN_TYPE_CONTRACT)
+    {
+        uint256 nContractBalance;
+        if (!pBlockChain->GetContractBalance(true, hashFork, hashLastBlock, ctxCoin.destContract, dest, nContractBalance))
+        {
+            StdDebug("CService", "Get balance: Get coin balance fail, user address: %s, contract address: %s, fork: %s",
+                     dest.ToString().c_str(), ctxCoin.destContract.ToString().c_str(), hashFork.ToString().c_str());
+            return false;
+        }
+        balance.SetNull();
+        balance.nAvailable = nContractBalance;
+        return true;
+    }
+
     CAddressContext ctxAddress;
     pTxPool->GetDestBalance(hashFork, dest, balance.nDestType, balance.nTemplateType, balance.nTxNonce, balance.nAvailable, balance.nUnconfirmedIn, balance.nUnconfirmedOut, ctxAddress, hashLastBlock);
     if (balance.nAvailable > 0)
@@ -1316,6 +1427,33 @@ bool CService::RetrieveAddressContext(const uint256& hashFork, const CDestinatio
     return pTxPool->GetAddressContext(hashFork, dest, ctxAddress, hashBlock);
 }
 
+uint64 CService::GetDestNextTxNonce(const uint256& hashFork, const CDestination& dest)
+{
+    return pTxPool->GetDestNextTxNonce(hashFork, dest);
+}
+
+bool CService::GetCompleteOrder(const uint256& hashBlock, const CDestination& destOrder, const CChainId nChainIdOwner, const std::string& strCoinSymbolOwner,
+                                const std::string& strCoinSymbolPeer, const uint64 nOrderNumber, uint256& nCompleteAmount, uint64& nCompleteOrderCount)
+{
+    return pBlockChain->GetCompleteOrder(hashBlock, destOrder, nChainIdOwner, strCoinSymbolOwner, strCoinSymbolPeer, nOrderNumber, nCompleteAmount, nCompleteOrderCount);
+}
+
+bool CService::GetCompleteOrder(const uint256& hashBlock, const uint256& hashDexOrder, uint256& nCompleteAmount, uint64& nCompleteOrderCount)
+{
+    return pBlockChain->GetCompleteOrder(hashBlock, hashDexOrder, nCompleteAmount, nCompleteOrderCount);
+}
+
+bool CService::ListAddressDexOrder(const uint256& hashBlock, const CDestination& destOrder, const std::string& strCoinSymbolOwner, const std::string& strCoinSymbolPeer,
+                                   const uint64 nBeginOrderNumber, const uint32 nGetCount, std::map<CDexOrderHeader, CDexOrderSave>& mapDexOrder)
+{
+    return pBlockChain->ListAddressDexOrder(hashBlock, destOrder, strCoinSymbolOwner, strCoinSymbolPeer, nBeginOrderNumber, nGetCount, mapDexOrder);
+}
+
+bool CService::ListMatchDexOrder(const uint256& hashBlock, const std::string& strCoinSymbolSell, const std::string& strCoinSymbolBuy, const uint64 nGetCount, CRealtimeDexOrder& realDexOrder)
+{
+    return pBlockChain->ListMatchDexOrder(hashBlock, strCoinSymbolSell, strCoinSymbolBuy, nGetCount, realDexOrder);
+}
+
 bool CService::AddBlacklistAddress(const CDestination& dest)
 {
     return pBlockChain->AddBlacklistAddress(dest);
@@ -1361,18 +1499,6 @@ uint256 CService::GetForkMintMinGasPrice(const uint256& hashFork)
     return pBlockChain->GetForkMintMinGasPrice(hashFork);
 }
 
-bytes CService::MakeEthTxCallData(const std::string& strFunction, const std::vector<bytes>& vParamList)
-{
-    bytes btData;
-    bytes btFuncSign = CryptoKeccakSign(strFunction);
-    btData.insert(btData.end(), btFuncSign.begin(), btFuncSign.end());
-    for (auto& p : vParamList)
-    {
-        btData.insert(btData.end(), p.begin(), p.end());
-    }
-    return btData;
-}
-
 bool CService::GetWork(vector<unsigned char>& vchWorkData, int& nPrevBlockHeight,
                        uint256& hashPrev, int& nAlgo,
                        int& nBits, const CTemplateMintPtr& templMint)
@@ -1383,13 +1509,22 @@ bool CService::GetWork(vector<unsigned char>& vchWorkData, int& nPrevBlockHeight
     CBlockStatus status;
     if (!pBlockChain->GetLastBlockStatus(pCoreProtocol->GetGenesisBlockHash(), status))
     {
-        StdTrace("CService", "Get work: Get last block status fail");
+        StdTrace("CService", "Get work: Get primary last block status fail");
         return false;
     }
+    if (!pBlockChain->VerifyPrimaryBlockConfirm(status.hashBlock))
+    {
+        StdDebug("CService", "Get work: Primary prev block no confirm, prev block: %s", status.hashBlock.GetBhString().c_str());
+        pDispatcher->NotifyBlockVoteChnNewBlock(status.hashBlock);
+        return false;
+    }
+
     hashPrev = status.hashBlock;
     nPrevBlockHeight = status.nBlockHeight;
     block.hashPrev = hashPrev;
     block.nNumber = status.nBlockNumber + 1;
+    block.nHeight = CBlock::GetBlockHeightByHash(hashPrev) + 1;
+    block.nSlot = 0;
 
     // uint32 nNextTimestamp = pCoreProtocol->GetNextBlockTimestamp(status.nBlockTime);
     // block.nTimeStamp = nNextTimestamp;
@@ -1463,7 +1598,7 @@ Errno CService::SubmitWork(const vector<unsigned char>& vchWorkData,
     try
     {
         uint64 nBlockTime;
-        ss >> block.nVersion >> block.nType >> nBlockTime >> block.nNumber >> block.nSlot >> block.hashPrev >> block.mapProof;
+        ss >> block.nVersion >> block.nType >> nBlockTime >> block.nNumber >> block.nHeight >> block.nSlot >> block.hashPrev >> block.mapProof;
         block.SetBlockTime(nBlockTime);
         if (!block.GetHashWorkProof(proof))
         {
@@ -1494,6 +1629,22 @@ Errno CService::SubmitWork(const vector<unsigned char>& vchWorkData,
     {
         StdError("CService", "Submit work: Get block mint reward fail");
         return FAILED;
+    }
+
+    bytes btDbBitmap;
+    bytes btDbAggSig;
+    bool fDbAtChain = false;
+    uint256 hashDbAtBlock;
+    if (pBlockChain->RetrieveBlockVoteResult(block.hashPrev, btDbBitmap, btDbAggSig, fDbAtChain, hashDbAtBlock) && !fDbAtChain)
+    {
+        block.AddBlockVoteSig(CBlockVoteSig(block.hashPrev, btDbBitmap, btDbAggSig));
+    }
+
+    //StdDebug("TEST", "SubmitWork: GetCrosschainProveForPrevBlock, chainid: %d,", block.GetChainId());
+    std::map<CChainId, CBlockProve> mapCrosschainProve;
+    if (pBlockChain->GetCrosschainProveForPrevBlock(block.GetChainId(), block.hashPrev, mapCrosschainProve))
+    {
+        block.mapProve = mapCrosschainProve;
     }
 
     CTransaction& txMint = block.txMint;
@@ -1549,10 +1700,11 @@ Errno CService::SubmitWork(const vector<unsigned char>& vchWorkData,
     block.nGasLimit = MAX_BLOCK_GAS_LIMIT;
 
     uint256 nTotalMintReward;
+    bool fMoStatus = false;
     if (!pBlockChain->CreateBlockStateRoot(pCoreProtocol->GetGenesisBlockHash(), block, block.hashStateRoot, block.hashReceiptsRoot,
-                                           block.nGasUsed, block.btBloomData, nTotalMintReward))
+                                           block.hashCrosschainMerkleRoot, block.nGasUsed, block.btBloomData, nTotalMintReward, fMoStatus))
     {
-        StdError("CService", "Submit work: Get block state root fail, block: %s", block.GetHash().ToString().c_str());
+        StdError("CService", "Submit work: Get block state root fail, prev block: %s", block.hashPrev.ToString().c_str());
         pTxPool->ClearTxPool(pCoreProtocol->GetGenesisBlockHash());
         return FAILED;
     }
@@ -1560,8 +1712,7 @@ Errno CService::SubmitWork(const vector<unsigned char>& vchWorkData,
 
     //block.AddMintCoinProof(nMintCoin);
     block.AddMintRewardProof(nTotalMintReward);
-
-    block.hashMerkleRoot = block.CalcMerkleTreeRoot();
+    block.UpdateMerkleRoot();
 
     hashBlock = block.GetHash();
     bytes btSigData;
