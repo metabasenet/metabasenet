@@ -1028,27 +1028,7 @@ boost::optional<std::string> CService::CreateTransaction(const uint256& hashFork
         }
     }
 
-    uint256 nTvGas;
-    if (!txNew.GetFromAddress().IsNull())
-    {
-        CAddressContext ctxFromAddress;
-        if (!pTxPool->GetAddressContext(hashFork, txNew.GetFromAddress(), ctxFromAddress))
-        {
-            return funcReturnError(std::string("From address error, from: ") + txNew.GetFromAddress().ToString());
-        }
-        if (ctxFromAddress.IsPubkey())
-        {
-            CTimeVault tv;
-            if (!pBlockChain->RetrieveTimeVault(hashFork, statusFork.hashBlock, txNew.GetFromAddress(), tv))
-            {
-                tv.SetNull();
-            }
-            uint256 nTvFee = tv.EstimateTransTvGasFee(GetNetTime() + ESTIMATE_TIME_VAULT_TS, txNew.GetAmount());
-            CTimeVault::CalcRealityTvGasFee(txNew.GetGasPrice(), nTvFee, nTvGas);
-        }
-    }
-
-    uint256 nNeedGas = txNew.GetTxBaseGas() + nTvGas;
+    uint256 nNeedGas = txNew.GetTxBaseGas();
     if (!fToContractAddress && nGas == 0)
     {
         txNew.SetGasLimit(nNeedGas);
@@ -1114,31 +1094,7 @@ boost::optional<std::string> CService::SignEthTransaction(const uint256& hashFor
     else
         ets.gasPrice = nGasPrice;
 
-    uint256 nTvGas;
-    if (!destFrom.IsNull())
-    {
-        CAddressContext ctxFromAddress;
-        if (!pTxPool->GetAddressContext(hashFork, destFrom, ctxFromAddress))
-        {
-            return funcReturnError(std::string("From address error, from: ") + destFrom.ToString());
-        }
-        if (ctxFromAddress.IsPubkey())
-        {
-            CTimeVault tv;
-            if (!pBlockChain->RetrieveTimeVault(hashFork, statusFork.hashBlock, destFrom, tv))
-            {
-                tv.SetNull();
-            }
-            uint256 nTvFee = tv.EstimateTransTvGasFee(GetNetTime() + ESTIMATE_TIME_VAULT_TS, nAmount);
-            CTimeVault::CalcRealityTvGasFee(ets.gasPrice, nTvFee, nTvGas);
-            if (nTvGas == 0)
-            {
-                nTvGas = 1;
-            }
-        }
-    }
-
-    uint256 nNeedGas = CTransaction::GetTxBaseGasStatic(btData.size()) + nTvGas + nAddGas;
+    uint256 nNeedGas = CTransaction::GetTxBaseGasStatic(btData.size()) + nAddGas;
     if (nGas == 0)
     {
         ets.gas = nNeedGas;
@@ -1300,11 +1256,6 @@ bool CService::ListContractAddress(const uint256& hashFork, const uint256& hashR
         }
     }
     return pBlockChain->ListContractAddress(hashFork, hashLastBlock, mapContractAddress);
-}
-
-bool CService::RetrieveTimeVault(const uint256& hashFork, const uint256& hashBlock, const CDestination& dest, CTimeVault& tv)
-{
-    return pBlockChain->RetrieveTimeVault(hashFork, hashBlock, dest, tv);
 }
 
 bool CService::GetAddressCount(const uint256& hashFork, const uint256& hashBlock, uint64& nAddressCount, uint64& nNewAddressCount)

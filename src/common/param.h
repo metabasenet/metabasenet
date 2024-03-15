@@ -27,15 +27,15 @@ static const uint32 TOKEN_DECIMAL_DIGIT = 18;
 static const uint256 COIN(10, TOKEN_DECIMAL_DIGIT);
 static const uint256 MIN_GAS_PRICE_0(10, 12);
 static const uint256 MIN_GAS_PRICE(10, 10);
-static const uint256 TX_BASE_GAS(21000);
+static const uint256 TX_BASE_GAS(21'000);
 static const uint256 DATA_GAS_PER_BYTE(50);
-static const uint256 DEF_TX_GAS_LIMIT(9000000);
-static const uint256 MAX_MONEY = COIN * uint256(1000000000000L);
+static const uint256 DEF_TX_GAS_LIMIT(9'000'000);
+static const uint256 MAX_MONEY = COIN * uint256(1'000'000'000'000L);
 inline bool MoneyRange(const uint256& nValue)
 {
     return (nValue <= MAX_MONEY);
 }
-static const uint256 MAX_REWARD_MONEY = COIN * 1000000;
+static const uint256 MAX_REWARD_MONEY = COIN * 1'000'000;
 inline bool RewardRange(const uint256& nValue)
 {
     return (nValue <= MAX_REWARD_MONEY);
@@ -45,7 +45,7 @@ static const unsigned int MAX_BLOCK_SIZE = 1024 * 1024 * 2;
 static const unsigned int MAX_TX_SIZE = (MAX_BLOCK_SIZE / 20);
 static const unsigned int MAX_SIGNATURE_SIZE = 2048;
 static const unsigned int MAX_TX_INPUT_COUNT = (MAX_TX_SIZE - MAX_SIGNATURE_SIZE - 4) / 33;
-static const int64 MAX_BLOCK_GAS_LIMIT = 10000 * 10000 * 10;
+static const int64 MAX_BLOCK_GAS_LIMIT = 1'000'000'000;
 
 #define BLOCK_TARGET_SPACING GET_FAST_PARAM(60, 5, 1)
 #define EXTENDED_BLOCK_SPACING GET_PARAM(1, 1)
@@ -73,7 +73,7 @@ static const int64 MAX_BLOCK_GAS_LIMIT = 10000 * 10000 * 10;
 
 ///////////////////////////////////
 // FORK
-const uint256 MORTGAGE_BASE = 100000 * COIN;
+const uint256 MORTGAGE_BASE = 100'000 * COIN;
 #define MORTGAGE_DECAY_CYCLE_MAINNET (DAY_HEIGHT_MAINNET * 90)
 #define MORTGAGE_DECAY_CYCLE_TESTNET (DAY_HEIGHT_TESTNET * 10)
 #define MORTGAGE_DECAY_CYCLE GET_PARAM(MORTGAGE_DECAY_CYCLE_MAINNET, MORTGAGE_DECAY_CYCLE_TESTNET)
@@ -88,12 +88,12 @@ static const bool fCreateUserForkEnable = false;
 // CORE
 static const int64 MAX_CLOCK_DRIFT = 80;
 
-static const uint256 BBCP_TOKEN_INIT = 100000 * 10000 * COIN;
+static const uint256 BBCP_TOKEN_INIT = 1'000'000'000 * COIN;
 static const uint256 BBCP_REWARD_INIT = 357 * COIN;
 #define BBCP_REWARD_HALVE_CYCLE (DAY_HEIGHT * 365 * 4)
 
-static const uint256 DELEGATE_PROOF_OF_STAKE_ENROLL_MINIMUM_AMOUNT = 100 * 10000 * COIN;
-static const uint256 DELEGATE_PROOF_OF_STAKE_ENROLL_MAXIMUM_AMOUNT_MAINNET = 30000 * 10000 * COIN;
+static const uint256 DELEGATE_PROOF_OF_STAKE_ENROLL_MINIMUM_AMOUNT = 1'000'000 * COIN;
+static const uint256 DELEGATE_PROOF_OF_STAKE_ENROLL_MAXIMUM_AMOUNT_MAINNET = 300'000'000 * COIN;
 #define DELEGATE_PROOF_OF_STAKE_ENROLL_MAXIMUM_AMOUNT GET_PARAM(DELEGATE_PROOF_OF_STAKE_ENROLL_MAXIMUM_AMOUNT_MAINNET, BBCP_TOKEN_INIT)
 static const uint256 DELEGATE_PROOF_OF_STAKE_UNIT_AMOUNT = COIN;
 static const uint256 DELEGATE_PROOF_OF_STAKE_MIN_VOTE_AMOUNT = COIN;
@@ -112,7 +112,7 @@ static const uint256 DELEGATE_PROOF_OF_STAKE_MIN_VOTE_AMOUNT = COIN;
 #define MAX_COIN_SYMBOL_SIZE (32) // Note: cannot be modified
 #define MAX_FORK_NAME_SIZE (128)
 
-static const int64 MINT_REWARD_PER = 10000;
+static const int64 MINT_REWARD_PER = 10'000;
 static const uint256 CODE_REWARD_USED(50);
 static const uint256 CODE_REWARD_PER(100);
 
@@ -124,23 +124,23 @@ static const bool fEnableStakePledge = true;
 // mainnet
 static const std::map<uint32, std::map<uint16, std::pair<uint32, uint32>>> mapPledgeRewardRuleMainnet = {
     { 0,
-      { { 1, { 365, 10000 } },
-        { 2, { 180, 9000 } },
-        { 3, { 90, 8000 } },
-        { 4, { 30, 7000 } },
-        { 5, { 7, 6000 } } } }
+      { { 1, { 365, 10'000 } },
+        { 2, { 180, 9'000 } },
+        { 3, { 90, 8'000 } },
+        { 4, { 30, 7'000 } },
+        { 5, { 7, 6'000 } } } }
 };
 // testnet
 static const std::map<uint32, std::map<uint16, std::pair<uint32, uint32>>> mapPledgeRewardRuleTestnet = {
     { 0,
-      { { 1, { 12, 10000 } },
-        { 2, { 9, 9000 } },
-        { 3, { 6, 8000 } },
-        { 4, { 3, 7000 } },
-        { 5, { 1, 6000 } } } }
+      { { 1, { 12, 10'000 } },
+        { 2, { 9, 9'000 } },
+        { 3, { 6, 8'000 } },
+        { 4, { 3, 7'000 } },
+        { 5, { 1, 6'000 } } } }
 };
 #define PLEDGE_REWARD_RULE GET_PARAM(mapPledgeRewardRuleMainnet, mapPledgeRewardRuleTestnet)
-static const uint32 PLEDGE_REWARD_PER = 10000;
+static const uint32 PLEDGE_REWARD_PER = 10'000;
 
 // Testnet key:
 // "privkey" : "0xb1edb943754c0a4cca684c9c693e077ebcfe6143747465e8663f77684dc58457",
@@ -160,42 +160,32 @@ static const uint32 PLEDGE_REWARD_PER = 10000;
 // "address" : "0xbb1fabf952bc8bb76c90c98973dcf365d9510c3f"
 
 static const CDestination PLEDGE_SURPLUS_REWARD_ADDRESS_MAINNET("0x420757b308d1273215ddd5e8dfea1802e2983245");
-static const CDestination TIME_VAULT_TO_ADDRESS_MAINNET("0x95e87990e6d431fd6b72f7d7c20cff18786052fa");
 static const CDestination PROJECT_PARTY_REWARD_TO_ADDRESS_MAINNET("0xe7380c1ef8bc0445284e2544f6ad40a6dddf5f6e");
 static const CDestination FOUNDATION_REWARD_TO_ADDRESS_MAINNET("0x3E4f42006eE287a060ddb524E5E0Ab1C5E62B83C");
 
 static const CDestination PLEDGE_SURPLUS_REWARD_ADDRESS_TESTNET("0x028529b9014d4c74903a6d7a67304bb07cca8766");
-static const CDestination TIME_VAULT_TO_ADDRESS_TESTNET("0x21ec10f35c380b0564704f6f591ff3787af24637");
 static const CDestination PROJECT_PARTY_REWARD_TO_ADDRESS_TESTNET("0xcf7a4e019fae16acbba82f65d4b21d9d0e9b303b");
 static const CDestination FOUNDATION_REWARD_TO_ADDRESS_TESTNET("0xbb1fabf952bc8bb76c90c98973dcf365d9510c3f");
 
 #define PLEDGE_SURPLUS_REWARD_ADDRESS GET_TESTMAINNET_PARAM(PLEDGE_SURPLUS_REWARD_ADDRESS_MAINNET, PLEDGE_SURPLUS_REWARD_ADDRESS_TESTNET, PLEDGE_SURPLUS_REWARD_ADDRESS_TESTNET)
-#define TIME_VAULT_TO_ADDRESS GET_TESTMAINNET_PARAM(TIME_VAULT_TO_ADDRESS_MAINNET, TIME_VAULT_TO_ADDRESS_TESTNET, TIME_VAULT_TO_ADDRESS_TESTNET)
 #define PROJECT_PARTY_REWARD_TO_ADDRESS GET_TESTMAINNET_PARAM(PROJECT_PARTY_REWARD_TO_ADDRESS_MAINNET, PROJECT_PARTY_REWARD_TO_ADDRESS_TESTNET, PROJECT_PARTY_REWARD_TO_ADDRESS_TESTNET)
 #define FOUNDATION_REWARD_TO_ADDRESS GET_TESTMAINNET_PARAM(FOUNDATION_REWARD_TO_ADDRESS_MAINNET, FOUNDATION_REWARD_TO_ADDRESS_TESTNET, FOUNDATION_REWARD_TO_ADDRESS_TESTNET)
 
 #define FUNCTION_ID_PLEDGE_SURPLUS_REWARD_ADDRESS 0x01
-#define FUNCTION_ID_TIME_VAULT_TO_ADDRESS 0x02
-#define FUNCTION_ID_PROJECT_PARTY_REWARD_TO_ADDRESS 0x03
-#define FUNCTION_ID_FOUNDATION_REWARD_TO_ADDRESS 0x04
+#define FUNCTION_ID_PROJECT_PARTY_REWARD_TO_ADDRESS 0x02
+#define FUNCTION_ID_FOUNDATION_REWARD_TO_ADDRESS 0x03
 
 static const std::map<uint32, std::string> mapFunctionAddressName = {
     { FUNCTION_ID_PLEDGE_SURPLUS_REWARD_ADDRESS, std::string("Pledge surplus reward address") },
-    { FUNCTION_ID_TIME_VAULT_TO_ADDRESS, std::string("Time vault to address") },
     { FUNCTION_ID_PROJECT_PARTY_REWARD_TO_ADDRESS, std::string("Project party reward address") },
     { FUNCTION_ID_FOUNDATION_REWARD_TO_ADDRESS, std::string("Foundation reward address") },
 };
 
-// TimeVault
-static const uint256 TIME_VAULT_RATE = (uint64)365 * 24 * 3600 * 100;
-static const uint32 ESTIMATE_TIME_VAULT_TS = 3600;
-static const uint32 GIVE_TIME_VAULT_TS = 3600 * 24;
-
 // Reward distribution ratio
 static const bool REWARD_DISTRIBUTION_RATIO_ENABLE = true;
-static const uint32 REWARD_DISTRIBUTION_RATIO_PROJECT_PARTY = 4200;
-static const uint32 REWARD_DISTRIBUTION_RATIO_FOUNDATION = 4000;
-static const uint32 REWARD_DISTRIBUTION_PER = 10000;
+static const uint32 REWARD_DISTRIBUTION_RATIO_PROJECT_PARTY = 4'200;
+static const uint32 REWARD_DISTRIBUTION_RATIO_FOUNDATION = 4'000;
+static const uint32 REWARD_DISTRIBUTION_PER = 10'000;
 
 ///////////////////////////////////
 enum ConsensusMethod

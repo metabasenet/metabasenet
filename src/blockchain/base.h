@@ -130,7 +130,6 @@ public:
     virtual bool GetTxToAddressContext(const uint256& hashFork, const uint256& hashBlock, const CTransaction& tx, CAddressContext& ctxAddress) = 0;
     virtual CTemplatePtr GetTxToAddressTemplatePtr(const uint256& hashFork, const uint256& hashBlock, const CTransaction& tx) = 0;
     virtual bool ListContractAddress(const uint256& hashFork, const uint256& hashBlock, std::map<CDestination, CContractAddressContext>& mapContractAddress) = 0;
-    virtual bool RetrieveTimeVault(const uint256& hashFork, const uint256& hashBlock, const CDestination& dest, CTimeVault& tv) = 0;
     virtual bool RetrieveBlsPubkeyContext(const uint256& hashFork, const uint256& hashBlock, const CDestination& dest, uint384& blsPubkey) = 0;
     virtual bool GetAddressCount(const uint256& hashFork, const uint256& hashBlock, uint64& nAddressCount, uint64& nNewAddressCount) = 0;
     virtual bool RetrieveForkContractCreateCodeContext(const uint256& hashFork, const uint256& hashBlock, const uint256& hashContractCreateCode, CContractCreateCodeContext& ctxtCode) = 0;
@@ -488,7 +487,6 @@ public:
     virtual bool GetForkContractCodeContext(const uint256& hashFork, const uint256& hashRefBlock, const uint256& hashContractCode, CContractCodeContext& ctxtContractCode) = 0;
     virtual bool ListContractCodeContext(const uint256& hashFork, const uint256& hashRefBlock, const uint256& txid, std::map<uint256, CContractCodeContext>& mapContractCode) = 0;
     virtual bool ListContractAddress(const uint256& hashFork, const uint256& hashRefBlock, std::map<CDestination, CContractAddressContext>& mapContractAddress) = 0;
-    virtual bool RetrieveTimeVault(const uint256& hashFork, const uint256& hashBlock, const CDestination& dest, CTimeVault& tv) = 0;
     virtual bool GetAddressCount(const uint256& hashFork, const uint256& hashBlock, uint64& nAddressCount, uint64& nNewAddressCount) = 0;
     virtual bool GeDestContractContext(const uint256& hashFork, const uint256& hashRefBlock, const CDestination& dest, CContractAddressContext& ctxtContract) = 0;
     virtual bool GetContractSource(const uint256& hashFork, const uint256& hashRefBlock, const uint256& hashSource, bytes& btSource) = 0;

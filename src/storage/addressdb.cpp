@@ -17,12 +17,11 @@ namespace storage
 {
 
 const uint8 DB_ADDRESS_KEY_TYPE_ADDRESS = 0x10;
-const uint8 DB_ADDRESS_KEY_TYPE_TIMEVAULT = 0x20;
-const uint8 DB_ADDRESS_KEY_TYPE_TRIEROOT = 0x30;
-const uint8 DB_ADDRESS_KEY_TYPE_PREVROOT = 0x40;
-const uint8 DB_ADDRESS_KEY_TYPE_ADDRESSCOUNT = 0x50;
-const uint8 DB_ADDRESS_KEY_TYPE_FUNCTION_ADDRESS = 0x60;
-const uint8 DB_ADDRESS_KEY_TYPE_BLSPUBKEY = 0x70;
+const uint8 DB_ADDRESS_KEY_TYPE_TRIEROOT = 0x20;
+const uint8 DB_ADDRESS_KEY_TYPE_PREVROOT = 0x30;
+const uint8 DB_ADDRESS_KEY_TYPE_ADDRESSCOUNT = 0x40;
+const uint8 DB_ADDRESS_KEY_TYPE_FUNCTION_ADDRESS = 0x50;
+const uint8 DB_ADDRESS_KEY_TYPE_BLSPUBKEY = 0x60;
 
 #define DB_ADDRESS_KEY_ID_PREVROOT string("prevroot")
 
@@ -139,7 +138,7 @@ bool CForkAddressDB::RemoveAll()
 }
 
 bool CForkAddressDB::AddAddressContext(const uint256& hashPrevBlock, const uint256& hashBlock, const std::map<CDestination, CAddressContext>& mapAddress, const uint64 nNewAddressCount,
-                                       const std::map<CDestination, CTimeVault>& mapTimeVault, const std::map<uint32, CFunctionAddressContext>& mapFunctionAddress, const std::map<CDestination, uint384>& mapBlsPubkeyContext, uint256& hashNewRoot)
+                                       const std::map<uint32, CFunctionAddressContext>& mapFunctionAddress, const std::map<CDestination, uint384>& mapBlsPubkeyContext, uint256& hashNewRoot)
 {
     uint256 hashPrevRoot;
     if (hashBlock != hashFork)
@@ -153,54 +152,41 @@ bool CForkAddressDB::AddAddressContext(const uint256& hashPrevBlock, const uint2
     }
 
     bytesmap mapKv;
-    for (const auto& kv : mapAddress)
+    for (const auto& [k, v] : mapAddress)
     {
         mtbase::CBufStream ssKey, ssValue;
         bytes btKey, btValue;
 
-        ssKey << DB_ADDRESS_KEY_TYPE_ADDRESS << kv.first;
+        ssKey << DB_ADDRESS_KEY_TYPE_ADDRESS << k;
         ssKey.GetData(btKey);
 
-        ssValue << kv.second;
+        ssValue << v;
         ssValue.GetData(btValue);
 
         mapKv.insert(make_pair(btKey, btValue));
     }
-    for (const auto& kv : mapTimeVault)
+    for (const auto& [k, v] : mapFunctionAddress)
     {
         mtbase::CBufStream ssKey, ssValue;
         bytes btKey, btValue;
 
-        ssKey << DB_ADDRESS_KEY_TYPE_TIMEVAULT << kv.first;
+        ssKey << DB_ADDRESS_KEY_TYPE_FUNCTION_ADDRESS << k;
         ssKey.GetData(btKey);
 
-        ssValue << kv.second;
+        ssValue << v;
         ssValue.GetData(btValue);
 
         mapKv.insert(make_pair(btKey, btValue));
     }
-    for (const auto& kv : mapFunctionAddress)
+    for (const auto& [k, v] : mapBlsPubkeyContext)
     {
         mtbase::CBufStream ssKey, ssValue;
         bytes btKey, btValue;
 
-        ssKey << DB_ADDRESS_KEY_TYPE_FUNCTION_ADDRESS << kv.first;
+        ssKey << DB_ADDRESS_KEY_TYPE_BLSPUBKEY << k;
         ssKey.GetData(btKey);
 
-        ssValue << kv.second;
-        ssValue.GetData(btValue);
-
-        mapKv.insert(make_pair(btKey, btValue));
-    }
-    for (const auto& kv : mapBlsPubkeyContext)
-    {
-        mtbase::CBufStream ssKey, ssValue;
-        bytes btKey, btValue;
-
-        ssKey << DB_ADDRESS_KEY_TYPE_BLSPUBKEY << kv.first;
-        ssKey.GetData(btKey);
-
-        ssValue << kv.second;
+        ssValue << v;
         ssValue.GetData(btValue);
 
         mapKv.insert(make_pair(btKey, btValue));
@@ -290,35 +276,6 @@ bool CForkAddressDB::ListContractAddress(const uint256& hashBlock, std::map<CDes
     if (!dbTrie.WalkThroughTrie(hashRoot, walker, btKeyPrefix))
     {
         StdLog("CForkAddressDB", "List contract address: Walk through trie fail, block: %s", hashBlock.GetHex().c_str());
-        return false;
-    }
-    return true;
-}
-
-bool CForkAddressDB::RetrieveTimeVault(const uint256& hashBlock, const CDestination& dest, CTimeVault& tv)
-{
-    uint256 hashRoot;
-    if (!ReadTrieRoot(hashBlock, hashRoot))
-    {
-        StdLog("CForkAddressDB", "Retrieve time vault: Read trie root fail, block: %s", hashBlock.GetHex().c_str());
-        return false;
-    }
-    mtbase::CBufStream ssKey, ssValue;
-    bytes btKey, btValue;
-    ssKey << DB_ADDRESS_KEY_TYPE_TIMEVAULT << dest;
-    ssKey.GetData(btKey);
-    if (!dbTrie.Retrieve(hashRoot, btKey, btValue))
-    {
-        return false;
-    }
-    try
-    {
-        ssValue.Write((char*)(btValue.data()), btValue.size());
-        ssValue >> tv;
-    }
-    catch (std::exception& e)
-    {
-        mtbase::StdError(__PRETTY_FUNCTION__, e.what());
         return false;
     }
     return true;
@@ -714,14 +671,14 @@ void CAddressDB::Clear()
 }
 
 bool CAddressDB::AddAddressContext(const uint256& hashFork, const uint256& hashPrevBlock, const uint256& hashBlock, const std::map<CDestination, CAddressContext>& mapAddress, const uint64 nNewAddressCount,
-                                   const std::map<CDestination, CTimeVault>& mapTimeVault, const std::map<uint32, CFunctionAddressContext>& mapFunctionAddress, const std::map<CDestination, uint384>& mapBlsPubkeyContext, uint256& hashNewRoot)
+                                   const std::map<uint32, CFunctionAddressContext>& mapFunctionAddress, const std::map<CDestination, uint384>& mapBlsPubkeyContext, uint256& hashNewRoot)
 {
     CReadLock rlock(rwAccess);
 
     auto it = mapAddressDB.find(hashFork);
     if (it != mapAddressDB.end())
     {
-        return it->second->AddAddressContext(hashPrevBlock, hashBlock, mapAddress, nNewAddressCount, mapTimeVault, mapFunctionAddress, mapBlsPubkeyContext, hashNewRoot);
+        return it->second->AddAddressContext(hashPrevBlock, hashBlock, mapAddress, nNewAddressCount, mapFunctionAddress, mapBlsPubkeyContext, hashNewRoot);
     }
     return false;
 }
@@ -746,18 +703,6 @@ bool CAddressDB::ListContractAddress(const uint256& hashFork, const uint256& has
     if (it != mapAddressDB.end())
     {
         return it->second->ListContractAddress(hashBlock, mapContractAddress);
-    }
-    return false;
-}
-
-bool CAddressDB::RetrieveTimeVault(const uint256& hashFork, const uint256& hashBlock, const CDestination& dest, CTimeVault& tv)
-{
-    CReadLock rlock(rwAccess);
-
-    auto it = mapAddressDB.find(hashFork);
-    if (it != mapAddressDB.end())
-    {
-        return it->second->RetrieveTimeVault(hashBlock, dest, tv);
     }
     return false;
 }

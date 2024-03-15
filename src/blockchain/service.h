@@ -110,7 +110,6 @@ public:
     bool GetForkContractCodeContext(const uint256& hashFork, const uint256& hashRefBlock, const uint256& hashContractCode, CContractCodeContext& ctxtContractCode) override;
     bool ListContractCodeContext(const uint256& hashFork, const uint256& hashRefBlock, const uint256& txid, std::map<uint256, CContractCodeContext>& mapContractCode) override;
     bool ListContractAddress(const uint256& hashFork, const uint256& hashRefBlock, std::map<CDestination, CContractAddressContext>& mapContractAddress) override;
-    bool RetrieveTimeVault(const uint256& hashFork, const uint256& hashBlock, const CDestination& dest, CTimeVault& tv) override;
     bool GetAddressCount(const uint256& hashFork, const uint256& hashBlock, uint64& nAddressCount, uint64& nNewAddressCount) override;
     bool GeDestContractContext(const uint256& hashFork, const uint256& hashRefBlock, const CDestination& dest, CContractAddressContext& ctxtContract) override;
     bool GetContractSource(const uint256& hashFork, const uint256& hashRefBlock, const uint256& hashSource, bytes& btSource) override;

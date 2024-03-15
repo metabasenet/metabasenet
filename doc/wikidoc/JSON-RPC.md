@@ -72,7 +72,6 @@ Options:
  - [listdelegate](#listdelegate): List delegate
  - [getdelegatevotes](#getdelegatevotes): Get delegate total votes
  - [getuservotes](#getuservotes): Get user votes
- - [gettimevault](#gettimevault): Get time vault
  - [getaddresscount](#getaddresscount): Get address count
 ### Wallet
  - [listkey](#listkey): Return Object that has pubkey as keys, associated status as values.
@@ -1433,55 +1432,6 @@ Get user votes
 * {"code" : -6, "message" : "Invalid address"}
 * {"code" : -6, "message" : "Invalid block"}
 * {"code" : -32603, "message" : "Query failed"}
-```
-##### [Back to top](#commands)
----
-### gettimevault
-**Usage:**
-```
-        gettimevault <"address"> (-f="fork") (-b="block")
-
-Get time vault
-```
-**Arguments:**
-```
- "address"                              (string, required) pubkey address
- -f="fork"                              (string, optional) fork hash
- -b="block"                             (string, optional) block hash or number or latest (default latest block)
-```
-**Request:**
-```
- "param" :
- {
-   "address": "",                       (string, required) pubkey address
-   "fork": "",                          (string, optional) fork hash
-   "block": ""                          (string, optional) block hash or number or latest (default latest block)
- }
-```
-**Response:**
-```
- "result" :
- {
-   "timevault": "",                     (string, required) time vault (big float)
-   "balance": "",                       (string, required) address balance (big float)
-   "prevsettlementtime": 0              (uint, required) prev settlement time
- }
-```
-**Examples:**
-```
->> metabasenet-cli gettimevault 0x1882823f69b35fbf58833f2892b0cfdabddf0c63
-<< {"timevault" : "-1.965492723527062302","balance" : "5005516.535824644556392517","prevsettlementtime" : 1685621282}
-
->> curl -d '{"id":1,"method":"gettimevault","jsonrpc":"2.0","params":{"address":"0x1882823f69b35fbf58833f2892b0cfdabddf0c63"}}' http://127.0.0.1:8812
-<< {"id":0,"jsonrpc":"2.0","result":{"timevault" : "-1.965492723527062302","balance" : "5005516.535824644556392517","prevsettlementtime" : 1685621282}}
-```
-**Errors:**
-```
-* {"code" : -6, "message" : "Invalid address"}
-* {"code" : -6, "message" : "Invalid fork"}
-* {"code" : -6, "message" : "Unknown fork"}
-* {"code" : -6, "message" : "Invalid block"}
-* {"code" : -6, "message" : "Block status error"}
 ```
 ##### [Back to top](#commands)
 ---
@@ -4107,7 +4057,6 @@ Get transaction receipt
    "effectiveGasPrice": "",             (string, optional) effective gas price (big float)
    "effectiveGasFee": "",               (string, optional) effective gas fee (big float)
    "gasUsed": 0,                        (uint, optional) gas used
-   "gasTv": 0,                          (uint, optional) time vault gas
    "contractAddress": "",               (string, optional) contract address
    "root": "",                          (string, optional) root
    "status": "",                        (string, optional) status, 0x1: ok, 0x0: fail
@@ -4145,10 +4094,10 @@ Get transaction receipt
 **Examples:**
 ```
 >> metabasenet-cli gettransactionreceipt 0x69350f7d89081c0ceb3ebb3f354840ab3f662a418140e386e7eb9e7b093987b4
-<< {"transactionHash":"0x69350f7d89081c0ceb3ebb3f354840ab3f662a418140e386e7eb9e7b093987b4","transactionIndex":11,"blockHash":"0x000016c4eae1e0730e4a428aba13b90f9229f5d0c317f0dc44630ef7e465e781","blockNumber":5828,"from":"0x5962974eeb0b17b43edabfc9b747839317aa852f","to":"0xb955034fcefb66112bab47483c8d243b86cb2c1d","cumulativeGasUsed":21000,"effectiveGasPrice":"0.000001","effectiveGasFee":"0.021","gasUsed":21000,"gasTv":0,"status":"0x1","logsBloom":"","logs":[{}],"internaltx":[{}]}
+<< {"transactionHash":"0x69350f7d89081c0ceb3ebb3f354840ab3f662a418140e386e7eb9e7b093987b4","transactionIndex":11,"blockHash":"0x000016c4eae1e0730e4a428aba13b90f9229f5d0c317f0dc44630ef7e465e781","blockNumber":5828,"from":"0x5962974eeb0b17b43edabfc9b747839317aa852f","to":"0xb955034fcefb66112bab47483c8d243b86cb2c1d","cumulativeGasUsed":21000,"effectiveGasPrice":"0.000001","effectiveGasFee":"0.021","gasUsed":21000,"status":"0x1","logsBloom":"","logs":[{}],"internaltx":[{}]}
 
 >> curl -d '{"id":3,"method":"gettransactionreceipt","jsonrpc":"2.0","params":{"txid":"0x69350f7d89081c0ceb3ebb3f354840ab3f662a418140e386e7eb9e7b093987b4"}}' http://127.0.0.1:8812
-<< {"id":3,"jsonrpc":"2.0","result":"{"transactionHash":"0x69350f7d89081c0ceb3ebb3f354840ab3f662a418140e386e7eb9e7b093987b4","transactionIndex":11,"blockHash":"0x000016c4eae1e0730e4a428aba13b90f9229f5d0c317f0dc44630ef7e465e781","blockNumber":5828,"from":"0x5962974eeb0b17b43edabfc9b747839317aa852f","to":"0xb955034fcefb66112bab47483c8d243b86cb2c1d","cumulativeGasUsed":21000,"effectiveGasPrice":"0.000001","effectiveGasFee":"0.021","gasUsed":21000,"gasTv":0,"status":"0x1","logsBloom":"","logs":[{}],"internaltx":[{}]}"}
+<< {"id":3,"jsonrpc":"2.0","result":"{"transactionHash":"0x69350f7d89081c0ceb3ebb3f354840ab3f662a418140e386e7eb9e7b093987b4","transactionIndex":11,"blockHash":"0x000016c4eae1e0730e4a428aba13b90f9229f5d0c317f0dc44630ef7e465e781","blockNumber":5828,"from":"0x5962974eeb0b17b43edabfc9b747839317aa852f","to":"0xb955034fcefb66112bab47483c8d243b86cb2c1d","cumulativeGasUsed":21000,"effectiveGasPrice":"0.000001","effectiveGasFee":"0.021","gasUsed":21000,"status":"0x1","logsBloom":"","logs":[{}],"internaltx":[{}]}"}
 ```
 **Errors:**
 ```

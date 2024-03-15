@@ -98,7 +98,7 @@ public:
                                    const uint256& hashRefBlock, const std::vector<std::pair<uint8, uint256>>& vRefBlockMerkleProve,
                                    const std::vector<std::pair<uint8, uint256>>& vCrossMerkleProveTail);
 
-    bool DoFunctionContractTx(const uint256& txid, const CTransaction& tx, const int nTxIndex, const uint64 nRunGasLimit, const uint256& nTvGasUsedIn, CTransactionReceipt& receipt);
+    bool DoFunctionContractTx(const uint256& txid, const CTransaction& tx, const int nTxIndex, const uint64 nRunGasLimit, CTransactionReceipt& receipt);
     bool DoFuncContractCall(const CDestination& destFrom, const CDestination& destTo, const bytes& btFuncSign, const bytes& btTxParam,
                             const uint64 nGasLimit, uint64& nGasLeft, CTransactionLogs& logs, bytes& btResult);
 
@@ -113,10 +113,9 @@ protected:
     void SetPeerPrevCrossLastBlock();
     uint256 CalcCrosschainMerkleRoot();
 
-    bool AddContractState(const uint256& txid, const CTransaction& tx, const int nTxIndex, const uint64 nRunGasLimit, const uint256& nTvGasUsedIn, bool& fCallResult, CTransactionReceipt& receipt);
+    bool AddContractState(const uint256& txid, const CTransaction& tx, const int nTxIndex, const uint64 nRunGasLimit, bool& fCallResult, CTransactionReceipt& receipt);
     bool DoRunResult(const uint256& txid, const CTransaction& tx, const int nTxIndex, const CDestination& destContractIn,
-                     const uint256& hashContractCreateCode, const uint64 nGasLeftIn, const uint256& nTvGasUsedIn,
-                     const int nStatusCode, const bytes& vResult, CTransactionReceipt& receipt);
+                     const uint256& hashContractCreateCode, const uint64 nGasLeftIn, const int nStatusCode, const bytes& vResult, CTransactionReceipt& receipt);
     void ClearCacheContractData();
     bool CallContractInFunction(const CDestination& destFrom, const CDestination& destContract, const bytes& btRunParam);
     bool ContractInTransfer(const CDestination& destContract, const CDestination& destFrom, const CDestination& destTo, const uint256& nTransferAmount);
@@ -212,7 +211,6 @@ public:
     std::map<CDestination, CDestState> mapBlockState;
     std::map<CDestination, std::map<uint256, bytes>> mapContractKvState;
     std::map<CDestination, CAddressContext> mapBlockAddressContext;
-    std::map<CDestination, uint256> mapBlockPayTvFee;
     std::map<uint256, CContractCreateCodeContext> mapBlockContractCreateCodeContext;
     std::map<uint256, CContractRunCodeContext> mapBlockContractRunCodeContext;
     std::map<uint256, std::vector<CContractTransfer>> mapBlockContractTransfer; // key is txid
@@ -380,8 +378,8 @@ public:
                                   const std::map<uint256, std::vector<CContractTransfer>>& mapContractTransferIn,
                                   const std::map<uint256, uint256>& mapBlockTxFeeUsedIn, const std::map<uint256, std::map<CDestination, uint256>>& mapBlockCodeDestFeeUsedIn,
                                   uint256& hashNewRoot);
-    bool UpdateBlockAddress(const uint256& hashFork, const uint256& hashBlock, const CBlock& block, const std::map<CDestination, CAddressContext>& mapAddressContextIn, const std::map<CDestination, CDestState>& mapBlockStateIn,
-                            const std::map<CDestination, uint256>& mapBlockPayTvFeeIn, const std::map<uint32, CFunctionAddressContext>& mapBlockFunctionAddressIn, uint256& hashNewRoot);
+    bool UpdateBlockAddress(const uint256& hashFork, const uint256& hashBlock, const CBlock& block, const std::map<CDestination, CAddressContext>& mapAddressContextIn, 
+                            const std::map<uint32, CFunctionAddressContext>& mapBlockFunctionAddressIn, uint256& hashNewRoot);
     bool UpdateBlockCode(const uint256& hashFork, const uint256& hashBlock, const CBlock& block, const uint32 nFile, const uint32 nBlockOffset, const std::map<uint256, CContractCreateCodeContext>& mapContractCreateCodeContextIn,
                          const std::map<uint256, CContractRunCodeContext>& mapContractRunCodeContextIn, const std::map<CDestination, CAddressContext>& mapAddressContext, uint256& hashCodeRoot);
     bool UpdateBlockVoteReward(const uint256& hashFork, const uint32 nChainId, const uint256& hashBlock, const CBlockEx& block, uint256& hashNewRoot);
@@ -391,7 +389,6 @@ public:
     bool AddBlockContractKvValue(const uint256& hashFork, const uint256& hashPrevRoot, uint256& hashContractRoot, const std::map<uint256, bytes>& mapContractState);
     bool RetrieveAddressContext(const uint256& hashFork, const uint256& hashBlock, const CDestination& dest, CAddressContext& ctxAddress);
     bool ListContractAddress(const uint256& hashFork, const uint256& hashBlock, std::map<CDestination, CContractAddressContext>& mapContractAddress);
-    bool RetrieveTimeVault(const uint256& hashFork, const uint256& hashBlock, const CDestination& dest, CTimeVault& tv);
     bool GetAddressCount(const uint256& hashFork, const uint256& hashBlock, uint64& nAddressCount, uint64& nNewAddressCount);
     bool ListFunctionAddress(const uint256& hashBlock, std::map<uint32, CFunctionAddressContext>& mapFunctionAddress);
     bool RetrieveFunctionAddress(const uint256& hashBlock, const uint32 nFuncId, CFunctionAddressContext& ctxFuncAddress);

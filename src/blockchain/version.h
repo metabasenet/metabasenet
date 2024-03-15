@@ -16,8 +16,8 @@ namespace metabasenet
 #define VERSION_NAME "MetabaseNet"
 
 #define VERSION_MAJOR 0
-#define VERSION_MINOR 1
-#define VERSION_REVISION 2
+#define VERSION_MINOR 2
+#define VERSION_REVISION 0
 
 std::string FormatVersion(int nVersion);
 

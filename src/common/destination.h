@@ -140,51 +140,6 @@ protected:
     }
 };
 
-class CTimeVault
-{
-    friend class mtbase::CStream;
-
-public:
-    CTimeVault()
-      : nPrevSettlementTime(0), fSurplus(false) {}
-
-    void SetNull()
-    {
-        nPrevSettlementTime = 0;
-        fSurplus = false;
-        nTvAmount = 0;
-        nBalanceAmount = 0;
-    }
-    bool IsNull() const
-    {
-        return (nPrevSettlementTime == 0);
-    }
-    void SettlementTimeVault(const uint64 nBlockTime);
-    void ModifyBalance(const uint256& nBalance);
-    uint256 CalcTransTvGasFee(const uint256& nTransAmount);
-    uint256 EstimateTransTvGasFee(const uint64 nEstimateBlockTime, const uint256& nTransAmount);
-    void PayTvGasFee(const uint256& nTvGasFee);
-
-    static uint256 CalcGiveTvFee(const uint256& nAmount);
-    static void CalcRealityTvGasFee(const uint256& nGasPrice, uint256& nTvGasFee, uint256& nTvGas);
-
-public:
-    uint64 nPrevSettlementTime;
-    bool fSurplus; // true: surplus tv, false: arrears tv
-    uint256 nTvAmount;
-    uint256 nBalanceAmount;
-
-protected:
-    template <typename O>
-    void Serialize(mtbase::CStream& s, O& opt)
-    {
-        s.Serialize(nPrevSettlementTime, opt);
-        s.Serialize(fSurplus, opt);
-        s.Serialize(nTvAmount, opt);
-        s.Serialize(nBalanceAmount, opt);
-    }
-};
-
 class CAddressContext
 {
     friend class mtbase::CStream;

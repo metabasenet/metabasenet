@@ -278,8 +278,6 @@ bool CBlockState::AddTxState(const CTransaction& tx, const int nTxIndex)
         it->second.IncBalance(tx.GetAmount());
     }
 
-    uint256 nTvGasFee;
-    uint256 nTvGas;
     uint256 nLeftGas;
     if (!tx.GetFromAddress().IsNull())
     {
@@ -309,50 +307,13 @@ bool CBlockState::AddTxState(const CTransaction& tx, const int nTxIndex)
         {
             stateFrom.IncTxNonce();
 
-            CAddressContext ctxFromAddress;
-            if (GetAddressContext(tx.GetFromAddress(), ctxFromAddress) && ctxFromAddress.IsPubkey())
-            {
-                CTimeVault tv;
-                if (!dbBlockBase.RetrieveTimeVault(hashFork, hashPrevBlock, tx.GetFromAddress(), tv))
-                {
-                    //StdLog("CBlockState", "Add tx state: Retrieve time vault fail, from: %s, txid: %s", tx.GetFromAddress().ToString().c_str(), txid.GetHex().c_str());
-                    tv.SetNull();
-                }
-                nTvGasFee = tv.EstimateTransTvGasFee(nBlockTimestamp, tx.GetAmount());
-
-                uint256 nPayTvFee;
-                auto ht = mapBlockPayTvFee.find(tx.GetFromAddress());
-                if (ht != mapBlockPayTvFee.end())
-                {
-                    nPayTvFee = ht->second;
-                }
-                uint256 nSyTvFee;
-                if (tv.nTvAmount > nPayTvFee)
-                {
-                    nSyTvFee = tv.nTvAmount - nPayTvFee;
-                }
-                // StdDebug("TEST", "Add tx state: Calc prev, nTvGasFee: %s, nSyTvFee: %s, tv.nTvAmount: %s%s, nPayTvFee: %s, from: %s, txid: %s",
-                //          CoinToTokenBigFloat(nTvGasFee).c_str(), CoinToTokenBigFloat(nSyTvFee).c_str(),
-                //          (tv.fSurplus ? "" : "-"), CoinToTokenBigFloat(tv.nTvAmount).c_str(), CoinToTokenBigFloat(nPayTvFee).c_str(),
-                //          tx.GetFromAddress().ToString().c_str(), txid.GetHex().c_str());
-                if (nTvGasFee > nSyTvFee)
-                {
-                    nTvGasFee = nSyTvFee;
-                }
-                CTimeVault::CalcRealityTvGasFee(tx.GetGasPrice(), nTvGasFee, nTvGas);
-
-                // StdDebug("TEST", "Add tx state: Reality tv gas, nTvGasFee: %s, nTvGas: %lu, from: %s, txid: %s",
-                //          CoinToTokenBigFloat(nTvGasFee).c_str(), nTvGas.Get64(),
-                //          tx.GetFromAddress().ToString().c_str(), txid.GetHex().c_str());
-            }
-
             uint256 nTxBaseGas = tx.GetTxBaseGas();
-            if (nTxBaseGas + nTvGas > tx.GetGasLimit())
+            if (nTxBaseGas > tx.GetGasLimit())
             {
                 // Gas not enough, cancel transaction
 
-                StdLog("CBlockState", "Add tx state: Gas not enough, cancel transaction, base gas: %lu, tv gas: %lu, gas limit: %lu, from: %s, txid: %s",
-                       nTxBaseGas.Get64(), nTvGas.Get64(), tx.GetGasLimit().Get64(), tx.GetFromAddress().ToString().c_str(), txid.GetHex().c_str());
+                StdLog("CBlockState", "Add tx state: Gas not enough, cancel transaction, base gas: %lu, gas limit: %lu, from: %s, txid: %s",
+                       nTxBaseGas.Get64(), tx.GetGasLimit().Get64(), tx.GetFromAddress().ToString().c_str(), txid.GetHex().c_str());
 
                 uint256 nCanLeftGas;
                 if (tx.GetGasLimit() > nTxBaseGas)
@@ -392,7 +353,6 @@ bool CBlockState::AddTxState(const CTransaction& tx, const int nTxIndex)
                 receipt.from = tx.GetFromAddress();
                 receipt.to = tx.GetToAddress();
                 receipt.nTxGasUsed = nTxBaseGas;
-                receipt.nTvGasUsed = 0;
                 receipt.nEffectiveGasPrice = tx.GetGasPrice();
 
                 receipt.CalcLogsBloom();
@@ -410,14 +370,14 @@ bool CBlockState::AddTxState(const CTransaction& tx, const int nTxIndex)
                 return true;
             }
         }
-        nLeftGas = tx.GetGasLimit() - (tx.GetTxBaseGas() + nTvGas);
+        nLeftGas = tx.GetGasLimit() - tx.GetTxBaseGas();
     }
 
     CTransactionReceipt receipt;
     if (fToContract)
     {
         bool fCallResult = true;
-        if (!AddContractState(txid, tx, nTxIndex, nLeftGas.Get64(), nTvGas, fCallResult, receipt))
+        if (!AddContractState(txid, tx, nTxIndex, nLeftGas.Get64(), fCallResult, receipt))
         {
             StdLog("CBlockState", "Add tx state: Add contract state fail, txid: %s", txid.GetHex().c_str());
             return false;
@@ -493,68 +453,7 @@ bool CBlockState::AddTxState(const CTransaction& tx, const int nTxIndex)
         receipt.from = tx.GetFromAddress();
         receipt.to = tx.GetToAddress();
         receipt.nTxGasUsed = nUsedGas;
-        receipt.nTvGasUsed = nTvGas;
         receipt.nEffectiveGasPrice = tx.GetGasPrice();
-    }
-
-    if (nTvGasFee > 0)
-    {
-        nBlockFeeLeft += nTvGasFee;
-
-        uint8 nDestType = CDestination::PREFIX_PUBKEY;
-        uint8 nTemplateType = 0;
-        CDestination destTimeVaultToAddress;
-        CFunctionAddressContext ctxPrevFuncAddress;
-        if (dbBlockBase.RetrieveFunctionAddress(hashPrevBlock, FUNCTION_ID_TIME_VAULT_TO_ADDRESS, ctxPrevFuncAddress))
-        {
-            destTimeVaultToAddress = ctxPrevFuncAddress.GetFunctionAddress();
-            CAddressContext ctxTvAddress;
-            if (GetAddressContext(destTimeVaultToAddress, ctxTvAddress))
-            {
-                // if (ctxTvAddress.IsContract())
-                // {
-                //     CTransaction txTv;
-                //     txTv.SetTxType(CTransaction::TX_INTERNAL);
-                //     txTv.SetChainId(CBlock::GetBlockChainIdByHash(hashFork));
-                //     txTv.SetNonce((nBlockNumber << 32) | nTxIndex);
-                //     txTv.SetToAddress(destTimeVaultToAddress);
-                //     txTv.SetAmount(nTvGasFee);
-
-                //     bool fCallResult = true;
-                //     CTransactionReceipt receiptTv;
-                //     if (!AddContractState(txTv.GetHash(), txTv, 0, DEF_TX_GAS_LIMIT.Get64(), 0, fCallResult, receiptTv))
-                //     {
-                //         // Execution failure does not affect the process.
-                //         StdLog("CBlockState", "Add tx state: Add tv contract state fail, txid: %s", txid.GetHex().c_str());
-                //     }
-                //     else
-                //     {
-                //         StdDebug("CBlockState", "Add tx state: Add tv contract state success, call result: %s, txid: %s", (fCallResult ? "true" : "false"), txid.GetHex().c_str());
-                //     }
-                // }
-                nDestType = ctxTvAddress.GetDestType();
-                nTemplateType = ctxTvAddress.GetTemplateType();
-            }
-        }
-        else
-        {
-            destTimeVaultToAddress = TIME_VAULT_TO_ADDRESS;
-        }
-
-        CDestState stateTvOwner;
-        if (!GetDestState(destTimeVaultToAddress, stateTvOwner))
-        {
-            stateTvOwner.SetNull();
-            stateTvOwner.SetType(nDestType, nTemplateType);
-        }
-        stateTvOwner.IncBalance(nTvGasFee);
-        SetDestState(destTimeVaultToAddress, stateTvOwner);
-
-        mapBlockPayTvFee[tx.GetFromAddress()] += nTvGasFee;
-
-        CContractTransfer ctrTransfer(CContractTransfer::CT_TIMEVAULT, tx.GetFromAddress(), destTimeVaultToAddress, nTvGasFee);
-        mapBlockContractTransfer[txid].push_back(ctrTransfer);
-        receipt.vTransfer.push_back(ctrTransfer);
     }
 
     receipt.CalcLogsBloom();
@@ -695,7 +594,6 @@ bool CBlockState::DoBlockState(uint256& hashReceiptRoot, uint256& nBlockGasUsed,
         receiptMintTx.from = mintTx.GetFromAddress();
         receiptMintTx.to = mintTx.GetToAddress();
         receiptMintTx.nTxGasUsed = 0;
-        receiptMintTx.nTvGasUsed = 0;
         receiptMintTx.nEffectiveGasPrice = mintTx.GetGasPrice();
 
         receiptMintTx.CalcLogsBloom();
@@ -1220,7 +1118,6 @@ void CBlockState::CreateFunctionContractData()
     mapBlockAddressContext[FUNCTION_BLACKHOLE_ADDRESS] = CAddressContext(CPubkeyAddressContext());
     mapBlockAddressContext[FUNCTION_CROSSCHAIN_ADDRESS] = CAddressContext(CPubkeyAddressContext());
     mapBlockAddressContext[PLEDGE_SURPLUS_REWARD_ADDRESS] = CAddressContext(CPubkeyAddressContext());
-    mapBlockAddressContext[TIME_VAULT_TO_ADDRESS] = CAddressContext(CPubkeyAddressContext());
     mapBlockAddressContext[PROJECT_PARTY_REWARD_TO_ADDRESS] = CAddressContext(CPubkeyAddressContext());
     mapBlockAddressContext[FOUNDATION_REWARD_TO_ADDRESS] = CAddressContext(CPubkeyAddressContext());
     mapBlockAddressContext[FUNCTION_DEX_POOL_ADDRESS] = CAddressContext(CPubkeyAddressContext());
@@ -1412,7 +1309,7 @@ bool CBlockState::CalcPledgeRedeem()
 
             bool fCallResult = true;
             CTransactionReceipt receiptRedeem;
-            if (!AddContractState(txRedeem.GetHash(), txRedeem, 0, PLEDGE_REDEEM_TX_GAS_LIMIT, 0, fCallResult, receiptRedeem))
+            if (!AddContractState(txRedeem.GetHash(), txRedeem, 0, PLEDGE_REDEEM_TX_GAS_LIMIT, fCallResult, receiptRedeem))
             {
                 // Execution failure does not affect the process.
                 StdLog("CBlockState", "Calc pledge redeem: Add redeem contract state fail");
@@ -1441,9 +1338,6 @@ bool CBlockState::CalcPledgeRedeem()
         mapBlockContractTransfer[txidMint].push_back(ctrTransfer);
 
         receiptMintTx.vTransfer.push_back(ctrTransfer);
-
-        // When redeeming pledge, give timevault
-        mapBlockPayTvFee[destTo] += CTimeVault::CalcGiveTvFee(nRedeemAmount);
 
         StdLog("CBlockState", "Calc pledge redeem: Pledge redeem, redeem amount: %s, pledge address: %s, owner address: %s, block height: %d, prev block: %s",
                CoinToTokenBigFloat(nRedeemAmount).c_str(), destPledge.ToString().c_str(), destTo.ToString().c_str(), nBlockHeight, hashPrevBlock.ToString().c_str());
@@ -1754,14 +1648,14 @@ uint256 CBlockState::CalcCrosschainMerkleRoot()
     return hashMerkleRoot;
 }
 
-bool CBlockState::AddContractState(const uint256& txid, const CTransaction& tx, const int nTxIndex, const uint64 nRunGasLimit, const uint256& nTvGasUsedIn, bool& fCallResult, CTransactionReceipt& receipt)
+bool CBlockState::AddContractState(const uint256& txid, const CTransaction& tx, const int nTxIndex, const uint64 nRunGasLimit, bool& fCallResult, CTransactionReceipt& receipt)
 {
     ClearCacheContractData();
 
     fCallResult = true;
     if (isFunctionContractAddress(tx.GetToAddress()))
     {
-        fCallResult = DoFunctionContractTx(txid, tx, nTxIndex, nRunGasLimit, nTvGasUsedIn, receipt);
+        fCallResult = DoFunctionContractTx(txid, tx, nTxIndex, nRunGasLimit, receipt);
         return true;
     }
 
@@ -1782,7 +1676,7 @@ bool CBlockState::AddContractState(const uint256& txid, const CTransaction& tx, 
     {
         uint64 nGasLeft = 0;
         int nStatusCode = -2; //EVMC_REJECTED
-        if (!DoRunResult(txid, tx, nTxIndex, destContract, hashContractCreateCode, nGasLeft, nTvGasUsedIn, nStatusCode, {}, receipt))
+        if (!DoRunResult(txid, tx, nTxIndex, destContract, hashContractCreateCode, nGasLeft, nStatusCode, {}, receipt))
         {
             StdLog("CBlockState", "Add contract state: Do run result fail, txid: %s", txid.ToString().c_str());
             return false;
@@ -1817,14 +1711,12 @@ bool CBlockState::AddContractState(const uint256& txid, const CTransaction& tx, 
             ClearCacheContractData();
         }
         uint64 nSetGasLeft = vmExec.nGasLeft;
-        uint256 nSetTvGasUsed = nTvGasUsedIn;
         if (tx.IsRewardTx() || tx.IsInternalTx())
         {
             nSetGasLeft = 0;
-            nSetTvGasUsed = 0;
         }
         if (!DoRunResult(txid, tx, nTxIndex, destContract, hashContractCreateCode,
-                         nSetGasLeft, nSetTvGasUsed, vmExec.nStatusCode, vmExec.vResult, receipt))
+                         nSetGasLeft, vmExec.nStatusCode, vmExec.vResult, receipt))
         {
             StdLog("CBlockState", "Add contract state: Do run result fail, txid: %s", txid.ToString().c_str());
             return false;
@@ -1871,8 +1763,8 @@ bool CBlockState::AddContractState(const uint256& txid, const CTransaction& tx, 
 }
 
 bool CBlockState::DoRunResult(const uint256& txid, const CTransaction& tx, const int nTxIndex, const CDestination& destContract,
-                              const uint256& hashContractCreateCode, const uint64 nGasLeftIn, const uint256& nTvGasUsedIn,
-                              const int nStatusCode, const bytes& vResult, CTransactionReceipt& receipt)
+                              const uint256& hashContractCreateCode, const uint64 nGasLeftIn, const int nStatusCode, 
+                              const bytes& vResult, CTransactionReceipt& receipt)
 {
     for (const auto& vd : mapCacheContractData)
     {
@@ -2002,7 +1894,6 @@ bool CBlockState::DoRunResult(const uint256& txid, const CTransaction& tx, const
     receipt.from = tx.GetFromAddress();
     receipt.to = tx.GetToAddress();
     receipt.nTxGasUsed = nTxGasUsed;
-    receipt.nTvGasUsed = nTvGasUsedIn;
     receipt.destContract = destContract;
     receipt.hashContractCode = hashContractCreateCode;
     receipt.nContractStatus = nStatusCode;
@@ -2342,7 +2233,7 @@ uint64 CBlockState::GetMaxDexCoinOrderNumber(const CDestination& destFrom, const
 }
 
 //---------------------------------------------------------------------------------------------------------
-bool CBlockState::DoFunctionContractTx(const uint256& txid, const CTransaction& tx, const int nTxIndex, const uint64 nRunGasLimit, const uint256& nTvGasUsedIn, CTransactionReceipt& receipt)
+bool CBlockState::DoFunctionContractTx(const uint256& txid, const CTransaction& tx, const int nTxIndex, const uint64 nRunGasLimit, CTransactionReceipt& receipt)
 {
     StdDebug("CBlockState", "Do function contract tx, txid: %s", txid.ToString().c_str());
 
@@ -2465,7 +2356,6 @@ bool CBlockState::DoFunctionContractTx(const uint256& txid, const CTransaction& 
         receipt.from = destFrom;
         receipt.to = destTo;
         receipt.nTxGasUsed = nTxGasUsed;
-        receipt.nTvGasUsed = nTvGasUsedIn;
         receipt.destContract = destContract;
         receipt.hashContractCode = hashContractCreateCode;
         receipt.nContractStatus = (fRet ? 0 : 1);
@@ -4721,8 +4611,8 @@ bool CBlockBase::SaveBlock(const uint256& hashFork, const uint256& hashBlock, co
             break;
         }
 
-        if (!UpdateBlockAddress(hashFork, hashBlock, block, ptrBlockStateOut->mapBlockAddressContext, ptrBlockStateOut->mapBlockState,
-                                ptrBlockStateOut->mapBlockPayTvFee, ptrBlockStateOut->mapBlockFunctionAddress, blockRoot.hashAddressRoot))
+        if (!UpdateBlockAddress(hashFork, hashBlock, block, ptrBlockStateOut->mapBlockAddressContext, 
+                                ptrBlockStateOut->mapBlockFunctionAddress, blockRoot.hashAddressRoot))
         {
             StdError("BlockBase", "Save block: Update block address failed, block: %s", hashBlock.ToString().c_str());
             fRet = false;
@@ -6451,8 +6341,8 @@ bool CBlockBase::UpdateBlockAddressTxInfo(const uint256& hashFork, const uint256
     return true;
 }
 
-bool CBlockBase::UpdateBlockAddress(const uint256& hashFork, const uint256& hashBlock, const CBlock& block, const std::map<CDestination, CAddressContext>& mapAddressContextIn, const std::map<CDestination, CDestState>& mapBlockStateIn,
-                                    const std::map<CDestination, uint256>& mapBlockPayTvFeeIn, const std::map<uint32, CFunctionAddressContext>& mapBlockFunctionAddressIn, uint256& hashNewRoot)
+bool CBlockBase::UpdateBlockAddress(const uint256& hashFork, const uint256& hashBlock, const CBlock& block, const std::map<CDestination, CAddressContext>& mapAddressContextIn,
+                                    const std::map<uint32, CFunctionAddressContext>& mapBlockFunctionAddressIn, uint256& hashNewRoot)
 {
     CDestination destGenesisMintAddress;
     CBlockIndex* pIndex = GetIndex(hashFork);
@@ -6501,114 +6391,6 @@ bool CBlockBase::UpdateBlockAddress(const uint256& hashFork, const uint256& hash
         }
     }
 
-    // Settlement time vault
-    const uint64 nBlockTime = block.GetBlockTime();
-    std::map<CDestination, CTimeVault> mapTimeVault;
-    for (auto& kv : mapBlockStateIn)
-    {
-        const CDestination& dest = kv.first;
-        const CDestState& state = kv.second;
-
-        if (!destGenesisMintAddress.IsNull() && destGenesisMintAddress == dest)
-        {
-            continue;
-        }
-        auto it = mapAddressContextIn.find(dest);
-        if (it == mapAddressContextIn.end() || !it->second.IsPubkey())
-        {
-            // Only settle time vault for public key addresses
-            continue;
-        }
-
-        CTimeVault tv;
-        if (!dbBlock.RetrieveTimeVault(hashFork, block.hashPrev, dest, tv))
-        {
-            tv.SetNull();
-        }
-        tv.SettlementTimeVault(nBlockTime);
-        tv.ModifyBalance(state.GetBalance());
-
-        // StdDebug("TEST", "Update Block Address: Settlement time vault, tv: %s%s, balance: %s, dest: %s, block: %s",
-        //          (tv.fSurplus ? "" : "-"), CoinToTokenBigFloat(tv.nTvAmount).c_str(), CoinToTokenBigFloat(tv.nBalanceAmount).c_str(),
-        //          dest.ToString().c_str(), hashBlock.GetHex().c_str());
-
-        mapTimeVault.insert(std::make_pair(dest, tv));
-    }
-    for (auto& kv : mapBlockPayTvFeeIn)
-    {
-        if (kv.second > 0)
-        {
-            const CDestination& dest = kv.first;
-
-            if (!destGenesisMintAddress.IsNull() && destGenesisMintAddress == dest)
-            {
-                continue;
-            }
-            auto nt = mapAddressContextIn.find(dest);
-            if (nt == mapAddressContextIn.end() || !nt->second.IsPubkey())
-            {
-                // Only settle time vault for public key addresses
-                // StdDebug("TEST", "Update Block Address: Pay time vault, find address context fail, find ret: %s, dest: %s, block: %s",
-                //          (nt == mapAddressContextIn.end() ? "false" : "true"), dest.ToString().c_str(), hashBlock.GetHex().c_str());
-                continue;
-            }
-
-            auto it = mapTimeVault.find(dest);
-            if (it == mapTimeVault.end())
-            {
-                CTimeVault tv;
-                if (!dbBlock.RetrieveTimeVault(hashFork, block.hashPrev, dest, tv))
-                {
-                    tv.SetNull();
-                }
-                tv.SettlementTimeVault(nBlockTime);
-                it = mapTimeVault.insert(std::make_pair(dest, tv)).first;
-            }
-            it->second.PayTvGasFee(kv.second);
-
-            // StdDebug("TEST", "Update Block Address: Pay time vault, tv: %s%s, balance: %s, dest: %s, block: %s",
-            //          (it->second.fSurplus ? "" : "-"), CoinToTokenBigFloat(it->second.nTvAmount).c_str(), CoinToTokenBigFloat(it->second.nBalanceAmount).c_str(),
-            //          dest.ToString().c_str(), hashBlock.GetHex().c_str());
-        }
-    }
-
-    // Vote reward give time vault
-    for (auto& tx : block.vtx)
-    {
-        if (tx.GetTxType() == CTransaction::TX_VOTE_REWARD)
-        {
-            const CDestination& dest = tx.GetToAddress();
-
-            if (!destGenesisMintAddress.IsNull() && destGenesisMintAddress == dest)
-            {
-                continue;
-            }
-            auto it = mapAddressContextIn.find(dest);
-            if (it == mapAddressContextIn.end() || !it->second.IsPubkey())
-            {
-                // Only settle time vault for public key addresses
-                continue;
-            }
-
-            auto mt = mapTimeVault.find(dest);
-            if (mt == mapTimeVault.end())
-            {
-                CTimeVault tv;
-                if (!dbBlock.RetrieveTimeVault(hashFork, block.hashPrev, dest, tv))
-                {
-                    tv.SetNull();
-                }
-                tv.SettlementTimeVault(nBlockTime);
-                mt = mapTimeVault.insert(std::make_pair(dest, tv)).first;
-            }
-            mt->second.PayTvGasFee(CTimeVault::CalcGiveTvFee(tx.GetAmount()));
-
-            // StdDebug("TEST", "Update Block Address: Reward give time vault, tv: %s%s, balance: %s, give tv: %s, dest: %s, block: %s",
-            //          (mt->second.fSurplus ? "" : "-"), CoinToTokenBigFloat(mt->second.nTvAmount).c_str(), CoinToTokenBigFloat(mt->second.nBalanceAmount).c_str(),
-            //          CoinToTokenBigFloat(CTimeVault::CalcGiveTvFee(tx.GetAmount())).c_str(), dest.ToString().c_str(), hashBlock.GetHex().c_str());
-        }
-    }
-
     std::map<CDestination, uint384> mapBlsPubkeyContext;
     if (hashFork == hashGenesisBlock)
     {
@@ -6640,7 +6422,7 @@ bool CBlockBase::UpdateBlockAddress(const uint256& hashFork, const uint256& hash
         }
     }
 
-    if (!dbBlock.AddAddressContext(hashFork, block.hashPrev, hashBlock, mapAddAddress, nNewAddressCount, mapTimeVault, mapBlockFunctionAddressIn, mapBlsPubkeyContext, hashNewRoot))
+    if (!dbBlock.AddAddressContext(hashFork, block.hashPrev, hashBlock, mapAddAddress, nNewAddressCount, mapBlockFunctionAddressIn, mapBlsPubkeyContext, hashNewRoot))
     {
         StdLog("BlockBase", "Update Block Address: Add address context fail, block: %s", hashBlock.GetHex().c_str());
         return false;
@@ -6823,11 +6605,6 @@ bool CBlockBase::ListContractAddress(const uint256& hashFork, const uint256& has
     return dbBlock.ListContractAddress(hashFork, hashBlock, mapContractAddress);
 }
 
-bool CBlockBase::RetrieveTimeVault(const uint256& hashFork, const uint256& hashBlock, const CDestination& dest, CTimeVault& tv)
-{
-    return dbBlock.RetrieveTimeVault(hashFork, hashBlock, dest, tv);
-}
-
 bool CBlockBase::GetAddressCount(const uint256& hashFork, const uint256& hashBlock, uint64& nAddressCount, uint64& nNewAddressCount)
 {
     return dbBlock.GetAddressCount(hashFork, hashBlock, nAddressCount, nNewAddressCount);
@@ -6856,10 +6633,6 @@ bool CBlockBase::ListFunctionAddress(const uint256& hashBlock, std::map<uint32, 
     if (mapFunctionAddress.find(FUNCTION_ID_PLEDGE_SURPLUS_REWARD_ADDRESS) == mapFunctionAddress.end())
     {
         mapFunctionAddress[FUNCTION_ID_PLEDGE_SURPLUS_REWARD_ADDRESS] = CFunctionAddressContext(PLEDGE_SURPLUS_REWARD_ADDRESS, false);
-    }
-    if (mapFunctionAddress.find(FUNCTION_ID_TIME_VAULT_TO_ADDRESS) == mapFunctionAddress.end())
-    {
-        mapFunctionAddress[FUNCTION_ID_TIME_VAULT_TO_ADDRESS] = CFunctionAddressContext(TIME_VAULT_TO_ADDRESS, false);
     }
     if (mapFunctionAddress.find(FUNCTION_ID_PROJECT_PARTY_REWARD_TO_ADDRESS) == mapFunctionAddress.end())
     {
@@ -6893,9 +6666,6 @@ bool CBlockBase::GetDefaultFunctionAddress(const uint32 nFuncId, CDestination& d
     {
     case FUNCTION_ID_PLEDGE_SURPLUS_REWARD_ADDRESS:
         destDefFunction = PLEDGE_SURPLUS_REWARD_ADDRESS;
-        break;
-    case FUNCTION_ID_TIME_VAULT_TO_ADDRESS:
-        destDefFunction = TIME_VAULT_TO_ADDRESS;
         break;
     case FUNCTION_ID_PROJECT_PARTY_REWARD_TO_ADDRESS:
         destDefFunction = PROJECT_PARTY_REWARD_TO_ADDRESS;
@@ -8612,7 +8382,6 @@ bool CBlockBase::GetTransactionReceipt(const uint256& hashFork, const uint256& t
         receipt.from = tx.GetFromAddress();
         receipt.to = tx.GetToAddress();
         receipt.nTxGasUsed = tx.GetGasLimit();
-        receipt.nTvGasUsed = 0;
         receipt.nEffectiveGasPrice = tx.GetGasPrice();
     }
     else

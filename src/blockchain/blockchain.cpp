@@ -2044,11 +2044,6 @@ bool CBlockChain::ListContractAddress(const uint256& hashFork, const uint256& ha
     return cntrBlock.ListContractAddress(hashFork, hashBlock, mapContractAddress);
 }
 
-bool CBlockChain::RetrieveTimeVault(const uint256& hashFork, const uint256& hashBlock, const CDestination& dest, CTimeVault& tv)
-{
-    return cntrBlock.RetrieveTimeVault(hashFork, hashBlock, dest, tv);
-}
-
 bool CBlockChain::RetrieveBlsPubkeyContext(const uint256& hashFork, const uint256& hashBlock, const CDestination& dest, uint384& blsPubkey)
 {
     return cntrBlock.RetrieveBlsPubkeyContext(hashFork, hashBlock, dest, blsPubkey);
@@ -2417,17 +2412,8 @@ bool CBlockChain::CallContract(const bool fEthCall, const uint256& hashFork, con
         return false;
     }
 
-    CTimeVault tv;
-    if (!cntrBlock.RetrieveTimeVault(hashFork, hashBlock, from, tv))
-    {
-        tv.SetNull();
-    }
-    uint256 nTvGasFee = tv.EstimateTransTvGasFee(pIndex->GetBlockTime() + ESTIMATE_TIME_VAULT_TS, nAmount);
-    uint256 nTvGas;
-    CTimeVault::CalcRealityTvGasFee(nGasPrice, nTvGasFee, nTvGas);
-
     uint256 nRunGasLimit;
-    uint256 nBaseTvGas = TX_BASE_GAS + CTransaction::GetTxDataGasStatic(btContractParam.size()) + nTvGas;
+    uint256 nBaseGas = TX_BASE_GAS + CTransaction::GetTxDataGasStatic(btContractParam.size());
     if (nGas == 0)
     {
         // Gas is 0, Calc gas used
@@ -2435,13 +2421,13 @@ bool CBlockChain::CallContract(const bool fEthCall, const uint256& hashFork, con
     }
     else
     {
-        if (nGas < nBaseTvGas)
+        if (nGas < nBaseGas)
         {
-            StdLog("BlockChain", "Call contract: Gas not enough, tv gas: %lu, base+tv gas: %lu, gas limit: %lu, from: %s, fork: %s",
-                   nTvGas.Get64(), nBaseTvGas.Get64(), nGas.Get64(), from.ToString().c_str(), hashFork.GetHex().c_str());
+            StdLog("BlockChain", "Call contract: Gas not enough, base gas: %lu, gas limit: %lu, from: %s, fork: %s",
+                   nBaseGas.Get64(), nGas.Get64(), from.ToString().c_str(), hashFork.GetHex().c_str());
             return false;
         }
-        nRunGasLimit = nGas - nBaseTvGas;
+        nRunGasLimit = nGas - nBaseGas;
     }
 
     if (!cntrBlock.CallContractCode(fEthCall, hashFork, ctxFork.nChainId, pIndex->GetAgreement(), pIndex->GetBlockHeight(), pIndex->destMint, MAX_BLOCK_GAS_LIMIT,
@@ -2455,11 +2441,11 @@ bool CBlockChain::CallContract(const bool fEthCall, const uint256& hashFork, con
     {
         if (nRunGasLimit.Get64() <= nGasLeft)
         {
-            nUsedGas = nBaseTvGas;
+            nUsedGas = nBaseGas;
         }
         else
         {
-            nUsedGas = nBaseTvGas + (nRunGasLimit.Get64() - nGasLeft);
+            nUsedGas = nBaseGas + (nRunGasLimit.Get64() - nGasLeft);
         }
     }
     return true;

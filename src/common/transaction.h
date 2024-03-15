@@ -413,8 +413,6 @@ public:
             return "vote";
         case CT_REDEEM:
             return "redeem";
-        case CT_TIMEVAULT:
-            return "timevault";
         case CT_CROSSCHAIN_TRANSFER:
             return "crosschain-transfer";
         case CT_CROSSCHAIN_DEX:
@@ -429,9 +427,8 @@ public:
         CT_CONTRACT = 1,
         CT_VOTE = 2,
         CT_REDEEM = 3,
-        CT_TIMEVAULT = 4,
-        CT_CROSSCHAIN_TRANSFER = 5,
-        CT_CROSSCHAIN_DEX = 6
+        CT_CROSSCHAIN_TRANSFER = 4,
+        CT_CROSSCHAIN_DEX = 5
     };
 
     uint8 nType;
@@ -542,7 +539,6 @@ public:
     uint8 nReceiptType;
     uint8 nContractStatus;
     uint256 nTxGasUsed;
-    uint256 nTvGasUsed;
     std::vector<CContractTransfer> vTransfer;
 
     // extend
@@ -567,7 +563,7 @@ public:
 protected:
     void Serialize(mtbase::CStream& s, mtbase::SaveType&) const
     {
-        s << nReceiptType << nContractStatus << nTxGasUsed.ToValidBigEndianData() << nTvGasUsed.ToValidBigEndianData() << vTransfer;
+        s << nReceiptType << nContractStatus << nTxGasUsed.ToValidBigEndianData() << vTransfer;
         if (nReceiptType == RECEIPT_TYPE_CONTRACT)
         {
             s << mtbase::CVarInt((uint64)nTxIndex);
@@ -587,12 +583,10 @@ protected:
     void Serialize(mtbase::CStream& s, mtbase::LoadType&)
     {
         bytes btTxGasUsed;
-        bytes btTvGasUsed;
 
-        s >> nReceiptType >> nContractStatus >> btTxGasUsed >> btTvGasUsed >> vTransfer;
+        s >> nReceiptType >> nContractStatus >> btTxGasUsed >> vTransfer;
 
         nTxGasUsed.FromValidBigEndianData(btTxGasUsed);
-        nTvGasUsed.FromValidBigEndianData(btTvGasUsed);
 
         if (nReceiptType == RECEIPT_TYPE_CONTRACT)
         {
@@ -634,7 +628,7 @@ protected:
     {
         (void)s;
         mtbase::CBufStream ss;
-        ss << nReceiptType << nContractStatus << nTxGasUsed.ToValidBigEndianData() << nTvGasUsed.ToValidBigEndianData() << vTransfer;
+        ss << nReceiptType << nContractStatus << nTxGasUsed.ToValidBigEndianData() << vTransfer;
         if (nReceiptType == RECEIPT_TYPE_CONTRACT)
         {
             ss << mtbase::CVarInt((uint64)nTxIndex);

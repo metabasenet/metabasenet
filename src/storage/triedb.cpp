@@ -175,7 +175,7 @@ void CTrieExtension::SetKey(const std::vector<uint8>& vKeyNibble)
     flag = ((flag & 0xF0) | nNibbleFlag);
 }
 
-void CTrieExtension::GetKey(std::vector<uint8>& vKeyNibble)
+void CTrieExtension::GetKey(std::vector<uint8>& vKeyNibble) const
 {
     CKeyNibble::Byte2Nibble(key, (flag & 0x0F), vKeyNibble);
 }
@@ -415,9 +415,9 @@ bool CTrieDB::AddNewTrie(const uint256& hashPrevRoot, const bytesmap& mapKvList,
         return false;
     }
 
-    for (auto& kv : mapCacheNode)
+    for (const auto& [k, v] : mapCacheNode)
     {
-        if (!SetDbNodeValue(kv.first, kv.second))
+        if (!SetDbNodeValue(k, v))
         {
             StdLog("CTrieDB", "Add new trie: Set db node value fail, prev root: %s", hashPrevRoot.GetHex().c_str());
             return false;
@@ -604,11 +604,11 @@ bool CTrieDB::CreateTrieNodeList(const uint256& hashPrevRoot, const bytesmap& ma
         return true;
     }
     uint256 hashRoot = hashPrevRoot;
-    for (const auto& kv : mapKvList)
+    for (const auto& [k, v] : mapKvList)
     {
-        bytes nbKeyNibble;
-        CKeyNibble::Byte2Nibble(kv.first, 0, nbKeyNibble);
-        if (!AddNode(hashRoot, nbKeyNibble, kv.second, mapCacheNode))
+        bytes nbKey;
+        CKeyNibble::Byte2Nibble(k, 0, nbKey);
+        if (!AddNode(hashRoot, nbKey, v, mapCacheNode))
         {
             StdLog("CTrieDB", "Create trie node list: Add node fail, prev root: %s", hashPrevRoot.GetHex().c_str());
             return false;

@@ -644,14 +644,6 @@ class CDestState
 {
     friend class mtbase::CStream;
 
-protected:
-    uint8 nType; // high 3 bit: address type, ref CDestination::PREFIX_*, low 5 bit: template type
-    uint64 nTxNonce;
-    uint256 nBalance;
-    uint256 hashStorageRoot;
-    uint256 hashCode;
-    bool fDestroy;
-
 public:
     CDestState()
       : nType(0), nTxNonce(0), fDestroy(false) {}
@@ -780,6 +772,14 @@ protected:
         s.Serialize(hashCode, opt);
         s.Serialize(fDestroy, opt);
     }
+
+protected:
+    uint8 nType; // high 3 bit: address type, ref CDestination::PREFIX_*, low 5 bit: template type
+    uint64 nTxNonce;
+    uint256 nBalance;
+    uint256 hashStorageRoot;
+    uint256 hashCode;
+    bool fDestroy;
 };
 
 class CVoteContext

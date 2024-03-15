@@ -31,12 +31,6 @@ class CTrieBranch
 {
     friend class mtbase::CStream;
 
-protected:
-    std::vector<uint8> keyIndexNext;
-    std::vector<uint8> keyIndexValue;
-    std::vector<uint256> branchNext;
-    std::vector<uint256> branchValue;
-
 public:
     CTrieBranch()
     {
@@ -59,26 +53,27 @@ protected:
         s.Serialize(branchNext, opt);
         s.Serialize(branchValue, opt);
     }
+
+protected:
+    std::vector<uint8> keyIndexNext;
+    std::vector<uint8> keyIndexValue;
+    std::vector<uint256> branchNext;
+    std::vector<uint256> branchValue;
 };
 
 class CTrieExtension
 {
     friend class mtbase::CStream;
 
-protected:
-    uint8 flag; // low 4bit: 0-even key, 1-odd key; high 4bit: 0-next link, 1-value link
-    std::vector<uint8> key;
-    std::vector<uint256> link;
-
 public:
     CTrieExtension()
       : flag(0) {}
 
     void SetKey(const std::vector<uint8>& vKeyNibble);
-    void GetKey(std::vector<uint8>& vKeyNibble);
+    void GetKey(std::vector<uint8>& vKeyNibble) const;
     void SetNextHash(const uint256& hash);
-    void SetValueHash(const uint256& hash);
     uint256 GetNextHash() const;
+    void SetValueHash(const uint256& hash);
     uint256 GetValueHash() const;
 
 protected:
@@ -89,6 +84,11 @@ protected:
         s.Serialize(key, opt);
         s.Serialize(link, opt);
     }
+
+protected:
+    uint8 flag;
+    std::vector<uint8> key;     // length of this field: even or odd, decided by the low 4-bits of field 'flag', 0 - even, 1 - odd
+    std::vector<uint256> link;  // next or value, determined by the high 4-bits of field 'flag', 0 - next, 1 - value. its length is 2 at most, one for next and another for value
 };
 
 class CTrieValue

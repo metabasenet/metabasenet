@@ -391,8 +391,6 @@ CRPCMod::CRPCMod()
         //
         ("getuservotes", &CRPCMod::RPCGetUserVotes)
         //
-        ("gettimevault", &CRPCMod::RPCGetTimeVault)
-        //
         ("getaddresscount", &CRPCMod::RPCGetAddressCount)
         /* Wallet */
         ("listkey", &CRPCMod::RPCListKey)
@@ -2063,65 +2061,6 @@ CRPCResultPtr CRPCMod::RPCGetUserVotes(const CReqContext& ctxReq, CRPCParamPtr p
     }
     spResult->strVotes = CoinToTokenBigFloat(nVotes);
     spResult->nUnlockheight = nUnlockHeight;
-
-    return spResult;
-}
-
-CRPCResultPtr CRPCMod::RPCGetTimeVault(const CReqContext& ctxReq, CRPCParamPtr param)
-{
-    auto spParam = CastParamPtr<CGetTimeVaultParam>(param);
-
-    CDestination address;
-    address.ParseString(spParam->strAddress);
-    if (address.IsNull())
-    {
-        throw CRPCException(RPC_INVALID_PARAMETER, "Invalid address");
-    }
-
-    uint256 hashFork;
-    if (!GetForkHashOfDef(spParam->strFork, ctxReq.hashFork, hashFork))
-    {
-        throw CRPCException(RPC_INVALID_PARAMETER, "Invalid fork");
-    }
-    if (!pService->HaveFork(hashFork))
-    {
-        throw CRPCException(RPC_INVALID_PARAMETER, "Unknown fork");
-    }
-
-    uint256 hashRefBlock = GetRefBlock(hashFork, spParam->strBlock);
-    if (hashRefBlock == 0)
-    {
-        throw CRPCException(RPC_INVALID_PARAMETER, "Invalid block");
-    }
-    CBlockStatus status;
-    if (!pService->GetBlockStatus(hashRefBlock, status))
-    {
-        throw CRPCException(RPC_INVALID_PARAMETER, "Block status error");
-    }
-    if (hashFork != status.hashFork)
-    {
-        throw CRPCException(RPC_INVALID_PARAMETER, "Block is not on chain");
-    }
-
-    CTimeVault tv;
-    if (!pService->RetrieveTimeVault(hashFork, hashRefBlock, address, tv))
-    {
-        tv.SetNull();
-    }
-    uint32 nPrevSettlementTime = tv.nPrevSettlementTime;
-    tv.SettlementTimeVault(status.nBlockTime);
-
-    auto spResult = MakeCGetTimeVaultResultPtr();
-    if (tv.fSurplus || tv.nTvAmount == 0)
-    {
-        spResult->strTimevault = CoinToTokenBigFloat(tv.nTvAmount);
-    }
-    else
-    {
-        spResult->strTimevault = (std::string("-") + CoinToTokenBigFloat(tv.nTvAmount));
-    }
-    spResult->strBalance = CoinToTokenBigFloat(tv.nBalanceAmount);
-    spResult->nPrevsettlementtime = nPrevSettlementTime;
 
     return spResult;
 }
@@ -4622,7 +4561,6 @@ CRPCResultPtr CRPCMod::RPCGetTransactionReceipt(const CReqContext& ctxReq, CRPCP
     spResult->strEffectivegasprice = CoinToTokenBigFloat(receipt.nEffectiveGasPrice);
     spResult->strEffectivegasfee = CoinToTokenBigFloat(receipt.nEffectiveGasPrice * receipt.nTxGasUsed);
     spResult->nGasused = receipt.nTxGasUsed.Get64();
-    spResult->nGastv = receipt.nTvGasUsed.Get64();
     if (!receipt.destContract.IsNull())
     {
         spResult->strContractaddress = receipt.destContract.ToString();
@@ -6694,31 +6632,7 @@ CRPCResultPtr CRPCMod::RPCEthEstimateGas(const CReqContext& ctxReq, CRPCParamPtr
                 tx.SetToAddressData(CAddressContext(CPubkeyAddressContext()));
             }
 
-            uint256 nTvGas;
-            CAddressContext ctxFromAddress;
-            if (pService->RetrieveAddressContext(ctxReq.hashFork, destFrom, ctxFromAddress) && ctxFromAddress.IsPubkey())
-            {
-                uint64 nRefBlockTime;
-                CBlockStatus statusBlock;
-                if (!pService->GetBlockStatus(hashBlock, statusBlock))
-                {
-                    nRefBlockTime = GetNetTime();
-                }
-                else
-                {
-                    nRefBlockTime = statusBlock.nBlockTime;
-                }
-
-                CTimeVault tv;
-                if (!pService->RetrieveTimeVault(ctxReq.hashFork, hashBlock, destFrom, tv))
-                {
-                    tv.SetNull();
-                }
-                uint256 nTvGasFee = tv.EstimateTransTvGasFee(nRefBlockTime + ESTIMATE_TIME_VAULT_TS, nAmount);
-                CTimeVault::CalcRealityTvGasFee(nGasPrice, nTvGasFee, nTvGas);
-            }
-
-            nGasUsed = tx.GetTxBaseGas() + nTvGas;
+            nGasUsed = tx.GetTxBaseGas();
         }
         else
         {
