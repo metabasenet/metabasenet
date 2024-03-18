@@ -187,7 +187,9 @@ def listfork():
         'id': 1,
         'jsonrpc': '2.0',
         'method': 'listfork',
-        'params': {}
+        'params': {
+            'all': True,
+        }
     })
 
     if result:
