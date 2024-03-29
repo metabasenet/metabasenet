@@ -142,17 +142,17 @@ CBlockState::CBlockState(CBlockBase& dbBlockBaseIn, const uint256& hashForkIn, c
     {
         setBlockBloomData.insert(tx.GetHash().GetBytes());
     }
-    uint256 nMintCoint;
-    if (!block.GetMintCoinProof(nMintCoint))
+    uint256 nMintCoin;
+    if (!block.GetMintCoinProof(nMintCoin))
     {
-        nMintCoint = 0;
+        nMintCoin = 0;
     }
     uint256 nTotalTxFee;
     for (auto& tx : block.vtx)
     {
         nTotalTxFee += tx.GetTxFee();
     }
-    nOriginalBlockMintReward = nMintCoint + nTotalTxFee;
+    nOriginalBlockMintReward = nMintCoin + nTotalTxFee;
 }
 
 bool CBlockState::AddTxState(const CTransaction& tx, const int nTxIndex)
@@ -239,8 +239,8 @@ bool CBlockState::AddTxState(const CTransaction& tx, const int nTxIndex)
             fToContract = true;
         }
 
-        auto nt = mapBlockState.find(destTo);
-        if (nt == mapBlockState.end())
+        auto mi = mapBlockState.find(destTo);
+        if (mi == mapBlockState.end())
         {
             CDestState state;
             if (!dbBlockBase.RetrieveDestState(hashFork, hashPrevStateRoot, destTo, state))
@@ -254,11 +254,11 @@ bool CBlockState::AddTxState(const CTransaction& tx, const int nTxIndex)
                 state.SetNull();
                 state.SetType(ctxAddress.GetDestType(), ctxAddress.GetTemplateType());
             }
-            nt = mapBlockState.insert(make_pair(destTo, state)).first;
+            mi = mapBlockState.insert(make_pair(destTo, state)).first;
         }
-        if (nt != mapBlockState.end())
+        if (mi != mapBlockState.end())
         {
-            CDestState& state = nt->second;
+            CDestState& state = mi->second;
             if (state.IsPubkey() && ctxAddress.IsTemplate())
             {
                 // When correcting the address type, it is necessary to simultaneously modify the address type in the status data.
@@ -281,8 +281,8 @@ bool CBlockState::AddTxState(const CTransaction& tx, const int nTxIndex)
     uint256 nLeftGas;
     if (!tx.GetFromAddress().IsNull())
     {
-        auto mt = mapBlockState.find(tx.GetFromAddress());
-        if (mt == mapBlockState.end())
+        auto mi = mapBlockState.find(tx.GetFromAddress());
+        if (mi == mapBlockState.end())
         {
             CDestState state;
             if (!dbBlockBase.RetrieveDestState(hashFork, hashPrevStateRoot, tx.GetFromAddress(), state))
@@ -291,9 +291,9 @@ bool CBlockState::AddTxState(const CTransaction& tx, const int nTxIndex)
                        txid.GetHex().c_str(), tx.GetFromAddress().ToString().c_str());
                 return false;
             }
-            mt = mapBlockState.insert(make_pair(tx.GetFromAddress(), state)).first;
+            mi = mapBlockState.insert(make_pair(tx.GetFromAddress(), state)).first;
         }
-        CDestState& stateFrom = mt->second;
+        CDestState& stateFrom = mi->second;
         if (stateFrom.GetBalance() < (tx.GetAmount() + tx.GetTxFee()))
         {
             StdLog("CBlockState", "Add tx state: From dest balance error, nBalance: %s, nAmount+Fee: %s, txid: %s, from: %s",
@@ -317,7 +317,7 @@ bool CBlockState::AddTxState(const CTransaction& tx, const int nTxIndex)
 
                 uint256 nCanLeftGas;
                 if (tx.GetGasLimit() > nTxBaseGas)
-                {
+                {   // ToDo: never go here
                     nCanLeftGas = tx.GetGasLimit() - nTxBaseGas;
                 }
                 uint256 nLeftFee = tx.GetGasPrice() * nCanLeftGas;
@@ -334,11 +334,11 @@ bool CBlockState::AddTxState(const CTransaction& tx, const int nTxIndex)
                     }
                     it->second.DecBalance(tx.GetAmount());
                 }
-                stateFrom.IncBalance(nLeftFee + tx.GetAmount());
+                stateFrom.IncBalance(nLeftFee + tx.GetAmount());    // ToDo: nLeftFee equals zero
 
                 mapBlockTxFeeUsed[txid] = nUsedFee;
                 nSurplusBlockGasLimit -= nTxBaseGas.Get64();
-                nBlockFeeLeft += nLeftFee;
+                nBlockFeeLeft += nLeftFee;    // ToDo: nLeftFee equals zero
 
                 // Fail receipt
                 CTransactionReceipt receipt;
@@ -432,13 +432,13 @@ bool CBlockState::AddTxState(const CTransaction& tx, const int nTxIndex)
         uint256 nUsedFee = tx.GetGasPrice() * nUsedGas;
         if (nLeftFee > 0 && !tx.GetFromAddress().IsNull())
         {
-            auto mt = mapBlockState.find(tx.GetFromAddress());
-            if (mt == mapBlockState.end())
+            auto mi = mapBlockState.find(tx.GetFromAddress());
+            if (mi == mapBlockState.end())
             {
                 StdLog("CBlockState", "Add tx state: Get from state fail, from: %s, txid: %s", tx.GetFromAddress().ToString().c_str(), txid.GetHex().c_str());
                 return false;
             }
-            mt->second.IncBalance(nLeftFee);
+            mi->second.IncBalance(nLeftFee);
         }
         mapBlockTxFeeUsed[txid] = nUsedFee;
         nSurplusBlockGasLimit -= nUsedGas.Get64();
@@ -484,8 +484,8 @@ bool CBlockState::DoBlockState(uint256& hashReceiptRoot, uint256& nBlockGasUsed,
 
     if (nBlockType == CBlock::BLOCK_GENESIS || nBlockType == CBlock::BLOCK_ORIGIN)
     {
-        auto nt = mapBlockState.find(destMint);
-        if (nt == mapBlockState.end())
+        auto mi = mapBlockState.find(destMint);
+        if (mi == mapBlockState.end())
         {
             CDestState state;
             if (!dbBlockBase.RetrieveDestState(hashFork, hashPrevStateRoot, destMint, state))
@@ -500,9 +500,9 @@ bool CBlockState::DoBlockState(uint256& hashReceiptRoot, uint256& nBlockGasUsed,
                 state.SetNull();
                 state.SetType(ctxAddress.GetDestType(), ctxAddress.GetTemplateType());
             }
-            nt = mapBlockState.insert(make_pair(destMint, state)).first;
+            mi = mapBlockState.insert(make_pair(destMint, state)).first;
         }
-        nt->second.IncBalance(nOriginalBlockMintReward);
+        mi->second.IncBalance(nOriginalBlockMintReward);
     }
 
     if (nBlockType == CBlock::BLOCK_GENESIS || nBlockType == CBlock::BLOCK_ORIGIN)
@@ -618,16 +618,16 @@ bool CBlockState::DoBlockState(uint256& hashReceiptRoot, uint256& nBlockGasUsed,
 
 bool CBlockState::GetDestState(const CDestination& dest, CDestState& stateDest)
 {
-    auto mt = mapCacheContractData.find(dest);
-    if (mt != mapCacheContractData.end() && !mt->second.cacheDestState.IsNull())
+    auto it = mapCacheContractData.find(dest);
+    if (it != mapCacheContractData.end() && !it->second.cacheDestState.IsNull())
     {
-        stateDest = mt->second.cacheDestState;
+        stateDest = it->second.cacheDestState;
         return true;
     }
-    auto it = mapBlockState.find(dest);
-    if (it != mapBlockState.end())
+    auto mi = mapBlockState.find(dest);
+    if (mi != mapBlockState.end())
     {
-        stateDest = it->second;
+        stateDest = mi->second;
         return true;
     }
     return dbBlockBase.RetrieveDestState(hashFork, hashPrevStateRoot, dest, stateDest);
@@ -681,10 +681,10 @@ bool CBlockState::GetAddressContext(const CDestination& dest, CAddressContext& c
         ctxAddress = it->second;
         return true;
     }
-    auto nt = mapBlockAddressContext.find(dest);
-    if (nt != mapBlockAddressContext.end())
+    auto mi = mapBlockAddressContext.find(dest);
+    if (mi != mapBlockAddressContext.end())
     {
-        ctxAddress = nt->second;
+        ctxAddress = mi->second;
         return true;
     }
     return dbBlockBase.RetrieveAddressContext(hashFork, hashPrevBlock, dest, ctxAddress);
@@ -1631,19 +1631,19 @@ uint256 CBlockState::CalcCrosschainMerkleRoot()
     }
 
     std::vector<uint256> vMerkleTree;
-    for (const auto& kv : proveBlockCrosschain.mapCrossProve)
+    for (const auto& [k, v] : proveBlockCrosschain.mapCrossProve)
     {
-        vMerkleTree.push_back(kv.second.first.GetHash());
+        vMerkleTree.push_back(v.first.GetHash());
     }
 
     std::size_t nLeafCount = vMerkleTree.size();
     uint256 hashMerkleRoot = CMerkleTree::BuildMerkleTree(vMerkleTree);
 
     std::size_t nIndex = 0;
-    for (auto& kv : proveBlockCrosschain.mapCrossProve)
+    for (auto& [k, v] : proveBlockCrosschain.mapCrossProve)
     {
-        kv.second.second.clear();
-        CMerkleTree::BuildMerkleProve(nIndex++, vMerkleTree, nLeafCount, kv.second.second);
+        v.second.clear();
+        CMerkleTree::BuildMerkleProve(nIndex++, vMerkleTree, nLeafCount, v.second);
     }
     return hashMerkleRoot;
 }

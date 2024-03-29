@@ -30,7 +30,7 @@ public:
     uint8 nVersion;
     uint8 nType;
     uint64 nTimeStamp;
-    uint64 nNumber;
+    uint64 nNumber; // 0-based starting from genesis block for primary fork or origin block for subsidary fork
     uint32 nHeight;
     uint16 nSlot;
     uint256 hashPrev;
@@ -49,7 +49,7 @@ public:
     std::map<CChainId, CBlockProve> mapProve; // key: peer chainid
 
     enum
-    {
+    {   // block type: no coinbase for extended/vacant
         BLOCK_GENESIS = 0x01,
         BLOCK_PRIMARY = 0x02,
 
@@ -59,13 +59,13 @@ public:
         BLOCK_VACANT = 0x14,
     };
     enum
-    {
+    {   // block proof type
         BP_FORK_PROFILE = 0x01,
         BP_DELEGATE = 0x02,
-        BP_PIGGYBACK = 0x03,
+        BP_PIGGYBACK = 0x03,    // BLOCK_SUBSIDIARY or BLOCK_EXTENDED or BLOCK_VACANT
         BP_HASH_WORK = 0x04,
-        BP_MINTCOIN = 0x05,
-        BP_MINTREWARD = 0x06,
+        BP_MINTCOIN = 0x05,     // coinbase
+        BP_MINTREWARD = 0x06,   // equal to or less than (coinbase + txfees)
         BP_BLOCK_VOTE_SIG = 0x07,
     };
 
@@ -275,7 +275,7 @@ public:
     uint16 nSlot;
     uint64 nNumber;
     uint64 nTxCount;
-    uint64 nRewardTxCount;
+    uint64 nRewardTxCount;  // ToDo
     uint64 nUserTxCount;
     uint256 nAgreement;
     uint256 hashRefBlock;
@@ -640,7 +640,7 @@ public:
     std::vector<uint256> vBlockHash;
 };
 
-class CDestState
+class CDestState    // for account modal (related to UTXO)
 {
     friend class mtbase::CStream;
 
@@ -774,7 +774,7 @@ protected:
     }
 
 protected:
-    uint8 nType; // high 3 bit: address type, ref CDestination::PREFIX_*, low 5 bit: template type
+    uint8 nType; // high 3-bits: address type, CDestination::PREFIX_PUBKEY/PREFIX_TEMPLATE/PREFIX_CONTRACT, low 5-bits: template type
     uint64 nTxNonce;
     uint256 nBalance;
     uint256 hashStorageRoot;
@@ -801,8 +801,8 @@ public:
     CDestination destOwner;
     uint8 nRewardMode;
     uint256 nVoteAmount;
-    uint16 nRewardRate;  // base: 10000, example: 5000 is 50%
-    uint32 nFinalHeight; // 0: unlimit
+    uint16 nRewardRate;  // base: 10000, example: 5000 is 50%   ToDo: to be removed
+    uint32 nFinalHeight; // 0: unlimit   ToDo: to be removed
 
 protected:
     template <typename O>

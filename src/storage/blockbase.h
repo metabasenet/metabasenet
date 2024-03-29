@@ -177,7 +177,7 @@ protected:
     const bool fPrimaryBlock;
     const std::map<CChainId, CBlockProve> mapBlockProve; // key: peer chainid
 
-    uint256 nOriginalBlockMintReward;
+    uint256 nOriginalBlockMintReward;   // coinbase + txfees
     uint256 hashRefBlock;
     uint256 nAgreement;
 

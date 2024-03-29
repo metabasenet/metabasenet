@@ -402,13 +402,13 @@ void CDelegate::GetProof(int nTargetHeight, vector<unsigned char>& vchDelegateDa
         StdLog("CDelegate", "Get proof: hashDistributeBlock is null, target height: %d", nTargetHeight);
         return;
     }
-    map<uint256, CDelegateVote>::iterator mt = mapDistributeVote.find(hashDistribute);
-    if (mt == mapDistributeVote.end())
+    map<uint256, CDelegateVote>::iterator mi = mapDistributeVote.find(hashDistribute);
+    if (mi == mapDistributeVote.end())
     {
         StdLog("CDelegate", "Get proof: find distribute vote fail, target height: %d", nTargetHeight);
         return;
     }
-    mt->second.GetProof(vchDelegateData);
+    mi->second.GetProof(vchDelegateData);
 }
 
 bool CDelegate::IsCompleted(int nTargetHeight)

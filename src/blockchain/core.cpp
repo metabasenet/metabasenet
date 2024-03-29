@@ -134,7 +134,7 @@ void CCoreProtocol::CreateGenesisBlock(const bool fMainnet, const CChainId nChai
 
     block.nVersion = 1;
     block.nType = CBlock::BLOCK_GENESIS;
-    block.SetBlockTime(1691539200);
+    block.SetBlockTime(1691539200); // ToDo
     block.nNumber = 0;
     block.nHeight = 0;
     block.nSlot = 0;
@@ -147,7 +147,7 @@ void CCoreProtocol::CreateGenesisBlock(const bool fMainnet, const CChainId nChai
     tx.SetAmount(BBCP_TOKEN_INIT);
 
     tx.SetToAddressData(CAddressContext(CPubkeyAddressContext()));
-
+    // ToDo
     string strData("Blockchain is more than just a financial instrument; it's a transformative technology. August 9, 2023, marks not only the debut of Hash Ahead but also the dawn of a new era in the widespread adoption of blockchain technology.");
     tx.AddTxData(CTransaction::DF_COMMON, bytes(strData.begin(), strData.end()));
 

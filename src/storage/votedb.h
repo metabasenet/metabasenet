@@ -104,7 +104,7 @@ protected:
 
 class CDayVoteWalker
 {
-public:
+public:                                     // key: delegate address, value: map key: vote address, map value: vote context, second: total vote amount
     virtual bool Walk(const uint32 nHeight, const std::map<CDestination, std::pair<std::map<CDestination, CVoteContext>, uint256>>& mapDelegateVote) = 0;
 };
 
@@ -129,11 +129,8 @@ public:
 
     bool AddNewDelegate(const uint256& hashPrevBlock, const uint256& hashBlock, const std::map<CDestination, uint256>& mapDelegateVote,
                         const std::map<int, std::map<CDestination, CDiskPos>>& mapEnrollTx, uint256& hashDelegateRoot);
-    bool AddDelegateVote(const uint256& hashPrevBlock, const uint256& hashBlock, const std::map<CDestination, uint256>& mapDelegateVote, uint256& hashNewRoot);
-    bool AddDelegateEnroll(const uint256& hashBlock, const std::map<int, std::map<CDestination, CDiskPos>>& mapEnrollTx);
     bool RetrieveDestDelegateVote(const uint256& hashBlock, const CDestination& destDelegate, uint256& nVoteAmount);
     bool RetrieveDelegatedVote(const uint256& hashBlock, std::map<CDestination, uint256>& mapDelegateVote);
-    bool RetrieveDelegatedEnroll(const uint256& hashBlock, std::map<int, std::map<CDestination, CDiskPos>>& mapEnrollTxPos);
     bool RetrieveRangeEnroll(int height, const std::vector<uint256>& vBlockRange, std::map<CDestination, CDiskPos>& mapEnrollTxPos);
     bool VerifyDelegateVote(const uint256& hashPrevBlock, const uint256& hashBlock, uint256& hashRoot, const bool fVerifyAllNode = true);
 
@@ -142,12 +139,15 @@ public:
     bool VerifyVoteReward(const uint256& hashFork, const uint256& hashPrevBlock, const uint256& hashBlock, uint256& hashRoot, const bool fVerifyAllNode = true);
 
 protected:
+    bool AddDelegateVote(const uint256& hashPrevBlock, const uint256& hashBlock, const std::map<CDestination, uint256>& mapDelegateVote, uint256& hashNewRoot);
+    bool AddDelegateEnroll(const uint256& hashBlock, const std::map<int, std::map<CDestination, CDiskPos>>& mapEnrollTx);
+    bool RetrieveDelegatedEnroll(const uint256& hashBlock, std::map<int, std::map<CDestination, CDiskPos>>& mapEnrollTxPos);
+    bool GetMoreIncVote(const uint256& hashBeginBlock, const uint256& hashTailBlock, std::map<uint32, std::map<CDestination, CVoteContext>>& mapIncVote);
+    bool GetCalcDayVote(const uint256& hashBeginBlock, const uint256& hashTailBlock);
     bool WriteTrieRoot(const uint8 nRootType, const uint256& hashBlock, const uint256& hashTrieRoot, const uint64 nVoteCount);
     bool ReadTrieRoot(const uint8 nRootType, const uint256& hashBlock, uint256& hashTrieRoot, uint64& nVoteCount);
     void AddPrevRoot(const uint8 nRootType, const uint256& hashPrevRoot, const uint256& hashBlock, bytesmap& mapKv);
     bool GetPrevRoot(const uint8 nRootType, const uint256& hashRoot, uint256& hashPrevRoot, uint256& hashBlock);
-    bool GetMoreIncVote(const uint256& hashBeginBlock, const uint256& hashTailBlock, std::map<uint32, std::map<CDestination, CVoteContext>>& mapIncVote);
-    bool GetCalcDayVote(const uint256& hashBeginBlock, const uint256& hashTailBlock);
 
 protected:
     enum

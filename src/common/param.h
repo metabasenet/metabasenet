@@ -125,19 +125,19 @@ static const bool fEnableStakePledge = true;
 static const std::map<uint32, std::map<uint16, std::pair<uint32, uint32>>> mapPledgeRewardRuleMainnet = {
     { 0,
       { { 1, { 365, 10'000 } },
-        { 2, { 180, 9'000 } },
-        { 3, { 90, 8'000 } },
-        { 4, { 30, 7'000 } },
-        { 5, { 7, 6'000 } } } }
+        { 2, { 180, 10'000 } },
+        { 3, { 90, 10'000 } },
+        { 4, { 30, 10'000 } },
+        { 5, { 7, 10'000 } } } }
 };
 // testnet
 static const std::map<uint32, std::map<uint16, std::pair<uint32, uint32>>> mapPledgeRewardRuleTestnet = {
     { 0,
       { { 1, { 12, 10'000 } },
-        { 2, { 9, 9'000 } },
-        { 3, { 6, 8'000 } },
-        { 4, { 3, 7'000 } },
-        { 5, { 1, 6'000 } } } }
+        { 2, { 9, 10'000 } },
+        { 3, { 6, 10'000 } },
+        { 4, { 3, 10'000 } },
+        { 5, { 1, 10'000 } } } }
 };
 #define PLEDGE_REWARD_RULE GET_PARAM(mapPledgeRewardRuleMainnet, mapPledgeRewardRuleTestnet)
 static const uint32 PLEDGE_REWARD_PER = 10'000;
@@ -146,10 +146,6 @@ static const uint32 PLEDGE_REWARD_PER = 10'000;
 // "privkey" : "0xb1edb943754c0a4cca684c9c693e077ebcfe6143747465e8663f77684dc58457",
 // "pubkey" : "0x511a81d038912b0a27dcb59197c6d0903c65f75cbb25096f25c72d63baae6229973258d78751fb265714f2d3884e470c7dc5a04c88371d7591dfe6b7136b05af",
 // "address" : "0x028529b9014d4c74903a6d7a67304bb07cca8766"
-
-// "privkey" : "0x3928b2b695bb19cfbaf9372017f82cc877d410a89bd1903e96f9089652a0213b",
-// "pubkey" : "0xc4e16a71275187a274ad1b02cac00bf1ce6000f5b101f47dc14741519061c02494744c3930dd687d504cd25c3899af27583759c0d15b24dc522dee4a7d07a757",
-// "address" : "0x21ec10f35c380b0564704f6f591ff3787af24637"
 
 // "privkey" : "0x9d71a212188553d44a3824fd97b4e19e5d8505d006f3f3cfdd0b7192830038d3",
 // "pubkey" : "0xce94cd7b526cf1d4a27b940b45ae279fa95885ab91630d3817f2155b23c3056cf8a1878ad69fef9bc1cd27a659eb2adddfd62814b430699fcdbcc5059566850d",
@@ -166,7 +162,7 @@ static const CDestination FOUNDATION_REWARD_TO_ADDRESS_MAINNET("0x3E4f42006eE287
 static const CDestination PLEDGE_SURPLUS_REWARD_ADDRESS_TESTNET("0x028529b9014d4c74903a6d7a67304bb07cca8766");
 static const CDestination PROJECT_PARTY_REWARD_TO_ADDRESS_TESTNET("0xcf7a4e019fae16acbba82f65d4b21d9d0e9b303b");
 static const CDestination FOUNDATION_REWARD_TO_ADDRESS_TESTNET("0xbb1fabf952bc8bb76c90c98973dcf365d9510c3f");
-
+// ToDo
 #define PLEDGE_SURPLUS_REWARD_ADDRESS GET_TESTMAINNET_PARAM(PLEDGE_SURPLUS_REWARD_ADDRESS_MAINNET, PLEDGE_SURPLUS_REWARD_ADDRESS_TESTNET, PLEDGE_SURPLUS_REWARD_ADDRESS_TESTNET)
 #define PROJECT_PARTY_REWARD_TO_ADDRESS GET_TESTMAINNET_PARAM(PROJECT_PARTY_REWARD_TO_ADDRESS_MAINNET, PROJECT_PARTY_REWARD_TO_ADDRESS_TESTNET, PROJECT_PARTY_REWARD_TO_ADDRESS_TESTNET)
 #define FOUNDATION_REWARD_TO_ADDRESS GET_TESTMAINNET_PARAM(FOUNDATION_REWARD_TO_ADDRESS_MAINNET, FOUNDATION_REWARD_TO_ADDRESS_TESTNET, FOUNDATION_REWARD_TO_ADDRESS_TESTNET)
@@ -182,7 +178,7 @@ static const std::map<uint32, std::string> mapFunctionAddressName = {
 };
 
 // Reward distribution ratio
-static const bool REWARD_DISTRIBUTION_RATIO_ENABLE = true;
+static const bool REWARD_DISTRIBUTION_RATIO_ENABLE = true;  // whether or not reward project party and fundation, if true, they fetch reward at the most first
 static const uint32 REWARD_DISTRIBUTION_RATIO_PROJECT_PARTY = 4'200;
 static const uint32 REWARD_DISTRIBUTION_RATIO_FOUNDATION = 4'000;
 static const uint32 REWARD_DISTRIBUTION_PER = 10'000;
@@ -196,7 +192,7 @@ enum ConsensusMethod
 };
 
 ///////////////////////////////////
-// FUNCTOIN
+// the list of check points here should be enlarged by time, ToDo: first of all, update it after a while the genesis block was generated
 static const std::map<uint256, std::map<int, uint256>> mapCheckPointsList_Mainnet = {
     { uint256("0xf90329f7f7f6915e588970aeb25e5d83e1ad1670e6fc839ed6322f231e0ae589"), //Genesis
       { { 0, uint256("0xf90329f7f7f6915e588970aeb25e5d83e1ad1670e6fc839ed6322f231e0ae589") } } }

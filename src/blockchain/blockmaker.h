@@ -126,13 +126,13 @@ protected:
     std::map<int, CBlockMakerProfile> mapWorkProfile;
     std::map<CDestination, CBlockMakerProfile> mapDelegatedProfile;
     std::map<uint256, std::pair<int, int>> mapForkLastStat;
-    ICoreProtocol* pCoreProtocol;
     IBlockChain* pBlockChain;
-    IForkManager* pForkManager;
-    ITxPool* pTxPool;
-    IDispatcher* pDispatcher;
     IConsensus* pConsensus;
+    ICoreProtocol* pCoreProtocol;
+    IDispatcher* pDispatcher;
+    IForkManager* pForkManager;
     IService* pService;
+    ITxPool* pTxPool;
 };
 
 } // namespace metabasenet
