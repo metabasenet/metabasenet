@@ -55,9 +55,9 @@ target_link_libraries(storage
     snappy
     delegate
     mpvss
-    ssvmCommon
-    ssvmEVMCUtilEVMCLoader
-    ssvm-evmc
+    #ssvmCommon
+    #ssvmEVMCUtilEVMCLoader
+    #ssvm-evmc
     mevm
-    mwvm
+    #mwvm
 )

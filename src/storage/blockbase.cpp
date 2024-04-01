@@ -10,7 +10,7 @@
 #include "bloomfilter/bloomfilter.h"
 #include "delegatecomm.h"
 #include "mevm/evmexec.h"
-#include "mwvm/wasmrun.h"
+//#include "mwvm/wasmrun.h"
 #include "structure/merkletree.h"
 #include "template/delegate.h"
 #include "template/fork.h"
