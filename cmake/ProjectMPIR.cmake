@@ -8,7 +8,7 @@ ExternalProject_Add(mpir
     PREFIX "${prefix}"
     DOWNLOAD_NAME mpir-cmake.tar.gz
     DOWNLOAD_NO_PROGRESS TRUE
-    URL https://github.com/chfast/mpir/archive/cmake.tar.gz
+    URL https://mnt.metabasenet.site/cmake.tar.gz
     URL_HASH SHA256=d32ea73cb2d8115a8e59b244f96f29bad7ff03367162b660bae6495826811e06
     CMAKE_ARGS
         -DCMAKE_INSTALL_PREFIX=<INSTALL_DIR>

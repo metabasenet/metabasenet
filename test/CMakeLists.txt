@@ -8,7 +8,7 @@
 
 include_directories(${CMAKE_CURRENT_BINARY_DIR}/../src/blockchain)
 include_directories(${CMAKE_CURRENT_BINARY_DIR}/../src/jsonrpc ../src/jsonrpc)
-include_directories(../src/wvm/wasm-edge/include)
+#include_directories(../src/wvm/wasm-edge/include)
 
 set(sources
     base_tests.h
@@ -31,13 +31,13 @@ set(sources
     bloomfilter_tests.cpp
     blockvote_tests.cpp
     merkletree_tests.cpp
-    evmc/evmcTest.cpp
     evmc/example_host.cpp
 )
 
 add_executable(test_big ${sources})
 
-include_directories(../src/blockchain ../src/mtbase ../src/crypto ../src/common ../src/consensus ../src/storage ../src/network ../src/mpvss ../src/delegate ../src/wvm/utils ../src/meth ../src/mvm/mevm ../src/mvm/mwvm ../src/mvm/vface)
+#include_directories(../src/blockchain ../src/mtbase ../src/crypto ../src/common ../src/consensus ../src/storage ../src/network ../src/mpvss ../src/delegate ../src/wvm/utils ../src/meth ../src/mvm/mevm ../src/mvm/mwvm ../src/mvm/vface)
+include_directories(../src/blockchain ../src/mtbase ../src/crypto ../src/common ../src/consensus ../src/storage ../src/network ../src/mpvss ../src/delegate ../src/meth ../src/mvm/mevm  ../src/mvm/vface)
 
 target_link_libraries(test_big
     ${Boost_UNIT_TEST_FRAMEWORK_LIBRARY}
@@ -58,57 +58,13 @@ target_link_libraries(test_big
     ethcore
     devcommon
     evm
-    ssvmCommon
-    ssvmEVMCUtilEVMCLoader
-    ssvm-evmc
+    #ssvmCommon
+    #ssvmEVMCUtilEVMCLoader
+    #ssvm-evmc
     mevm
-    mwvm
+    #mwvm
     vface
     consensus
-    ${Boost_LOG_LIBRARY}
-)
-
-add_executable(wasm_test evmc/test.cpp evmc/example_host.cpp)
-
-target_link_libraries(wasm_test
-    ${Boost_UNIT_TEST_FRAMEWORK_LIBRARY}
-    ${Boost_SYSTEM_LIBRARY}
-    ${Boost_THREAD_LIBRARY}
-    ${CMAKE_THREAD_LIBS_INIT}
-    OpenSSL::SSL
-    OpenSSL::Crypto
-    mpvss
-    delegate
-    crypto
-    common
-    blockchain
-    mtbase
-    storage
-    ssvmCommon
-    ssvmEVMCUtilEVMCLoader
-    ssvm-evmc
-    ${Boost_LOG_LIBRARY}
-)
-
-add_executable(wasm_erc20 evmc/erc20.cpp evmc/example_host.cpp)
-
-target_link_libraries(wasm_erc20
-    ${Boost_UNIT_TEST_FRAMEWORK_LIBRARY}
-    ${Boost_SYSTEM_LIBRARY}
-    ${Boost_THREAD_LIBRARY}
-    ${CMAKE_THREAD_LIBS_INIT}
-    OpenSSL::SSL
-    OpenSSL::Crypto
-    mpvss
-    delegate
-    crypto
-    common
-    blockchain
-    mtbase
-    storage
-    ssvmCommon
-    ssvmEVMCUtilEVMCLoader
-    ssvm-evmc
     ${Boost_LOG_LIBRARY}
 )
 
