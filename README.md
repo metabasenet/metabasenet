@@ -16,6 +16,7 @@ https://semver.org/
 ## Installation (Ubuntu16.04/18.04/22.04)
 ```
 sudo apt install -y g++ libboost-all-dev openssl libreadline-dev pkg-config libncurses5-dev autoconf
+# boost version: 1.74.0
 
 # ubuntu16.04/22.04
 sudo apt install -y libssl-dev
@@ -35,12 +36,12 @@ sudo ln -s /usr/local/bin/cmake /usr/bin
 cmake --version
 cd ..
 
-# Installation gcc10
+# Installation gcc11
 sudo apt install build-essential
 sudo apt install software-properties-common
 sudo add-apt-repository ppa:ubuntu-toolchain-r/test
-sudo apt install gcc-10 g++-10
-sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-10 100 --slave /usr/bin/g++ g++ /usr/bin/g++-10
+sudo apt install gcc-11 g++-11
+sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-11 100 --slave /usr/bin/g++ g++ /usr/bin/g++-11
 sudo update-alternatives --config gcc
 
 # Compile libsodium (version >= 1.0.18)

@@ -495,7 +495,7 @@ bool CTrieDB::WalkThroughAll(CTrieDBWalker& walker)
     mtbase::CReadLock rlock(rwAccess);
     try
     {
-        if (!WalkThrough(boost::bind(&CTrieDB::WalkerAll, this, _1, _2, boost::ref(walker))))
+        if (!WalkThrough(boost::bind(&CTrieDB::WalkerAll, this, boost::placeholders::_1, boost::placeholders::_2, boost::ref(walker))))
         {
             return false;
         }
