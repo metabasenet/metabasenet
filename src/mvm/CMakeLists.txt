@@ -7,5 +7,4 @@
 # ------------------------------------------------------------------------------
 
 add_subdirectory(mevm)
-add_subdirectory(mwvm)
 add_subdirectory(vface)

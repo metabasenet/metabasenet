@@ -48,16 +48,18 @@ public:
 
     bool Init()
     {
+        
         ptrBlockVote = shared_ptr<CConsBlockVote>(new CConsBlockVote(nTunnelId, nEpochDuration,
-                                                                     boost::bind(&CNetNode::SendNetData, this, _1, _2, _3),
-                                                                     boost::bind(&CNetNode::GetVoteBlockCandidatePubkey, this, _1, _2, _3, _4, _5, _6),
-                                                                     boost::bind(&CNetNode::AddBlockLocalVoteSignFlag, this, _1),
-                                                                     boost::bind(&CNetNode::CommitBlockVoteResult, this, _1, _2, _3)));
+                                                                     boost::bind(&CNetNode::SendNetData, this, boost::placeholders::_1, boost::placeholders::_2, boost::placeholders::_3),
+                                                                     boost::bind(&CNetNode::GetVoteBlockCandidatePubkey, this, boost::placeholders::_1, boost::placeholders::_2, boost::placeholders::_3, boost::placeholders::_4, boost::placeholders::_5, boost::placeholders::_6),
+                                                                     boost::bind(&CNetNode::AddBlockLocalVoteSignFlag, this, boost::placeholders::_1),
+                                                                     boost::bind(&CNetNode::CommitBlockVoteResult, this, boost::placeholders::_1, boost::placeholders::_2, boost::placeholders::_3)));
         if (ptrBlockVote == nullptr)
         {
             return false;
         }
         BOOST_CHECK(ptrBlockVote->AddConsKey(uint256(vNodeKey[nNodeIndex].first), uint384(vNodeKey[nNodeIndex].second)));
+        
         return true;
     }
     uint64 GetLocalNetId() const

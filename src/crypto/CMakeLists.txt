@@ -17,6 +17,11 @@ set(curve25519
     curve25519/curve25519.h
 )
 
+set(keccak
+    keccak/Endian.h keccak/Rotation.h
+    keccak/Keccak.cpp keccak/Keccak.h 
+)
+
 set(sources
     uint256.h
     crc24q.cpp crc24q.h
@@ -24,7 +29,8 @@ set(sources
     crypto.cpp crypto.h
     key.cpp key.h
     keystore.cpp keystore.h
-    ${curve25519}
+    ${curve25519} 
+    ${keccak}
 )
 
 if(ARM_CRYPTO)
@@ -33,7 +39,8 @@ endif()
 
 add_library(crypto ${sources})
 
-include_directories(crypto ../mtbase ../common ./blss/src ../meth ../wvm/utils ./ ${sodium_INCLUDE_DIR})
+include_directories(crypto ../mtbase ../common ./blss/src ../meth ./ ${sodium_INCLUDE_DIR})
+
 link_directories()
 
 if(MSVC)
@@ -55,9 +62,6 @@ target_link_libraries(crypto
     mtbase
     common
     bls
-    ssvmCommon
-    ssvmEVMCUtilEVMCLoader
-    ssvm-evmc
     devcore
     devcrypto
     devcommon
