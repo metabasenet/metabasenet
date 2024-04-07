@@ -574,10 +574,10 @@ If true, list of all forks, or subscribed forks
 **Examples:**
 ```
 >> metabasenet-cli listfork
-<< [{"fork":"0x000000006f74f68744402385431d917906efd928724ab27704ee5c596b2e3c55","type":"main","chainid":201,"name":"HAHCoretest","symbol":"HAHT","amount":"200000000.0","reward":"130.0","halvecycle":0,"owner":"0x5962974eeb0b17b43edabfc9b747839317aa852f","createtxid":"0xad988352e0e560a9766444c8fb0b7277332835da0b4903c0e65dd272a617fce4","createforkheight":0,"parentfork":"0x0000000000000000000000000000000000000000000000000000000000000000","forkheight":1387,"lastnumber":1387,"lastblock":"0x0000056bcc305fb7ae6691f0fb96055ad6afa6ec8e6b19d8e8e0dee60a168d7c","totaltxcount":14117,"usertxcount":22,"moneysupply":"200164580.0","moneydestroy":"0.0"}]
+<< [{"fork":"0x000000006f74f68744402385431d917906efd928724ab27704ee5c596b2e3c55","type":"main","chainid":201,"name":"MNTCoretest","symbol":"MNTT","amount":"200000000.0","reward":"130.0","halvecycle":0,"owner":"0x5962974eeb0b17b43edabfc9b747839317aa852f","createtxid":"0xad988352e0e560a9766444c8fb0b7277332835da0b4903c0e65dd272a617fce4","createforkheight":0,"parentfork":"0x0000000000000000000000000000000000000000000000000000000000000000","forkheight":1387,"lastnumber":1387,"lastblock":"0x0000056bcc305fb7ae6691f0fb96055ad6afa6ec8e6b19d8e8e0dee60a168d7c","totaltxcount":14117,"usertxcount":22,"moneysupply":"200164580.0","moneydestroy":"0.0"}]
 
 >> {"id":69,"method":"listfork","jsonrpc":"2.0","params":{}}
-<< {"id":69,"jsonrpc":"2.0","result":[{"fork":"0x000000006f74f68744402385431d917906efd928724ab27704ee5c596b2e3c55","type":"main","chainid":201,"name":"HAHCoretest","symbol":"HAHT","amount":"200000000.0","reward":"130.0","halvecycle":0,"owner":"0x5962974eeb0b17b43edabfc9b747839317aa852f","createtxid":"0xad988352e0e560a9766444c8fb0b7277332835da0b4903c0e65dd272a617fce4","createforkheight":0,"parentfork":"0x0000000000000000000000000000000000000000000000000000000000000000","forkheight":1387,"lastnumber":1387,"lastblock":"0x0000056bcc305fb7ae6691f0fb96055ad6afa6ec8e6b19d8e8e0dee60a168d7c","totaltxcount":14117,"usertxcount":22,"moneysupply":"200164580.0","moneydestroy":"0.0"}]}
+<< {"id":69,"jsonrpc":"2.0","result":[{"fork":"0x000000006f74f68744402385431d917906efd928724ab27704ee5c596b2e3c55","type":"main","chainid":201,"name":"MNTCoretest","symbol":"MNTT","amount":"200000000.0","reward":"130.0","halvecycle":0,"owner":"0x5962974eeb0b17b43edabfc9b747839317aa852f","createtxid":"0xad988352e0e560a9766444c8fb0b7277332835da0b4903c0e65dd272a617fce4","createforkheight":0,"parentfork":"0x0000000000000000000000000000000000000000000000000000000000000000","forkheight":1387,"lastnumber":1387,"lastblock":"0x0000056bcc305fb7ae6691f0fb96055ad6afa6ec8e6b19d8e8e0dee60a168d7c","totaltxcount":14117,"usertxcount":22,"moneysupply":"200164580.0","moneydestroy":"0.0"}]}
 ```
 **Errors:**
 ```
@@ -2721,11 +2721,11 @@ Get coin information by symbol
 ```
 **Examples:**
 ```
->> metabasenet-cli getcoininfo HAH
-<< {"coinsymbol":"HAH","cointype":"forkcoin","fork":"0xc9f7f76ed1f265880a269080b5a115470fc36b06717346c44c72caca03dddcc0","chainid":201}
+>> metabasenet-cli getcoininfo MNT
+<< {"coinsymbol":"MNT","cointype":"forkcoin","fork":"0xc9f7f76ed1f265880a269080b5a115470fc36b06717346c44c72caca03dddcc0","chainid":201}
 
->> curl -d '{"id":1,"method":"getcoininfo","jsonrpc":"2.0","params":{"symbol":"HAH"}}' http://127.0.0.1:8812
-<< {"id":0,"jsonrpc":"2.0","result":{"coinsymbol":"HAH","cointype":"forkcoin","fork":"0xc9f7f76ed1f265880a269080b5a115470fc36b06717346c44c72caca03dddcc0","chainid":201}}
+>> curl -d '{"id":1,"method":"getcoininfo","jsonrpc":"2.0","params":{"symbol":"MNT"}}' http://127.0.0.1:8812
+<< {"id":0,"jsonrpc":"2.0","result":{"coinsymbol":"MNT","cointype":"forkcoin","fork":"0xc9f7f76ed1f265880a269080b5a115470fc36b06717346c44c72caca03dddcc0","chainid":201}}
 ```
 **Errors:**
 ```
@@ -2770,10 +2770,10 @@ List coin information
 **Examples:**
 ```
 >> metabasenet-cli listcoininfo
-<< [{"coinsymbol":"HAH","cointype":"forkcoin","fork":"0xc9f7f76ed1f265880a269080b5a115470fc36b06717346c44c72caca03dddcc0","chainid":201,"contractaddress":""}]
+<< [{"coinsymbol":"MNT","cointype":"forkcoin","fork":"0xc9f7f76ed1f265880a269080b5a115470fc36b06717346c44c72caca03dddcc0","chainid":201,"contractaddress":""}]
 
 >> curl -d '{"id":1,"method":"listcoininfo","jsonrpc":"2.0","params":{}}' http://127.0.0.1:8812
-<< {"id":0,"jsonrpc":"2.0","result":[{"coinsymbol":"HAH","cointype":"forkcoin","fork":"0xc9f7f76ed1f265880a269080b5a115470fc36b06717346c44c72caca03dddcc0","chainid":201,"contractaddress":""}]}
+<< {"id":0,"jsonrpc":"2.0","result":[{"coinsymbol":"MNT","cointype":"forkcoin","fork":"0xc9f7f76ed1f265880a269080b5a115470fc36b06717346c44c72caca03dddcc0","chainid":201,"contractaddress":""}]}
 ```
 **Errors:**
 ```
@@ -2810,10 +2810,10 @@ Get dex coin pair by symbol pair
 ```
 **Examples:**
 ```
->> metabasenet-cli getdexcoinpair HAH YUS
+>> metabasenet-cli getdexcoinpair MNT YUS
 << 1
 
->> curl -d '{"id":1,"method":"getdexcoinpair","jsonrpc":"2.0","params":{"symbol1":"HAH","symbol1":"YUS"}}' http://127.0.0.1:8812
+>> curl -d '{"id":1,"method":"getdexcoinpair","jsonrpc":"2.0","params":{"symbol1":"MNT","symbol1":"YUS"}}' http://127.0.0.1:8812
 << {"id":0,"jsonrpc":"2.0","result":1}
 ```
 **Errors:**
@@ -2874,10 +2874,10 @@ List dex coin pair
 **Examples:**
 ```
 >> metabasenet-cli listdexcoinpair
-<< [{"coinpair":1,"coin1":{"coinsymbol":"HAHT","cointype":"forkcoin","fork":"0xc9f7f76ed1f265880a269080b5a115470fc36b06717346c44c72caca03dddcc0","chainid":201},"coin2":{"coinsymbol":"SY202","cointype":"forkcoin","fork":"0xcab0f744f00351c05d9035b22f737325596a3b94337542dbecf623f054a6172a","chainid":202}}]
+<< [{"coinpair":1,"coin1":{"coinsymbol":"MNTT","cointype":"forkcoin","fork":"0xc9f7f76ed1f265880a269080b5a115470fc36b06717346c44c72caca03dddcc0","chainid":201},"coin2":{"coinsymbol":"SY202","cointype":"forkcoin","fork":"0xcab0f744f00351c05d9035b22f737325596a3b94337542dbecf623f054a6172a","chainid":202}}]
 
 >> curl -d '{"id":1,"method":"listdexcoinpair","jsonrpc":"2.0","params":{}}' http://127.0.0.1:8812
-<< {"id":0,"jsonrpc":"2.0","result":[{"coinpair":1,"coin1":{"coinsymbol":"HAHT","cointype":"forkcoin","fork":"0xc9f7f76ed1f265880a269080b5a115470fc36b06717346c44c72caca03dddcc0","chainid":201},"coin2":{"coinsymbol":"SY202","cointype":"forkcoin","fork":"0xcab0f744f00351c05d9035b22f737325596a3b94337542dbecf623f054a6172a","chainid":202}}]}
+<< {"id":0,"jsonrpc":"2.0","result":[{"coinpair":1,"coin1":{"coinsymbol":"MNTT","cointype":"forkcoin","fork":"0xc9f7f76ed1f265880a269080b5a115470fc36b06717346c44c72caca03dddcc0","chainid":201},"coin2":{"coinsymbol":"SY202","cointype":"forkcoin","fork":"0xcab0f744f00351c05d9035b22f737325596a3b94337542dbecf623f054a6172a","chainid":202}}]}
 ```
 **Errors:**
 ```

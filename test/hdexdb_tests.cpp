@@ -48,7 +48,7 @@ BOOST_AUTO_TEST_CASE(basetest)
 
     const CDestination destOrder("0x5bc5c1726286ff0a8006b19312ca307210e0e658");
     const CDestination destPeer("0x0a9f6b9e0de14c2c9d02883904a69c7bee82c2a5");
-    const std::string strSymbolOwner = "THAH";
+    const std::string strSymbolOwner = "TMNT";
     const std::string strSymbolPeer = "TABC";
     const uint64 nOrderNumber = 1;
     const uint256 nOrderAmount = 555;

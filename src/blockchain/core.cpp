@@ -155,13 +155,13 @@ void CCoreProtocol::CreateGenesisBlock(const bool fMainnet, const CChainId nChai
     profile.nType = CProfile::PROFILE_FORK_TYPE_MAIN;
     if (fMainnet)
     {
-        profile.strName = "HAH Core";
-        profile.strSymbol = "HAH";
+        profile.strName = "MNT Core";
+        profile.strSymbol = "MNT";
     }
     else
     {
-        profile.strName = "HAH Core test";
-        profile.strSymbol = "HAHT";
+        profile.strName = "Metabase Network Token Test";
+        profile.strSymbol = "MNTT";
     }
     profile.nChainId = nChainIdIn;
     profile.destOwner = destOwner;
