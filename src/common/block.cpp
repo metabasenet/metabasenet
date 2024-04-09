@@ -842,7 +842,7 @@ CBlockIndex::CBlockIndex(const uint256& hashBlock, const CBlock& block, const ui
 
     for (auto& tx : block.vtx)
     {
-        if (tx.GetTxType() == CTransaction::TX_GENESIS || tx.GetTxType() == CTransaction::TX_VOTE_REWARD)
+        if (tx.GetTxType() == CTransaction::TX_GENESIS || tx.GetTxType() == CTransaction::TX_VOTE_REWARD)   // ToDo
         {
             nRewardTxCount++;
         }

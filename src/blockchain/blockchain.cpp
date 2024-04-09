@@ -510,11 +510,11 @@ Errno CBlockChain::AddNewBlock(const uint256& hashBlock, const CBlock& block, ui
     }
 
     size_t nIgnoreVerifyTx = 0;
-    if (!VerifyVoteRewardTx(block, nIgnoreVerifyTx))
-    {
-        StdError("BlockChain", "Add new block: Verify invest reward tx fail, block: %s", hashBlock.ToString().c_str());
-        return ERR_TRANSACTION_INVALID;
-    }
+    // if (!VerifyVoteRewardTx(block, nIgnoreVerifyTx))
+    // {
+    //     StdError("BlockChain", "Add new block: Verify invest reward tx fail, block: %s", hashBlock.ToString().c_str());
+    //     return ERR_TRANSACTION_INVALID;
+    // }
 
     err = VerifyBlockTx(hashFork, hashBlock, block, nReward, nIgnoreVerifyTx, mapBlockAddress);
     if (err != OK)
@@ -1104,14 +1104,12 @@ Errno CBlockChain::VerifyPowBlock(const CBlock& block, bool& fLongChain)
         return ERR_TRANSACTION_INVALID;
     }
 
-    CBlockEx blockex(block);
-
     size_t nIgnoreVerifyTx = 0;
-    if (!VerifyVoteRewardTx(block, nIgnoreVerifyTx))
-    {
-        StdError("BlockChain", "Verify poa block: Verify invest reward tx fail, block: %s", hashBlock.ToString().c_str());
-        return ERR_TRANSACTION_INVALID;
-    }
+    // if (!VerifyVoteRewardTx(block, nIgnoreVerifyTx))
+    // {
+    //     StdError("BlockChain", "Verify poa block: Verify invest reward tx fail, block: %s", hashBlock.ToString().c_str());
+    //     return ERR_TRANSACTION_INVALID;
+    // }
 
     err = VerifyBlockTx(hashFork, hashBlock, block, nReward, nIgnoreVerifyTx, mapBlockAddress);
     if (err != OK)
@@ -2225,16 +2223,16 @@ bool CBlockChain::CalcBlockVoteRewardTx(const uint256& hashPrev, const uint16 nB
     const uint256 hashCalcEndMainChainRefBlock = pIndex->GetRefBlock();
 
     auto& mapCacheForkVoteReward = mapCacheDistributeVoteReward[hashFork];
-    auto rit = mapCacheForkVoteReward.begin();
+    auto it = mapCacheForkVoteReward.begin();
     while (mapCacheForkVoteReward.size() > MAX_CACHE_DISTRIBUTE_VOTE_REWARD_BLOCK_COUNT)
     {
-        if (rit->first != hashCalcEndBlock)
+        if (it->first != hashCalcEndBlock)
         {
-            mapCacheForkVoteReward.erase(rit++);
+            mapCacheForkVoteReward.erase(it++);
         }
         else
         {
-            ++rit;
+            ++it;
         }
     }
 
@@ -2961,17 +2959,20 @@ bool CBlockChain::CalcEndVoteReward(const uint256& hashPrev, const uint16 nBlock
 
         uint32 nCalcHeight = CBlock::GetBlockHeightByHash(hashCalcEndBlock);
         uint32 nAddTxCount = 0;
-        for (const auto& kv : mapReward)
+        for (const auto& [k, v] : mapReward)
         {
+            auto& dest = k;
+            auto& amount = v.first;
+            auto& isPub = v.second;
             CTransaction txReward;
 
             txReward.SetTxType(CTransaction::TX_VOTE_REWARD);
             txReward.SetChainId(ctxFork.nChainId);
             txReward.SetNonce(((uint64)nCalcHeight << 32) | nAddTxCount);
-            txReward.SetToAddress(kv.first);
-            txReward.SetAmount(kv.second.first);
+            txReward.SetToAddress(dest);
+            txReward.SetAmount(amount);
 
-            if (kv.second.second)
+            if (isPub)
             {
                 CAddressContext ctxAddress;
                 if (!cntrBlock.RetrieveAddressContext(hashFork, hashPrev, txReward.GetToAddress(), ctxAddress))

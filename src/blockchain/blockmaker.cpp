@@ -368,28 +368,29 @@ bool CBlockMaker::PrepareBlock(CBlock& block, const uint256& hashPrev, const uin
 bool CBlockMaker::ArrangeBlockTx(CBlock& block, const uint256& hashFork, const CBlockMakerProfile& profile, bool& fMoStatus)
 {
     size_t nRestOfSize = MAX_BLOCK_SIZE - GetSerializeSize(block) - profile.GetSignatureSize() - 32 * 5;
-    size_t rewardTxSize = 0;
-    uint256 nRewardTxTotalFee;
-    vector<CTransaction> vVoteRewardTx;
-    if (!pBlockChain->CalcBlockVoteRewardTx(block.hashPrev, block.nType, block.GetBlockHeight(), block.GetBlockTime(), vVoteRewardTx))
-    {
-        StdError("blockmaker", "Arrange Block Tx: Calc Block Vote Reward Tx error, prev block: %s, fork: %s", block.hashPrev.ToString().c_str(), hashFork.ToString().c_str());
-        return false;
-    }
-    for (const CTransaction& tx : vVoteRewardTx)
-    {
-        size_t nTxSize = GetSerializeSize(tx);
-        if (rewardTxSize + nTxSize > nRestOfSize)
-        {
-            StdError("blockmaker", "Arrange Block Tx: Reward tx size error, prev block: %s, fork: %s", block.hashPrev.ToString().c_str(), hashFork.ToString().c_str());
-            return false;
-        }
-        block.vtx.push_back(tx);
-        nRewardTxTotalFee += tx.GetTxFee();
-        rewardTxSize += nTxSize;
-    }
+    // size_t rewardTxSize = 0;
+    // uint256 nRewardTxTotalFee;
+    // vector<CTransaction> vVoteRewardTx;
+    // if (!pBlockChain->CalcBlockVoteRewardTx(block.hashPrev, block.nType, block.GetBlockHeight(), block.GetBlockTime(), vVoteRewardTx))
+    // {
+    //     StdError("blockmaker", "Arrange Block Tx: Calc Block Vote Reward Tx error, prev block: %s, fork: %s", block.hashPrev.ToString().c_str(), hashFork.ToString().c_str());
+    //     return false;
+    // }
+    // for (const CTransaction& tx : vVoteRewardTx)
+    // {
+    //     size_t nTxSize = GetSerializeSize(tx);
+    //     if (rewardTxSize + nTxSize > nRestOfSize)
+    //     {
+    //         StdError("blockmaker", "Arrange Block Tx: Reward tx size error, prev block: %s, fork: %s", block.hashPrev.ToString().c_str(), hashFork.ToString().c_str());
+    //         return false;
+    //     }
+    //     block.vtx.push_back(tx);
+    //     nRewardTxTotalFee += tx.GetTxFee();
+    //     rewardTxSize += nTxSize;
+    // }
 
-    size_t nMaxTxSize = nRestOfSize - rewardTxSize;
+    // size_t nMaxTxSize = nRestOfSize - rewardTxSize;
+    auto nMaxTxSize = nRestOfSize;
     uint256 nTotalTxFee;
     if (!pTxPool->FetchArrangeBlockTx(hashFork, block.hashPrev, block.GetBlockTime(), nMaxTxSize, block.vtx, nTotalTxFee))
     {
@@ -402,7 +403,8 @@ bool CBlockMaker::ArrangeBlockTx(CBlock& block, const uint256& hashFork, const C
     {
         block.AddMintCoinProof(block.txMint.GetAmount());
     }
-    block.txMint.SetAmount(0);
+    block.txMint.SetAmount(block.txMint.GetAmount() + nTotalTxFee);
+    // block.txMint.SetAmount(0);
     block.nGasLimit = MAX_BLOCK_GAS_LIMIT;
 
     uint256 nTotalMintReward;

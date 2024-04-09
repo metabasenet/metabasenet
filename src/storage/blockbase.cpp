@@ -482,7 +482,8 @@ bool CBlockState::DoBlockState(uint256& hashReceiptRoot, uint256& nBlockGasUsed,
     }
     nTotalMintRewardOut = nOriginalBlockMintReward - nBlockFeeLeft;
 
-    if (nBlockType == CBlock::BLOCK_GENESIS || nBlockType == CBlock::BLOCK_ORIGIN)
+    if (nBlockType == CBlock::BLOCK_GENESIS || nBlockType == CBlock::BLOCK_ORIGIN || 
+        (CBlock::BLOCK_PRIMARY == nBlockType && CTransaction::TX_STAKE ==  mintTx.GetTxType()))
     {
         auto mi = mapBlockState.find(destMint);
         if (mi == mapBlockState.end())
@@ -505,8 +506,7 @@ bool CBlockState::DoBlockState(uint256& hashReceiptRoot, uint256& nBlockGasUsed,
         mi->second.IncBalance(nOriginalBlockMintReward);
     }
 
-    if (nBlockType == CBlock::BLOCK_GENESIS || nBlockType == CBlock::BLOCK_ORIGIN)
-    {
+    if (nBlockType == CBlock::BLOCK_GENESIS || nBlockType == CBlock::BLOCK_ORIGIN) {
         CreateFunctionContractData();
     }
 
@@ -1642,8 +1642,9 @@ uint256 CBlockState::CalcCrosschainMerkleRoot()
     std::size_t nIndex = 0;
     for (auto& [k, v] : proveBlockCrosschain.mapCrossProve)
     {
-        v.second.clear();
-        CMerkleTree::BuildMerkleProve(nIndex++, vMerkleTree, nLeafCount, v.second);
+        auto& d = v.second;
+        d.clear();
+        CMerkleTree::BuildMerkleProve(nIndex++, vMerkleTree, nLeafCount, d);
     }
     return hashMerkleRoot;
 }
@@ -2099,10 +2100,10 @@ bool CBlockState::GetDestLockedAmount(const CDestination& dest, uint256& nLocked
         return false;
     }
 
-    auto nt = mapBlockRewardLocked.find(dest);
-    if (nt != mapBlockRewardLocked.end())
+    auto it = mapBlockRewardLocked.find(dest);
+    if (it != mapBlockRewardLocked.end())
     {
-        nLockedAmount += nt->second;
+        nLockedAmount += it->second;
     }
     return true;
 }
@@ -4481,8 +4482,8 @@ bool CBlockBase::StorageNewBlock(const uint256& hashFork, const uint256& hashBlo
 
     CBlockIndex* pIndexNew = nullptr;
     CBlockRoot blockRoot;
-    std::vector<CTransactionReceipt> vBlockTxReceipts;
-    if (!SaveBlock(hashFork, hashBlock, block, &pIndexNew, blockRoot, vBlockTxReceipts, false))
+    std::vector<CTransactionReceipt> txReceipts;
+    if (!SaveBlock(hashFork, hashBlock, block, &pIndexNew, blockRoot, txReceipts, false))
     {
         StdError("BlockBase", "Storage new block: Save block failed, block: %s", hashBlock.ToString().c_str());
         return false;
@@ -4490,7 +4491,7 @@ bool CBlockBase::StorageNewBlock(const uint256& hashFork, const uint256& hashBlo
 
     if (CheckForkLongChain(hashFork, hashBlock, block, pIndexNew))
     {
-        update = CBlockChainUpdate(pIndexNew, vBlockTxReceipts);
+        update = CBlockChainUpdate(pIndexNew, txReceipts);
         if (block.IsOrigin())
         {
             update.vBlockAddNew.push_back(block);
@@ -4509,12 +4510,12 @@ bool CBlockBase::StorageNewBlock(const uint256& hashFork, const uint256& hashBlo
         {
             if (!dbBlock.AddBlockVoteResult(proofVote.hashBlockVote, true, proofVote.btBlockVoteBitmap, proofVote.btBlockVoteAggSig, true, hashBlock))
             {
-                StdError("BlockBase", "Save block: Add block vote result failed, vote block: %s, block: %s", proofVote.hashBlockVote.ToString().c_str(), hashBlock.ToString().c_str());
+                StdError("BlockBase", "Storage new block: Add block vote result failed, vote block: %s, block: %s", proofVote.hashBlockVote.ToString().c_str(), hashBlock.ToString().c_str());
                 return false;
             }
             if (!dbBlock.UpdateBlockAggSign(proofVote.hashBlockVote, proofVote.btBlockVoteBitmap, proofVote.btBlockVoteAggSig, update.mapBlockProve))
             {
-                StdError("BlockBase", "Save block: Update crosschain block agg sign failed, vote block: %s, block: %s", proofVote.hashBlockVote.ToString().c_str(), hashBlock.ToString().c_str());
+                StdError("BlockBase", "Storage new block: Update crosschain block agg sign failed, vote block: %s, block: %s", proofVote.hashBlockVote.ToString().c_str(), hashBlock.ToString().c_str());
                 return false;
             }
         }
@@ -4539,7 +4540,7 @@ bool CBlockBase::StorageNewBlock(const uint256& hashFork, const uint256& hashBlo
     return true;
 }
 
-bool CBlockBase::SaveBlock(const uint256& hashFork, const uint256& hashBlock, const CBlockEx& block, CBlockIndex** ppIndexNew, CBlockRoot& blockRoot, std::vector<CTransactionReceipt>& vBlockTxReceipts, const bool fRepair)
+bool CBlockBase::SaveBlock(const uint256& hashFork, const uint256& hashBlock, const CBlockEx& block, CBlockIndex** ppIndexNew, CBlockRoot& blockRoot, std::vector<CTransactionReceipt>& vTxReceipts, const bool fRepair)
 {
     uint32 nFile, nOffset, nCrc;
     CBlockVerify verifyBlock;
@@ -4596,31 +4597,31 @@ bool CBlockBase::SaveBlock(const uint256& hashFork, const uint256& hashBlock, co
             break;
         }
 
-        SHP_BLOCK_STATE ptrBlockStateOut = nullptr;
-        if (!UpdateBlockState(hashFork, hashBlock, block, mapTempAddressContext, blockRoot.hashStateRoot, ptrBlockStateOut))
+        spBlockState_t spBlockStateOut = nullptr;
+        if (!UpdateBlockState(hashFork, hashBlock, block, mapTempAddressContext, blockRoot.hashStateRoot, spBlockStateOut))
         {
             StdError("BlockBase", "Save block: Update block state failed, block: %s", hashBlock.ToString().c_str());
             fRet = false;
             break;
         }
 
-        if (!UpdateBlockTxIndex(hashFork, hashBlock, block, nFile, nOffset, ptrBlockStateOut->vBlockTxReceipts, blockRoot.hashTxIndexRoot))
+        if (!UpdateBlockTxIndex(hashFork, hashBlock, block, nFile, nOffset, spBlockStateOut->vBlockTxReceipts, blockRoot.hashTxIndexRoot))
         {
             StdError("BlockBase", "Save block: Update block tx index failed, block: %s", hashBlock.ToString().c_str());
             fRet = false;
             break;
         }
 
-        if (!UpdateBlockAddress(hashFork, hashBlock, block, ptrBlockStateOut->mapBlockAddressContext, 
-                                ptrBlockStateOut->mapBlockFunctionAddress, blockRoot.hashAddressRoot))
+        if (!UpdateBlockAddress(hashFork, hashBlock, block, spBlockStateOut->mapBlockAddressContext, 
+                                spBlockStateOut->mapBlockFunctionAddress, blockRoot.hashAddressRoot))
         {
             StdError("BlockBase", "Save block: Update block address failed, block: %s", hashBlock.ToString().c_str());
             fRet = false;
             break;
         }
 
-        if (!UpdateBlockCode(hashFork, hashBlock, block, nFile, nOffset, ptrBlockStateOut->mapBlockContractCreateCodeContext,
-                             ptrBlockStateOut->mapBlockContractRunCodeContext, ptrBlockStateOut->mapBlockAddressContext, blockRoot.hashCodeRoot))
+        if (!UpdateBlockCode(hashFork, hashBlock, block, nFile, nOffset, spBlockStateOut->mapBlockContractCreateCodeContext,
+                             spBlockStateOut->mapBlockContractRunCodeContext, spBlockStateOut->mapBlockAddressContext, blockRoot.hashCodeRoot))
         {
             StdError("BlockBase", "Save block: Update block code failed, block: %s", hashBlock.ToString().c_str());
             fRet = false;
@@ -4630,8 +4631,8 @@ bool CBlockBase::SaveBlock(const uint256& hashFork, const uint256& hashBlock, co
         if (fCfgFullDb)
         {
             uint256 hashAddressTxInfoRoot;
-            if (!UpdateBlockAddressTxInfo(hashFork, hashBlock, block, ptrBlockStateOut->mapBlockContractTransfer,
-                                          ptrBlockStateOut->mapBlockTxFeeUsed, ptrBlockStateOut->mapBlockCodeDestFeeUsed, hashAddressTxInfoRoot))
+            if (!UpdateBlockAddressTxInfo(hashFork, hashBlock, block, spBlockStateOut->mapBlockContractTransfer,
+                                          spBlockStateOut->mapBlockTxFeeUsed, spBlockStateOut->mapBlockCodeDestFeeUsed, hashAddressTxInfoRoot))
             {
                 StdError("BlockBase", "Save block: Update block address tx info failed, block: %s", hashBlock.ToString().c_str());
                 fRet = false;
@@ -4641,7 +4642,7 @@ bool CBlockBase::SaveBlock(const uint256& hashFork, const uint256& hashBlock, co
 
         if (pIndexNew->IsPrimary())
         {
-            if (!AddBlockForkContext(hashBlock, block, ptrBlockStateOut->mapBlockAddressContext, ptrBlockStateOut->mapBlockSymbolCoin, blockRoot.hashForkContextRoot))
+            if (!AddBlockForkContext(hashBlock, block, spBlockStateOut->mapBlockAddressContext, spBlockStateOut->mapBlockSymbolCoin, blockRoot.hashForkContextRoot))
             {
                 StdError("BlockBase", "Save block: Add bock fork context failed, block: %s", hashBlock.ToString().c_str());
                 fRet = false;
@@ -4649,14 +4650,14 @@ bool CBlockBase::SaveBlock(const uint256& hashFork, const uint256& hashBlock, co
             }
 
             if (!UpdateDelegate(hashFork, hashBlock, block, nFile, nOffset, DELEGATE_PROOF_OF_STAKE_ENROLL_MINIMUM_AMOUNT,
-                                ptrBlockStateOut->mapBlockAddressContext, ptrBlockStateOut->mapBlockState, blockRoot.hashDelegateRoot))
+                                spBlockStateOut->mapBlockAddressContext, spBlockStateOut->mapBlockState, blockRoot.hashDelegateRoot))
             {
                 StdError("BlockBase", "Save block: Update delegate failed, block: %s", hashBlock.ToString().c_str());
                 fRet = false;
                 break;
             }
 
-            if (!UpdateVote(hashFork, hashBlock, block, ptrBlockStateOut->mapBlockAddressContext, ptrBlockStateOut->mapBlockState, ptrBlockStateOut->mapBlockModifyPledgeFinalHeight, blockRoot.hashVoteRoot))
+            if (!UpdateVote(hashFork, hashBlock, block, spBlockStateOut->mapBlockAddressContext, spBlockStateOut->mapBlockState, spBlockStateOut->mapBlockModifyPledgeFinalHeight, blockRoot.hashVoteRoot))
             {
                 StdError("BlockBase", "Save block: Update vote failed, block: %s", hashBlock.ToString().c_str());
                 fRet = false;
@@ -4671,8 +4672,8 @@ bool CBlockBase::SaveBlock(const uint256& hashFork, const uint256& hashBlock, co
             break;
         }
 
-        if (!UpdateBlockDexOrder(hashFork, pIndexNew->GetRefBlock(), block.hashPrev, hashBlock, block, ptrBlockStateOut->mapBlockDexOrder, ptrBlockStateOut->proveBlockCrosschain,
-                                 ptrBlockStateOut->mapCoinPairCompletePrice, ptrBlockStateOut->mapCompDexOrderRecord, blockRoot.hashDexOrderRoot))
+        if (!UpdateBlockDexOrder(hashFork, pIndexNew->GetRefBlock(), block.hashPrev, hashBlock, block, spBlockStateOut->mapBlockDexOrder, spBlockStateOut->proveBlockCrosschain,
+                                 spBlockStateOut->mapCoinPairCompletePrice, spBlockStateOut->mapCompDexOrderRecord, blockRoot.hashDexOrderRoot))
         {
             StdError("BlockBase", "Save block: Update block dex order failed, block: %s", hashBlock.ToString().c_str());
             fRet = false;
@@ -4703,7 +4704,7 @@ bool CBlockBase::SaveBlock(const uint256& hashFork, const uint256& hashBlock, co
         }
 
         // add destroy token
-        for (auto& kv : ptrBlockStateOut->mapBlockContractTransfer)
+        for (auto& kv : spBlockStateOut->mapBlockContractTransfer)
         {
             for (auto& ts : kv.second)
             {
@@ -4714,7 +4715,7 @@ bool CBlockBase::SaveBlock(const uint256& hashFork, const uint256& hashBlock, co
             }
         }
 
-        vBlockTxReceipts = ptrBlockStateOut->vBlockTxReceipts;
+        vTxReceipts = spBlockStateOut->vBlockTxReceipts;
     } while (0);
 
     if (!fRet)
@@ -6038,15 +6039,15 @@ bool CBlockBase::RetrieveDestState(const uint256& hashFork, const uint256& hashB
     return dbBlock.RetrieveDestState(hashFork, hashBlockRoot, dest, state);
 }
 
-SHP_BLOCK_STATE CBlockBase::CreateBlockStateRoot(const uint256& hashFork, const CBlock& block, const uint256& hashPrevStateRoot, const uint32 nPrevBlockTime, uint256& hashStateRoot, uint256& hashReceiptRoot,
+spBlockState_t CBlockBase::CreateBlockStateRoot(const uint256& hashFork, const CBlock& block, const uint256& hashPrevStateRoot, const uint32 nPrevBlockTime, uint256& hashStateRoot, uint256& hashReceiptRoot,
                                                  uint256& hashCrosschainMerkleRoot, uint256& nBlockGasUsed, bytes& btBloomDataOut, uint256& nTotalMintRewardOut, bool& fMoStatus, const std::map<CDestination, CAddressContext>& mapAddressContext)
 {
-    SHP_BLOCK_STATE ptrBlockState(new CBlockState(*this, hashFork, block, hashPrevStateRoot, nPrevBlockTime, mapAddressContext));
+    auto spBlockState(std::make_shared<CBlockState>(*this, hashFork, block, hashPrevStateRoot, nPrevBlockTime, mapAddressContext));
 
     for (int i = 0; i < (int)(block.vtx.size()); i++)
     {
         const auto& tx = block.vtx[i];
-        if (!ptrBlockState->AddTxState(tx, i + 1))
+        if (!spBlockState->AddTxState(tx, i + 1))
         {
             StdLog("BlockBase", "Create block state root: Add tx state fail, txid: %s, prev: %s",
                    tx.GetHash().ToString().c_str(), block.hashPrev.GetHex().c_str());
@@ -6054,24 +6055,24 @@ SHP_BLOCK_STATE CBlockBase::CreateBlockStateRoot(const uint256& hashFork, const 
         }
     }
 
-    if (!ptrBlockState->DoBlockState(hashReceiptRoot, nBlockGasUsed, btBloomDataOut, nTotalMintRewardOut, hashCrosschainMerkleRoot, fMoStatus))
+    if (!spBlockState->DoBlockState(hashReceiptRoot, nBlockGasUsed, btBloomDataOut, nTotalMintRewardOut, hashCrosschainMerkleRoot, fMoStatus))
     {
         StdLog("BlockBase", "Create block state root: Do block state fail, prev: %s", block.hashPrev.GetHex().c_str());
         return nullptr;
     }
 
     CBlockRootStatus statusBlockRoot(block.nType, block.GetBlockTime(), block.txMint.GetToAddress());
-    if (!dbBlock.CreateCacheStateTrie(hashFork, hashPrevStateRoot, statusBlockRoot, ptrBlockState->mapBlockState, hashStateRoot))
+    if (!dbBlock.CreateCacheStateTrie(hashFork, hashPrevStateRoot, statusBlockRoot, spBlockState->mapBlockState, hashStateRoot))
     {
         StdLog("BlockBase", "Create block state root: Create cache state trie fail, prev: %s", block.hashPrev.GetHex().c_str());
         return nullptr;
     }
-    return ptrBlockState;
+    return spBlockState;
 }
 
 bool CBlockBase::UpdateBlockState(const uint256& hashFork, const uint256& hashBlock, const CBlockEx& block,
                                   const std::map<CDestination, CAddressContext>& mapAddressContext,
-                                  uint256& hashNewStateRoot, SHP_BLOCK_STATE& ptrBlockStateOut)
+                                  uint256& hashNewStateRoot, spBlockState_t& spBlockStateOut)
 {
     uint256 hashStateRoot;
     uint256 hashPrevStateRoot;
@@ -6098,9 +6099,9 @@ bool CBlockBase::UpdateBlockState(const uint256& hashFork, const uint256& hashBl
     }
 
     bool fMoStatus = false;
-    SHP_BLOCK_STATE ptrBlockState = CreateBlockStateRoot(hashFork, block, hashPrevStateRoot, nPrevBlockTime, hashStateRoot, hashReceiptRoot,
+    auto spBlockState = CreateBlockStateRoot(hashFork, block, hashPrevStateRoot, nPrevBlockTime, hashStateRoot, hashReceiptRoot,
                                                          hashCrosschainMerkleRoot, nBlockGasUsed, btBloomDataTemp, nTotalMintReward, fMoStatus, mapAddressContext);
-    if (!ptrBlockState)
+    if (!spBlockState)
     {
         StdLog("BlockBase", "Update block state: Create block state root fail, block: %s", hashBlock.GetHex().c_str());
         return false;
@@ -6134,10 +6135,10 @@ bool CBlockBase::UpdateBlockState(const uint256& hashFork, const uint256& hashBl
         StdLog("BlockBase", "Update block state: Get block prove fail, block: %s", hashBlock.GetHex().c_str());
         return false;
     }
-    ptrBlockState->UpdateCrosschainProveTail(block.hashPrev, *ptrMerkleProvePrevBlock, block.GetRefBlock(), *ptrMerkleProveRefBlock, *ptrCrossMerkleProve);
+    spBlockState->UpdateCrosschainProveTail(block.hashPrev, *ptrMerkleProvePrevBlock, block.GetRefBlock(), *ptrMerkleProveRefBlock, *ptrCrossMerkleProve);
 
     CBlockRootStatus statusBlockRoot(block.nType, block.GetBlockTime(), block.txMint.GetToAddress());
-    if (!dbBlock.AddBlockState(hashFork, hashPrevStateRoot, statusBlockRoot, ptrBlockState->mapBlockState, hashStateRoot))
+    if (!dbBlock.AddBlockState(hashFork, hashPrevStateRoot, statusBlockRoot, spBlockState->mapBlockState, hashStateRoot))
     {
         StdLog("BlockBase", "Update block state: Add block state fail, block: %s", hashBlock.GetHex().c_str());
         return false;
@@ -6149,11 +6150,11 @@ bool CBlockBase::UpdateBlockState(const uint256& hashFork, const uint256& hashBl
         return false;
     }
     hashNewStateRoot = hashStateRoot;
-    ptrBlockStateOut = ptrBlockState;
+    spBlockStateOut = spBlockState;
     return true;
 }
 
-bool CBlockBase::UpdateBlockTxIndex(const uint256& hashFork, const uint256& hashBlock, const CBlockEx& block, const uint32 nFile, const uint32 nOffset, const std::vector<CTransactionReceipt>& vBlockTxReceipts, uint256& hashNewRoot)
+bool CBlockBase::UpdateBlockTxIndex(const uint256& hashFork, const uint256& hashBlock, const CBlockEx& block, const uint32 nFile, const uint32 nOffset, const std::vector<CTransactionReceipt>& vTxReceipts, uint256& hashNewRoot)
 {
     CBufStream ss;
     std::map<uint256, CTxIndex> mapBlockTxIndex;
@@ -6173,13 +6174,13 @@ bool CBlockBase::UpdateBlockTxIndex(const uint256& hashFork, const uint256& hash
         nTxOffset += ss.GetSerializeSize(tx);
     }
 
-    if (!dbBlock.AddBlockTxIndexReceipt(hashFork, hashBlock, mapBlockTxIndex, vBlockTxReceipts))
+    if (!dbBlock.AddBlockTxIndexReceipt(hashFork, hashBlock, mapBlockTxIndex, vTxReceipts))
     {
         StdLog("BlockBase", "Update block tx index: Add block tx index fail, block: %s", hashBlock.GetHex().c_str());
         return false;
     }
 
-    blockReceiptCache.AddBlockReceiptCache(hashBlock, vBlockTxReceipts);
+    blockReceiptCache.AddBlockReceiptCache(hashBlock, vTxReceipts);
     return true;
 }
 
@@ -7201,10 +7202,10 @@ bool CBlockBase::UpdateDelegate(const uint256& hashFork, const uint256& hashBloc
         return true;
     };
 
-    for (auto& kv : mapAccStateIn)
+    for (auto& [k, v] : mapAccStateIn)
     {
-        const CDestination& dest = kv.first;
-        const CDestState& state = kv.second;
+        const CDestination& dest = k;
+        const CDestState& state = v;
 
         CAddressContext ctxAddress;
         auto it = mapAddressContext.find(dest);
@@ -9081,8 +9082,8 @@ bool CBlockBase::RepairBlockDB(const CBlockVerify& verifyBlock, CBlockRoot& bloc
         hashFork = pPrevIndex->GetOriginHash();
     }
 
-    std::vector<CTransactionReceipt> vBlockTxReceipts;
-    if (!SaveBlock(hashFork, hashBlock, block, ppIndexNew, blockRoot, vBlockTxReceipts, true))
+    std::vector<CTransactionReceipt> txReceipts;
+    if (!SaveBlock(hashFork, hashBlock, block, ppIndexNew, blockRoot, txReceipts, true))
     {
         StdError("BlockBase", "Repair block DB: Save block failed, block: [%d] %s", CBlock::GetBlockHeightByHash(hashBlock), hashBlock.ToString().c_str());
         return false;

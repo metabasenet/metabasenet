@@ -140,16 +140,16 @@ void CCoreProtocol::CreateGenesisBlock(const bool fMainnet, const CChainId nChai
     block.nSlot = 0;
     block.hashPrev = 0;
 
-    CTransaction& tx = block.txMint;
-    tx.SetTxType(CTransaction::TX_GENESIS);
-    tx.SetChainId(nChainIdIn);
-    tx.SetToAddress(destOwner);
-    tx.SetAmount(BBCP_TOKEN_INIT);
+    CTransaction& txMine = block.txMint;
+    txMine.SetTxType(CTransaction::TX_GENESIS);
+    txMine.SetChainId(nChainIdIn);
+    txMine.SetToAddress(destOwner);
+    txMine.SetAmount(BBCP_TOKEN_INIT);
 
-    tx.SetToAddressData(CAddressContext(CPubkeyAddressContext()));
+    txMine.SetToAddressData(CAddressContext(CPubkeyAddressContext()));
     // ToDo
     string strData("Blockchain is more than just a financial instrument; it's a transformative technology. August 9, 2023, marks not only the debut of Hash Ahead but also the dawn of a new era in the widespread adoption of blockchain technology.");
-    tx.AddTxData(CTransaction::DF_COMMON, bytes(strData.begin(), strData.end()));
+    txMine.AddTxData(CTransaction::DF_COMMON, bytes(strData.begin(), strData.end()));
 
     CProfile profile;
     profile.nType = CProfile::PROFILE_FORK_TYPE_MAIN;
@@ -165,7 +165,7 @@ void CCoreProtocol::CreateGenesisBlock(const bool fMainnet, const CChainId nChai
     }
     profile.nChainId = nChainIdIn;
     profile.destOwner = destOwner;
-    profile.nAmount = tx.GetAmount();
+    profile.nAmount = txMine.GetAmount();
     profile.nMintReward = BBCP_REWARD_INIT;
     if (TESTNET_FLAG)
     {
@@ -175,12 +175,12 @@ void CCoreProtocol::CreateGenesisBlock(const bool fMainnet, const CChainId nChai
     {
         profile.nMinTxFee = MIN_GAS_PRICE_0 * TX_BASE_GAS;
     }
-    profile.nHalveCycle = 0;
+    profile.nHalveCycle = BBCP_REWARD_HALVE_CYCLE;
 
     block.AddForkProfile(profile);
-    block.AddMintCoinProof(tx.GetAmount());
+    block.AddMintCoinProof(txMine.GetAmount());
 
-    block.hashStateRoot = CreateGenesisStateRoot(block.nType, block.GetBlockTime(), destOwner, tx.GetAmount());
+    block.hashStateRoot = CreateGenesisStateRoot(block.nType, block.GetBlockTime(), destOwner, txMine.GetAmount());
     block.UpdateMerkleRoot();
 }
 

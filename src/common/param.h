@@ -41,13 +41,13 @@ inline bool RewardRange(const uint256& nValue)
     return (nValue <= MAX_REWARD_MONEY);
 }
 
-static const unsigned int MAX_BLOCK_SIZE = 1024 * 1024 * 2;
+static const unsigned int MAX_BLOCK_SIZE = 2 << 20;
 static const unsigned int MAX_TX_SIZE = (MAX_BLOCK_SIZE / 20);
-static const unsigned int MAX_SIGNATURE_SIZE = 2048;
+static const unsigned int MAX_SIGNATURE_SIZE = 2 << 10;
 static const unsigned int MAX_TX_INPUT_COUNT = (MAX_TX_SIZE - MAX_SIGNATURE_SIZE - 4) / 33;
 static const int64 MAX_BLOCK_GAS_LIMIT = 1'000'000'000;
 
-#define BLOCK_TARGET_SPACING GET_FAST_PARAM(60, 5, 1)
+#define BLOCK_TARGET_SPACING GET_FAST_PARAM(60, 5, 1)   // unit: second
 #define EXTENDED_BLOCK_SPACING GET_PARAM(1, 1)
 
 #define DAY_HEIGHT_MAINNET (3600 * 24 / BLOCK_TARGET_SPACING)
@@ -88,12 +88,12 @@ static const bool fCreateUserForkEnable = false;
 // CORE
 static const int64 MAX_CLOCK_DRIFT = 80;
 
-static const uint256 BBCP_TOKEN_INIT = 1'000'000'000 * COIN;
-static const uint256 BBCP_REWARD_INIT = 357 * COIN;
-#define BBCP_REWARD_HALVE_CYCLE (DAY_HEIGHT * 365 * 4)
+static const uint256 BBCP_TOKEN_INIT = 2'000'000 * COIN;
+static const uint256 BBCP_REWARD_INIT = COIN * 3 + COIN * 5 / 10;
+#define BBCP_REWARD_HALVE_CYCLE (DAY_HEIGHT * 365 * 6)
 
-static const uint256 DELEGATE_PROOF_OF_STAKE_ENROLL_MINIMUM_AMOUNT = 1'000'000 * COIN;
-static const uint256 DELEGATE_PROOF_OF_STAKE_ENROLL_MAXIMUM_AMOUNT_MAINNET = 300'000'000 * COIN;
+static const uint256 DELEGATE_PROOF_OF_STAKE_ENROLL_MINIMUM_AMOUNT = 20'000 * COIN;
+static const uint256 DELEGATE_PROOF_OF_STAKE_ENROLL_MAXIMUM_AMOUNT_MAINNET = 6'000'000 * COIN;
 #define DELEGATE_PROOF_OF_STAKE_ENROLL_MAXIMUM_AMOUNT GET_PARAM(DELEGATE_PROOF_OF_STAKE_ENROLL_MAXIMUM_AMOUNT_MAINNET, BBCP_TOKEN_INIT)
 static const uint256 DELEGATE_PROOF_OF_STAKE_UNIT_AMOUNT = COIN;
 static const uint256 DELEGATE_PROOF_OF_STAKE_MIN_VOTE_AMOUNT = COIN;
@@ -178,7 +178,7 @@ static const std::map<uint32, std::string> mapFunctionAddressName = {
 };
 
 // Reward distribution ratio
-static const bool REWARD_DISTRIBUTION_RATIO_ENABLE = true;  // whether or not reward project party and fundation, if true, they fetch reward at the most first
+static const bool REWARD_DISTRIBUTION_RATIO_ENABLE = false;  // whether or not reward project party and fundation, if true, they fetch reward at the most first
 static const uint32 REWARD_DISTRIBUTION_RATIO_PROJECT_PARTY = 4'200;
 static const uint32 REWARD_DISTRIBUTION_RATIO_FOUNDATION = 4'000;
 static const uint32 REWARD_DISTRIBUTION_PER = 10'000;

@@ -295,16 +295,17 @@ Errno CForkTxPool::AddTx(const uint256& txid, const CTransaction& tx)
     }
 
     CAddressContext ctxAddressFrom;
-    CAddressContext ctxAddressTo;
-
-    std::map<CDestination, CAddressContext> mapBlockAddress;
     if (!GetAddressContext(tx.GetFromAddress(), ctxAddressFrom))
     {
         StdLog("CForkTxPool", "Add Tx: Get from address fail, from: %s, txid: %s",
                tx.GetFromAddress().ToString().c_str(), txid.GetHex().c_str());
         return ERR_TRANSACTION_INVALID;
     }
+
+    std::map<CDestination, CAddressContext> mapBlockAddress;
     mapBlockAddress.insert(make_pair(tx.GetFromAddress(), ctxAddressFrom));
+
+    CAddressContext ctxAddressTo;
     if (!tx.GetToAddress().IsNull())
     {
         if (!GetAddressContext(tx.GetToAddress(), ctxAddressTo))

@@ -497,7 +497,7 @@ bool CContractDB::LoadFork(const uint256& hashFork)
         return true;
     }
 
-    std::shared_ptr<CForkContractDB> spWasm(new CForkContractDB(hashFork));
+    auto spWasm(std::make_shared<CForkContractDB>(hashFork));
     if (spWasm == nullptr)
     {
         return false;

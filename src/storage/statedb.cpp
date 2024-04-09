@@ -139,12 +139,12 @@ bool CForkStateDB::CreateCacheStateTrie(const uint256& hashPrevRoot, const CBloc
     for (const auto& [dest, state] : mapBlockState)
     {
         mtbase::CBufStream ssKey;
-        bytes btKey, btValue;
-
+        bytes btKey;
         ssKey << DB_STATE_KEY_TYPE_ADDRESS << dest;
         ssKey.GetData(btKey);
 
         mtbase::CBufStream ssValue;
+        bytes btValue;
         ssValue << state;
         ssValue.GetData(btValue);
 
@@ -301,7 +301,7 @@ bool CStateDB::LoadFork(const uint256& hashFork)
         return true;
     }
 
-    std::shared_ptr<CForkStateDB> spState(new CForkStateDB());
+    auto spState(std::make_shared<CForkStateDB>());
     if (spState == nullptr)
     {
         return false;
@@ -413,15 +413,15 @@ bool CStateDB::VerifyState(const uint256& hashFork, const uint256& hashRoot, con
 bool CStateDB::CreateStaticStateRoot(const CBlockRootStatus& statusBlockRoot, const std::map<CDestination, CDestState>& mapBlockState, uint256& hashStateRoot)
 {
     bytesmap mapKv;
-    for (const auto& kv : mapBlockState)
+    for (const auto& [dest, state] : mapBlockState)
     {
         mtbase::CBufStream ssKey, ssValue;
         bytes btKey, btValue;
 
-        ssKey << DB_STATE_KEY_TYPE_ADDRESS << kv.first;
+        ssKey << DB_STATE_KEY_TYPE_ADDRESS << dest;
         ssKey.GetData(btKey);
 
-        ssValue << kv.second;
+        ssValue << state;
         ssValue.GetData(btValue);
 
         mapKv.insert(make_pair(btKey, btValue));

@@ -1618,25 +1618,25 @@ Errno CService::SubmitWork(const vector<unsigned char>& vchWorkData,
     size_t nSigSize = templMint->Export().size() + crypto::SIGN_DATA_SIZE + 2 + 32 * 5;
     size_t nMaxTxSize = MAX_BLOCK_SIZE - GetSerializeSize(block) - nSigSize;
 
-    vector<CTransaction> vVoteRewardTx;
-    if (!pBlockChain->CalcBlockVoteRewardTx(block.hashPrev, block.nType, block.GetBlockHeight(), block.GetBlockTime(), vVoteRewardTx))
-    {
-        StdError("CService", "Submit work: Get block invest reward fail");
-        return FAILED;
-    }
-    uint256 nVoteRewardTxFee;
-    for (const CTransaction& tx : vVoteRewardTx)
-    {
-        size_t nTxSize = GetSerializeSize(tx);
-        if (nMaxTxSize < nTxSize)
-        {
-            StdError("CService", "Submit work: Invest reward tx size error");
-            return FAILED;
-        }
-        block.vtx.push_back(tx);
-        nVoteRewardTxFee += tx.GetTxFee();
-        nMaxTxSize -= nTxSize;
-    }
+    // vector<CTransaction> vVoteRewardTx;
+    // if (!pBlockChain->CalcBlockVoteRewardTx(block.hashPrev, block.nType, block.GetBlockHeight(), block.GetBlockTime(), vVoteRewardTx))
+    // {
+    //     StdError("CService", "Submit work: Get block invest reward fail");
+    //     return FAILED;
+    // }
+    // uint256 nVoteRewardTxFee;
+    // for (const CTransaction& tx : vVoteRewardTx)
+    // {
+    //     size_t nTxSize = GetSerializeSize(tx);
+    //     if (nMaxTxSize < nTxSize)
+    //     {
+    //         StdError("CService", "Submit work: Invest reward tx size error");
+    //         return FAILED;
+    //     }
+    //     block.vtx.push_back(tx);
+    //     nVoteRewardTxFee += tx.GetTxFee();
+    //     nMaxTxSize -= nTxSize;
+    // }
 
     uint256 nTotalTxFee;
     if (!pTxPool->FetchArrangeBlockTx(pCoreProtocol->GetGenesisBlockHash(), block.hashPrev, block.GetBlockTime(), nMaxTxSize, block.vtx, nTotalTxFee))
