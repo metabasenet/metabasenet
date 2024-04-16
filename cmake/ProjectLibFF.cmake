@@ -11,7 +11,7 @@ ExternalProject_Add(libff
     PREFIX "${prefix}"
     DOWNLOAD_NAME libff-03b719a7.tar.gz
     DOWNLOAD_NO_PROGRESS TRUE
-    URL https://mnt.metabasenet.site/03b719a7c81757071f99fc60be1f7f7694e51390.tar.gz
+    URL https://github.com/scipr-lab/libff/archive/03b719a7c81757071f99fc60be1f7f7694e51390.tar.gz
     URL_HASH SHA256=81b476089af43025c8f253cb1a9b5038a1c375baccffea402fa82042e608ab02
     CMAKE_ARGS
     -DCMAKE_BUILD_TYPE=Release
