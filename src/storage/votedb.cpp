@@ -546,12 +546,12 @@ bool CVoteDB::WalkThroughDayVote(const uint256& hashBeginBlock, const uint256& h
     const CCacheCalcVoteRewardContext& cacheDayVote = it->second;
     std::map<CDestination, std::pair<std::map<CDestination, CVoteContext>, uint256>> mapFullVote; // key: delegate address, value: map key: vote address, map value: vote context, second: total vote amount
 
-    for (const auto& kv : cacheDayVote.mapFirstFullVote)
+    for (const auto& [k, v] : cacheDayVote.mapFirstFullVote)
     {
-        auto& delegateVote = mapFullVote[kv.first];
-        delegateVote.first = kv.second;
+        auto& delegateVote = mapFullVote[k];
+        delegateVote.first = v;
         delegateVote.second = 0;
-        for (const auto& vd : kv.second)
+        for (const auto& vd : v)
         {
             delegateVote.second += vd.second.nVoteAmount;
         }

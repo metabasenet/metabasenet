@@ -447,7 +447,7 @@ bool CAddressTxInfoDB::LoadFork(const uint256& hashFork)
         return true;
     }
 
-    std::shared_ptr<CForkAddressTxInfoDB> spAddress(new CForkAddressTxInfoDB());
+    auto spAddress(std::make_shared<CForkAddressTxInfoDB>());
     if (spAddress == nullptr)
     {
         return false;

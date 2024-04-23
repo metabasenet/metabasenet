@@ -3216,7 +3216,7 @@ Get crosschain transfer amount
 >> metabasenet-cli getcrosstransferamount
 << 8845.987
 
->> curl -d '{"id":1,"method":"sendcrosstransfertx","jsonrpc":"2.0","params":{}}' http://127.0.0.1:8812
+>> curl -d '{"id":1,"method":"getcrosstransferamount","jsonrpc":"2.0","params":{}}' http://127.0.0.1:8812
 << {"id":0,"jsonrpc":"2.0","result":"8845.987"}]}
 ```
 **Errors:**

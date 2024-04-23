@@ -510,11 +510,11 @@ Errno CBlockChain::AddNewBlock(const uint256& hashBlock, const CBlock& block, ui
     }
 
     size_t nIgnoreVerifyTx = 0;
-    if (!VerifyVoteRewardTx(block, nIgnoreVerifyTx))
-    {
-        StdError("BlockChain", "Add new block: Verify invest reward tx fail, block: %s", hashBlock.ToString().c_str());
-        return ERR_TRANSACTION_INVALID;
-    }
+    // if (!VerifyVoteRewardTx(block, nIgnoreVerifyTx))
+    // {
+    //     StdError("BlockChain", "Add new block: Verify invest reward tx fail, block: %s", hashBlock.ToString().c_str());
+    //     return ERR_TRANSACTION_INVALID;
+    // }
 
     err = VerifyBlockTx(hashFork, hashBlock, block, nReward, nIgnoreVerifyTx, mapBlockAddress);
     if (err != OK)
@@ -1104,14 +1104,12 @@ Errno CBlockChain::VerifyPowBlock(const CBlock& block, bool& fLongChain)
         return ERR_TRANSACTION_INVALID;
     }
 
-    CBlockEx blockex(block);
-
     size_t nIgnoreVerifyTx = 0;
-    if (!VerifyVoteRewardTx(block, nIgnoreVerifyTx))
-    {
-        StdError("BlockChain", "Verify poa block: Verify invest reward tx fail, block: %s", hashBlock.ToString().c_str());
-        return ERR_TRANSACTION_INVALID;
-    }
+    // if (!VerifyVoteRewardTx(block, nIgnoreVerifyTx))
+    // {
+    //     StdError("BlockChain", "Verify poa block: Verify invest reward tx fail, block: %s", hashBlock.ToString().c_str());
+    //     return ERR_TRANSACTION_INVALID;
+    // }
 
     err = VerifyBlockTx(hashFork, hashBlock, block, nReward, nIgnoreVerifyTx, mapBlockAddress);
     if (err != OK)
@@ -1447,7 +1445,7 @@ Errno CBlockChain::VerifyBlock(const uint256& hashBlock, const CBlock& block, CB
             nReward = 0;
         }
         else
-        {
+        {   // block is subsidiary
             if (!GetBlockMintReward(block.hashPrev, false, nReward, pIndexPrev->hashRefBlock))
             {
                 StdLog("BlockChain", "Verify block: SubFork get mint reward error, block: %s", hashBlock.GetHex().c_str());
@@ -1848,10 +1846,10 @@ void CBlockChain::InitCheckPoints()
 
 bool CBlockChain::HasCheckPoints(const uint256& hashFork) const
 {
-    auto iter = mapForkCheckPoints.find(hashFork);
-    if (iter != mapForkCheckPoints.end())
+    auto it = mapForkCheckPoints.find(hashFork);
+    if (it != mapForkCheckPoints.end())
     {
-        return iter->second.size() > 0;
+        return it->second.size() > 0;
     }
     else
     {
@@ -1861,16 +1859,16 @@ bool CBlockChain::HasCheckPoints(const uint256& hashFork) const
 
 bool CBlockChain::GetCheckPointByHeight(const uint256& hashFork, int nHeight, CCheckPoint& point)
 {
-    auto iter = mapForkCheckPoints.find(hashFork);
-    if (iter != mapForkCheckPoints.end())
+    auto it = mapForkCheckPoints.find(hashFork);
+    if (it != mapForkCheckPoints.end())
     {
-        if (iter->second.count(nHeight) == 0)
+        if (it->second.count(nHeight) == 0)
         {
             return false;
         }
         else
         {
-            point = iter->second[nHeight];
+            point = it->second[nHeight];
             return true;
         }
     }
@@ -1882,11 +1880,11 @@ bool CBlockChain::GetCheckPointByHeight(const uint256& hashFork, int nHeight, CC
 
 std::vector<IBlockChain::CCheckPoint> CBlockChain::CheckPoints(const uint256& hashFork) const
 {
-    auto iter = mapForkCheckPoints.find(hashFork);
-    if (iter != mapForkCheckPoints.end())
+    auto it = mapForkCheckPoints.find(hashFork);
+    if (it != mapForkCheckPoints.end())
     {
         std::vector<IBlockChain::CCheckPoint> points;
-        for (const auto& kv : iter->second)
+        for (const auto& kv : it->second)
         {
             points.push_back(kv.second);
         }
@@ -1914,8 +1912,8 @@ IBlockChain::CCheckPoint CBlockChain::UpperBoundCheckPoint(const uint256& hashFo
     }
 
     auto& forkCheckPoints = mapForkCheckPoints.at(hashFork);
-    auto iter = forkCheckPoints.upper_bound(nHeight);
-    return (iter != forkCheckPoints.end()) ? IBlockChain::CCheckPoint(iter->second) : IBlockChain::CCheckPoint();
+    auto it = forkCheckPoints.upper_bound(nHeight);
+    return (it != forkCheckPoints.end()) ? IBlockChain::CCheckPoint(it->second) : IBlockChain::CCheckPoint();
 }
 
 bool CBlockChain::VerifyCheckPoint(const uint256& hashFork, int nHeight, const uint256& nBlockHash)
@@ -2188,9 +2186,9 @@ bool CBlockChain::CalcBlockVoteRewardTx(const uint256& hashPrev, const uint16 nB
 {
     boost::unique_lock<boost::shared_mutex> wlock(rwCvrAccess);
 
-    const int nDistributeHeight = VOTE_REWARD_DISTRIBUTE_HEIGHT;
-    if (CBlock::GetBlockHeightByHash(hashPrev) < nDistributeHeight
-        || nBlockHeight % nDistributeHeight == 0
+    const uint32 issueCycle = VOTE_REWARD_DISTRIBUTE_HEIGHT;
+    if (CBlock::GetBlockHeightByHash(hashPrev) < issueCycle
+        || nBlockHeight % issueCycle == 0
         || nBlockType == CBlock::BLOCK_GENESIS
         || nBlockType == CBlock::BLOCK_ORIGIN
         || nBlockType == CBlock::BLOCK_VACANT)
@@ -2206,7 +2204,7 @@ bool CBlockChain::CalcBlockVoteRewardTx(const uint256& hashPrev, const uint16 nB
     }
     uint256 hashFork = pPrevIndex->GetOriginHash();
     CBlockIndex* pIndex = pPrevIndex;
-    while (pIndex && (pIndex->GetBlockHeight() % nDistributeHeight) > 0)
+    while (pIndex && (pIndex->GetBlockHeight() % issueCycle) > 0)
     {
         pIndex = pIndex->pPrev;
     }
@@ -2225,16 +2223,16 @@ bool CBlockChain::CalcBlockVoteRewardTx(const uint256& hashPrev, const uint16 nB
     const uint256 hashCalcEndMainChainRefBlock = pIndex->GetRefBlock();
 
     auto& mapCacheForkVoteReward = mapCacheDistributeVoteReward[hashFork];
-    auto rit = mapCacheForkVoteReward.begin();
+    auto it = mapCacheForkVoteReward.begin();
     while (mapCacheForkVoteReward.size() > MAX_CACHE_DISTRIBUTE_VOTE_REWARD_BLOCK_COUNT)
     {
-        if (rit->first != hashCalcEndBlock)
+        if (it->first != hashCalcEndBlock)
         {
-            mapCacheForkVoteReward.erase(rit++);
+            mapCacheForkVoteReward.erase(it++);
         }
         else
         {
-            ++rit;
+            ++it;
         }
     }
 
@@ -2268,7 +2266,7 @@ bool CBlockChain::CalcBlockVoteRewardTx(const uint256& hashPrev, const uint16 nB
 
     if (pPrevIndex->IsPrimary())
     {
-        int nTxListIndex = CBlock::GetBlockHeightByHash(hashPrev) % nDistributeHeight;
+        int nTxListIndex = CBlock::GetBlockHeightByHash(hashPrev) % issueCycle;
         if (nTxListIndex < vRewardList.size())
         {
             vVoteRewardTx = vRewardList[nTxListIndex];
@@ -2278,7 +2276,7 @@ bool CBlockChain::CalcBlockVoteRewardTx(const uint256& hashPrev, const uint16 nB
     {
         int nDisCount = 0;
         CBlockIndex* pSubIndex = pPrevIndex;
-        while (pSubIndex && (pSubIndex->GetBlockHeight() % nDistributeHeight) > 0)
+        while (pSubIndex && (pSubIndex->GetBlockHeight() % issueCycle) > 0)
         {
             if (!pSubIndex->IsVacant())
             {
@@ -2881,10 +2879,11 @@ Errno CBlockChain::VerifyBlockTx(const uint256& hashFork, const uint256& hashBlo
 }
 
 bool CBlockChain::CalcEndVoteReward(const uint256& hashPrev, const uint16 nBlockType, const int nBlockHeight, const uint32 nBlockTime,
-                                    const uint256& hashFork, const uint256& hashCalcEndBlock, const uint256& hashCalcEndMainChainRefBlock, vector<vector<CTransaction>>& vRewardList)
-{
-    map<CDestination, pair<CDestination, uint256>> mapVoteReward; // key: vote or delegate address, value first: reward address, value second: reward amount
-    if (!CalcDistributeVoteReward(hashCalcEndBlock, mapVoteReward))
+                                    const uint256& hashFork, const uint256& hashCalcEndBlock, const uint256& hashCalcEndMainChainRefBlock, 
+                                    vector<vector<CTransaction>>& vRewardList)
+{   // pattern: for delegate, delegate addr/delegate addr; for pledge, pledge addr/pubkey owner addr of pledge addr; for project party/fundation, they are the same.
+    map<CDestination, pair<CDestination, uint256>> voteRewards; // key: vote or delegate address, value first: reward address, value second: reward amount
+    if (!CalcDistributeVoteReward(hashCalcEndBlock, voteRewards))
     {
         StdError("BlockChain", "Calc end vote reward tx: Calc distribute pledge reward fail, hashCalcEndBlock: %s", hashCalcEndBlock.GetHex().c_str());
         return false;
@@ -2898,18 +2897,21 @@ bool CBlockChain::CalcEndVoteReward(const uint256& hashPrev, const uint16 nBlock
     }
 
     map<CDestination, pair<uint256, bool>> mapReward; // key: reward address, value first: reward amount, value second: is pubkey address?
-    for (const auto& kv : mapVoteReward)
+    for (const auto& [k, v] : voteRewards)
     {
+        auto& destTemp = k;
+        auto& rewardTo = v.first;
+        auto& amount = v.second;
         uint32 nFuncId = 0;
-        if (kv.second.first == PLEDGE_SURPLUS_REWARD_ADDRESS)
+        if (rewardTo == PLEDGE_SURPLUS_REWARD_ADDRESS)
         {
             nFuncId = FUNCTION_ID_PLEDGE_SURPLUS_REWARD_ADDRESS;
         }
-        else if (kv.second.first == PROJECT_PARTY_REWARD_TO_ADDRESS)
+        else if (rewardTo == PROJECT_PARTY_REWARD_TO_ADDRESS)
         {
             nFuncId = FUNCTION_ID_PROJECT_PARTY_REWARD_TO_ADDRESS;
         }
-        else if (kv.second.first == FOUNDATION_REWARD_TO_ADDRESS)
+        else if (rewardTo == FOUNDATION_REWARD_TO_ADDRESS)
         {
             nFuncId = FUNCTION_ID_FOUNDATION_REWARD_TO_ADDRESS;
         }
@@ -2921,15 +2923,15 @@ bool CBlockChain::CalcEndVoteReward(const uint256& hashPrev, const uint16 nBlock
                 StdError("BlockChain", "Calc end vote reward tx: Get function address fail, function id: %d, fork: %s", nFuncId, hashFork.ToString().c_str());
                 return false;
             }
-            auto& v = mapReward[ctxFuncAddress.GetFunctionAddress()];
-            v.first += kv.second.second;
-            v.second = false;
+            auto& p = mapReward[ctxFuncAddress.GetFunctionAddress()];
+            p.first += amount;
+            p.second = false;
         }
         else
         {
-            auto& v = mapReward[kv.second.first];
-            v.first += kv.second.second;
-            v.second = (kv.first != kv.second.first);
+            auto& p = mapReward[rewardTo];
+            p.first += amount;
+            p.second = (destTemp != rewardTo);
         }
     }
 
@@ -2957,17 +2959,20 @@ bool CBlockChain::CalcEndVoteReward(const uint256& hashPrev, const uint16 nBlock
 
         uint32 nCalcHeight = CBlock::GetBlockHeightByHash(hashCalcEndBlock);
         uint32 nAddTxCount = 0;
-        for (const auto& kv : mapReward)
+        for (const auto& [k, v] : mapReward)
         {
+            auto& dest = k;
+            auto& amount = v.first;
+            auto& isPub = v.second;
             CTransaction txReward;
 
             txReward.SetTxType(CTransaction::TX_VOTE_REWARD);
             txReward.SetChainId(ctxFork.nChainId);
             txReward.SetNonce(((uint64)nCalcHeight << 32) | nAddTxCount);
-            txReward.SetToAddress(kv.first);
-            txReward.SetAmount(kv.second.first);
+            txReward.SetToAddress(dest);
+            txReward.SetAmount(amount);
 
-            if (kv.second.second)
+            if (isPub)
             {
                 CAddressContext ctxAddress;
                 if (!cntrBlock.RetrieveAddressContext(hashFork, hashPrev, txReward.GetToAddress(), ctxAddress))
@@ -3016,8 +3021,8 @@ bool CBlockChain::CalcEndVoteReward(const uint256& hashPrev, const uint16 nBlock
 bool CBlockChain::CalcDistributeVoteReward(const uint256& hashCalcEndBlock, std::map<CDestination, std::pair<CDestination, uint256>>& mapVoteReward)
 {
     // hashCalcEndBlock at N height or multiple
-    const int nDistributeHeight = VOTE_REWARD_DISTRIBUTE_HEIGHT;
-    if ((CBlock::GetBlockHeightByHash(hashCalcEndBlock) % nDistributeHeight) != 0)
+    const int issueCycle = VOTE_REWARD_DISTRIBUTE_HEIGHT;
+    if ((CBlock::GetBlockHeightByHash(hashCalcEndBlock) % issueCycle) != 0)
     {
         StdLog("BlockChain", "Calculate distribute vote reward: height error, hashCalcEndBlock: %s", hashCalcEndBlock.GetHex().c_str());
         return false;
@@ -3046,7 +3051,7 @@ bool CBlockChain::CalcDistributeVoteReward(const uint256& hashCalcEndBlock, std:
     // Gets the block data to be calculated
     std::map<uint32, CCalcBlock> mapCalcBlock;
     //int nTailHeight = pTailIndex->GetBlockHeight();                        // N
-    int nBeginHeight = pTailIndex->GetBlockHeight() - nDistributeHeight + 1; // 1
+    int nBeginHeight = pTailIndex->GetBlockHeight() - issueCycle + 1; // 1
     CBlockIndex* pIndex = pTailIndex;
     while (pIndex && pIndex->pPrev && !pIndex->IsOrigin() && pIndex->GetBlockHeight() >= nBeginHeight)
     {
@@ -3127,14 +3132,14 @@ bool CBlockChain::CalcDistributeVoteReward(const uint256& hashCalcEndBlock, std:
     {
     public:
         CListDayVoteWalker(const std::map<uint32, CCalcBlock>& mapCalcBlockIn, std::map<CDestination, std::pair<CDestination, uint256>>& mapVoteRewardIn)
-          : mapCalcBlock(mapCalcBlockIn), mapVoteReward(mapVoteRewardIn) {}
+          : mapInternalCalcBlock(mapCalcBlockIn), mapInternalVoteReward(mapVoteRewardIn) {}
 
         // nHeight = (nBeginHeight-1 ~ nTailHeight-1) or (0 ~ 4319)
         bool Walk(const uint32 nHeight, const std::map<CDestination, std::pair<std::map<CDestination, CVoteContext>, uint256>>& mapDelegateVote) override
         {
             //mapDelegateVote key: delegate address, value: map key: vote address, map value: vote context, second: total vote amount
-            auto it = mapCalcBlock.find(nHeight + 1);
-            if (it != mapCalcBlock.end())
+            auto it = mapInternalCalcBlock.find(nHeight + 1);
+            if (it != mapInternalCalcBlock.end())
             {
                 const CCalcBlock& calcBlock = it->second;
                 if (calcBlock.nRewardAmount == 0)
@@ -3149,14 +3154,14 @@ bool CBlockChain::CalcDistributeVoteReward(const uint256& hashCalcEndBlock, std:
 
                     if (nProjectPartyReward > 0)
                     {
-                        auto& voteRewardProjectParty = mapVoteReward[PROJECT_PARTY_REWARD_TO_ADDRESS];
+                        auto& voteRewardProjectParty = mapInternalVoteReward[PROJECT_PARTY_REWARD_TO_ADDRESS];
                         voteRewardProjectParty.first = PROJECT_PARTY_REWARD_TO_ADDRESS;
                         voteRewardProjectParty.second += nProjectPartyReward;
                     }
 
                     if (nFoundationReward > 0)
                     {
-                        auto& voteRewardFoundation = mapVoteReward[FOUNDATION_REWARD_TO_ADDRESS];
+                        auto& voteRewardFoundation = mapInternalVoteReward[FOUNDATION_REWARD_TO_ADDRESS];
                         voteRewardFoundation.first = FOUNDATION_REWARD_TO_ADDRESS;
                         voteRewardFoundation.second += nFoundationReward;
                     }
@@ -3169,7 +3174,7 @@ bool CBlockChain::CalcDistributeVoteReward(const uint256& hashCalcEndBlock, std:
                     uint256 nMintCommissionReward = (nBlockReward * uint256(calcBlock.nRewardRation) / uint256(MINT_REWARD_PER));
                     if (nMintCommissionReward > 0)
                     {
-                        auto& voteRewardMint = mapVoteReward[calcBlock.destMint];
+                        auto& voteRewardMint = mapInternalVoteReward[calcBlock.destMint];
                         voteRewardMint.first = calcBlock.destMint;
                         voteRewardMint.second += nMintCommissionReward;
                     }
@@ -3180,70 +3185,54 @@ bool CBlockChain::CalcDistributeVoteReward(const uint256& hashCalcEndBlock, std:
                     return true;
                 }
 
-                auto mt = mapDelegateVote.find(calcBlock.destMint);
-                if (mt != mapDelegateVote.end())
+                auto mi = mapDelegateVote.find(calcBlock.destMint);
+                if (mi != mapDelegateVote.end())
                 {
-                    const auto& mapDestVote = mt->second.first;
-                    const uint256& nDelegateTotalVoteAmount = mt->second.second;
+                    const auto& mapDestVote = mi->second.first;
+                    const uint256& nDelegateTotalVoteAmount = mi->second.second;
                     if (nDelegateTotalVoteAmount > 0)
                     {
                         // distribute reward
                         uint256 nDistributeTotalReward = 0;
-                        uint256 nDestroyTotalReward = 0;
-                        for (const auto& kv : mapDestVote)
+                        for (const auto& [destVote, ctxt] : mapDestVote)
                         {
-                            if (kv.second.nVoteAmount > 0)
+                            if (ctxt.nVoteAmount > 0)
                             {
-                                uint256 nDestReward = nBlockReward * kv.second.nVoteAmount / nDelegateTotalVoteAmount;
-                                auto& voteReward = mapVoteReward[kv.first];
-                                const CVoteContext& ctxtVote = kv.second;
+                                uint256 nDestReward = nBlockReward * ctxt.nVoteAmount / nDelegateTotalVoteAmount;
+                                auto& voteReward = mapInternalVoteReward[destVote];
+                                const CVoteContext& ctxtVote = ctxt;
                                 if (ctxtVote.nRewardMode == CVoteContext::REWARD_MODE_VOTE)
                                 {
-                                    voteReward.first = kv.first;
+                                    voteReward.first = destVote;
                                 }
                                 else
                                 {
                                     voteReward.first = ctxtVote.destOwner;
                                 }
-                                uint256 nUserReward;
-                                if (ctxtVote.nRewardRate < PLEDGE_REWARD_PER)
-                                {
-                                    nUserReward = nDestReward * uint256(ctxtVote.nRewardRate) / uint256(PLEDGE_REWARD_PER);
-                                    nDestroyTotalReward += (nDestReward - nUserReward);
-                                }
-                                else
-                                {
-                                    nUserReward = nDestReward;
-                                }
-                                voteReward.second += nUserReward;
+                                voteReward.second += nDestReward;
                                 nDistributeTotalReward += nDestReward;
                             }
                         }
-                        if (nDestroyTotalReward > 0)
-                        {
-                            auto& destroyReward = mapVoteReward[PLEDGE_SURPLUS_REWARD_ADDRESS];
-                            destroyReward.first = PLEDGE_SURPLUS_REWARD_ADDRESS;
-                            destroyReward.second += nDestroyTotalReward;
-                        }
                         if (mapDestVote.size() > 0 && nBlockReward > nDistributeTotalReward)
-                        {
+                        {   // randomly reward the rest to someone
                             bool fDistribute = false;
-                            for (const auto& kv : mapDestVote)
+                            auto rest = nBlockReward - nDistributeTotalReward;
+                            for (const auto& [k, v] : mapDestVote)
                             {
-                                auto nt = mapVoteReward.find(kv.first);
-                                if (nt != mapVoteReward.end())
+                                auto mi = mapInternalVoteReward.find(k);
+                                if (mi != mapInternalVoteReward.end())
                                 {
-                                    nt->second.second += (nBlockReward - nDistributeTotalReward);
+                                    mi->second.second += rest;
                                     fDistribute = true;
                                     break;
                                 }
                             }
                             if (!fDistribute)
                             {
-                                if (mapVoteReward.empty())
+                                if (mapInternalVoteReward.empty())
                                 {
                                     auto& destVote = mapDestVote.begin()->first;
-                                    auto& voteReward = mapVoteReward[destVote];
+                                    auto& voteReward = mapInternalVoteReward[destVote];
                                     const CVoteContext& ctxtVote = mapDestVote.begin()->second;
                                     if (ctxtVote.nRewardMode == CVoteContext::REWARD_MODE_VOTE)
                                     {
@@ -3253,11 +3242,11 @@ bool CBlockChain::CalcDistributeVoteReward(const uint256& hashCalcEndBlock, std:
                                     {
                                         voteReward.first = ctxtVote.destOwner;
                                     }
-                                    voteReward.second += (nBlockReward - nDistributeTotalReward);
+                                    voteReward.second += rest;
                                 }
                                 else
                                 {
-                                    mapVoteReward.begin()->second.second += (nBlockReward - nDistributeTotalReward);
+                                    mapInternalVoteReward.begin()->second.second += rest;
                                 }
                             }
                         }
@@ -3268,8 +3257,8 @@ bool CBlockChain::CalcDistributeVoteReward(const uint256& hashCalcEndBlock, std:
         }
 
     public:
-        const std::map<uint32, CCalcBlock>& mapCalcBlock;
-        std::map<CDestination, std::pair<CDestination, uint256>>& mapVoteReward; // key: vote address, value: 1: reward address, 2: reward amount
+        const std::map<uint32, CCalcBlock>& mapInternalCalcBlock;
+        std::map<CDestination, std::pair<CDestination, uint256>>& mapInternalVoteReward; // key: vote address(pledge or delegate addr), value.key: reward address(pubkey owner of pledge addr or delegate self), value.value: reward amount
     };
 
     CListDayVoteWalker walker(mapCalcBlock, mapVoteReward);

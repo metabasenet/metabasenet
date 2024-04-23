@@ -278,10 +278,10 @@ bool CBlock::VerifyBlockSignature(const CDestination& destBlockSign) const
 
 bool CBlock::VerifyBlockProof() const
 {
-    for (auto& kv : mapProof)
+    for (const auto& [k, v] : mapProof)
     {
         std::size_t nDataSize = 0;
-        switch (kv.first)
+        switch (k)
         {
         case BP_FORK_PROFILE:
         {
@@ -290,7 +290,7 @@ bool CBlock::VerifyBlockProof() const
                 return false;
             }
             CProfile profile;
-            if (!profile.Load(kv.second))
+            if (!profile.Load(v))
             {
                 return false;
             }
@@ -306,7 +306,7 @@ bool CBlock::VerifyBlockProof() const
                 return false;
             }
             CProofOfDelegate proof;
-            if (!proof.Load(kv.second))
+            if (!proof.Load(v))
             {
                 return false;
             }
@@ -322,7 +322,7 @@ bool CBlock::VerifyBlockProof() const
                 return false;
             }
             CProofOfPiggyback proof;
-            if (!proof.Load(kv.second))
+            if (!proof.Load(v))
             {
                 return false;
             }
@@ -338,7 +338,7 @@ bool CBlock::VerifyBlockProof() const
                 return false;
             }
             CProofOfHashWork proof;
-            if (!proof.Load(kv.second))
+            if (!proof.Load(v))
             {
                 return false;
             }
@@ -356,7 +356,7 @@ bool CBlock::VerifyBlockProof() const
         case BP_BLOCK_VOTE_SIG:
         {
             CBlockVoteSig proof;
-            if (!proof.Load(kv.second))
+            if (!proof.Load(v))
             {
                 return false;
             }
@@ -368,7 +368,7 @@ bool CBlock::VerifyBlockProof() const
         default:
             return false;
         }
-        if (kv.second.size() != nDataSize)
+        if (v.size() != nDataSize)
         {
             return false;
         }
@@ -842,7 +842,7 @@ CBlockIndex::CBlockIndex(const uint256& hashBlock, const CBlock& block, const ui
 
     for (auto& tx : block.vtx)
     {
-        if (tx.GetTxType() == CTransaction::TX_GENESIS || tx.GetTxType() == CTransaction::TX_VOTE_REWARD)
+        if (tx.GetTxType() == CTransaction::TX_GENESIS || tx.GetTxType() == CTransaction::TX_VOTE_REWARD)   // ToDo
         {
             nRewardTxCount++;
         }
@@ -989,10 +989,10 @@ const std::set<uint256>& CBlockCrosschainProve::GetCrossConfirmRecvBlock() const
 
 void CBlockCrosschainProve::SetProveData(const std::map<uint8, bytes>& mapProveData)
 {
-    for (const auto& kv : mapProveData)
+    for (const auto& [k, v] : mapProveData)
     {
-        mtbase::CBufStream ss(kv.second);
-        switch (kv.first)
+        mtbase::CBufStream ss(v);
+        switch (k)
         {
         case CP_PROVE_TYPE_COIN_TRANSFER_PROVE:
             ss >> vCoinTransferProve;

@@ -208,7 +208,7 @@ protected:
     uint32 nMaxBlockRewardTxCount;
 
     boost::shared_mutex rwCvrAccess;
-    std::map<uint256, std::map<uint256, std::vector<std::vector<CTransaction>>, CustomBlockHashCompare>> mapCacheDistributeVoteReward;
+    std::map<uint256, std::map<uint256, std::vector<std::vector<CTransaction>>, CustomBlockHashCompare>> mapCacheDistributeVoteReward;  // key: fork, value.key: block. max size of value: MAX_CACHE_DISTRIBUTE_VOTE_REWARD_BLOCK_COUNT (means 'days')
 };
 
 } // namespace metabasenet

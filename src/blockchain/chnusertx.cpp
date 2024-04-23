@@ -210,11 +210,11 @@ bool CUserTxChannel::HandleEvent(network::CEventLocalUsertxBroadcastTxs& eventBr
     ss << eventBroadTxs.data;
     ss.GetData(eventCertTxs.data);
 
-    for (auto& kv : mapChnPeer)
+    for (const auto& [nonce, peer] : mapChnPeer)
     {
-        if (kv.second.IsSubscribe(hashFork) && (nRecvPeerNonce == 0 || nRecvPeerNonce != kv.first))
+        if (peer.IsSubscribe(hashFork) && (nRecvPeerNonce == 0 || nRecvPeerNonce != nonce))
         {
-            eventCertTxs.nNonce = kv.first;
+            eventCertTxs.nNonce = nonce;
             pPeerNet->DispatchEvent(&eventCertTxs);
         }
     }

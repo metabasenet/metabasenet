@@ -143,7 +143,7 @@ public:
     uint256 hashValue;
 };
 
-typedef std::vector<CTrieKeyValue> TRIE_NODE_PATH;
+using TRIE_NODE_PATH = std::vector<CTrieKeyValue> ;
 
 //////////////////////////////////////////////////////////////
 // CTrieDBWalker

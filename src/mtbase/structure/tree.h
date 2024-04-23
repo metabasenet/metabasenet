@@ -312,7 +312,7 @@ public:
         return f;
     }
 
-}; // namespace mtbase
+};
 
 } // namespace mtbase
 

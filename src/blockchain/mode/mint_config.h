@@ -16,7 +16,7 @@ namespace metabasenet
 
 enum
 {
-    NODE_TYPE_COMMON,
+    NODE_TYPE_COMMON,   // by default
     NODE_TYPE_SUPER,
     NODE_TYPE_FORK
 };

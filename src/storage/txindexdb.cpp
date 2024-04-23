@@ -272,7 +272,7 @@ bool CTxIndexDB::LoadFork(const uint256& hashFork)
         return true;
     }
 
-    std::shared_ptr<CForkTxIndexDB> spTxIndex(new CForkTxIndexDB());
+    auto spTxIndex(std::make_shared<CForkTxIndexDB>());
     if (spTxIndex == nullptr)
     {
         return false;

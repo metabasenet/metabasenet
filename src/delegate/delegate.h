@@ -67,7 +67,7 @@ protected:
 
 protected:
     std::set<CDestination> setDelegate;
-    std::map<int, CDelegateVote> mapVote;
+    std::map<int, CDelegateVote> mapVote;   // key: target height
     std::map<uint256, CDelegateVote> mapDistributeVote;
 };
 

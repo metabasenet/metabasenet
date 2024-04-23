@@ -621,7 +621,7 @@ bool CAddressDB::LoadFork(const uint256& hashFork)
         return true;
     }
 
-    std::shared_ptr<CForkAddressDB> spAddress(new CForkAddressDB());
+    auto spAddress(std::make_shared<CForkAddressDB>());
     if (spAddress == nullptr)
     {
         return false;

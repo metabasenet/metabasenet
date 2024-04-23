@@ -135,25 +135,25 @@ bool CForkStateDB::AddBlockState(const uint256& hashPrevRoot, const CBlockRootSt
 
 bool CForkStateDB::CreateCacheStateTrie(const uint256& hashPrevRoot, const CBlockRootStatus& statusBlockRoot, const std::map<CDestination, CDestState>& mapBlockState, uint256& hashBlockRoot)
 {
-    bytesmap mapKv;
-    for (const auto& kv : mapBlockState)
+    bytesmap states;
+    for (const auto& [dest, state] : mapBlockState)
     {
         mtbase::CBufStream ssKey;
-        bytes btKey, btValue;
-
-        ssKey << DB_STATE_KEY_TYPE_ADDRESS << kv.first;
+        bytes btKey;
+        ssKey << DB_STATE_KEY_TYPE_ADDRESS << dest;
         ssKey.GetData(btKey);
 
         mtbase::CBufStream ssValue;
-        ssValue << kv.second;
+        bytes btValue;
+        ssValue << state;
         ssValue.GetData(btValue);
 
-        mapKv.insert(make_pair(btKey, btValue));
+        states.insert(make_pair(btKey, btValue));
     }
-    AddPrevRoot(hashPrevRoot, statusBlockRoot, mapKv);
+    AddPrevRoot(hashPrevRoot, statusBlockRoot, states);
 
     std::map<uint256, CTrieValue> mapCacheNode;
-    if (!dbTrie.CreateCacheTrie(hashPrevRoot, mapKv, hashBlockRoot, mapCacheNode))
+    if (!dbTrie.CreateCacheTrie(hashPrevRoot, states, hashBlockRoot, mapCacheNode))
     {
         return false;
     }
@@ -301,7 +301,7 @@ bool CStateDB::LoadFork(const uint256& hashFork)
         return true;
     }
 
-    std::shared_ptr<CForkStateDB> spState(new CForkStateDB());
+    auto spState(std::make_shared<CForkStateDB>());
     if (spState == nullptr)
     {
         return false;
@@ -413,15 +413,15 @@ bool CStateDB::VerifyState(const uint256& hashFork, const uint256& hashRoot, con
 bool CStateDB::CreateStaticStateRoot(const CBlockRootStatus& statusBlockRoot, const std::map<CDestination, CDestState>& mapBlockState, uint256& hashStateRoot)
 {
     bytesmap mapKv;
-    for (const auto& kv : mapBlockState)
+    for (const auto& [dest, state] : mapBlockState)
     {
         mtbase::CBufStream ssKey, ssValue;
         bytes btKey, btValue;
 
-        ssKey << DB_STATE_KEY_TYPE_ADDRESS << kv.first;
+        ssKey << DB_STATE_KEY_TYPE_ADDRESS << dest;
         ssKey.GetData(btKey);
 
-        ssValue << kv.second;
+        ssValue << state;
         ssValue.GetData(btValue);
 
         mapKv.insert(make_pair(btKey, btValue));

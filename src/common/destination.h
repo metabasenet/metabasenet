@@ -237,7 +237,7 @@ public:
     }
 
 public:
-    uint8 nType; // high 3 bit is address type, low 5 bit is template type
+    uint8 nType; // high 3-bits: address type, low 5-bits: template type
     bytes btData;
 
 protected:
