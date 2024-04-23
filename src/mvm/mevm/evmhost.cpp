@@ -319,8 +319,7 @@ void CEvmHost::selfdestruct(const evmc::address& addr, const evmc::address& bene
     dbHost.Selfdestruct(AddressToDestination(beneficiary));
 }
 
-evmc::result CEvmHost::call(const evmc_message& msg) noexcept
-{
+evmc::result CEvmHost::call(const evmc_message& msg) noexcept {
     StdDebug("CEvmHost", "call: sender: %s - %s", ToHexString(&(msg.sender.bytes[0]), sizeof(msg.sender.bytes)).c_str(), AddressToDestination(msg.sender).ToString().c_str());
     StdDebug("CEvmHost", "call: destination: %s", ToHexString(&(msg.destination.bytes[0]), sizeof(msg.destination.bytes)).c_str());
     StdDebug("CEvmHost", "call: input_data: [%lu] %s", msg.input_size, ToHexString(msg.input_data, msg.input_size).c_str());
@@ -365,6 +364,14 @@ evmc::result CEvmHost::call(const evmc_message& msg) noexcept
 
     if (msg.input_size == 0)
     {
+        CTransactionLogs logs;
+        //logs.address.SetBytes(&(msg.sender.bytes[0]), sizeof(msg.sender.bytes)); // addr show null
+        logs.data.assign(msg.value.bytes, msg.value.bytes + sizeof(msg.value.bytes));
+        logs.topics.push_back(uint256((string("0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef"))));
+        logs.topics.push_back(AddressToDestination(msg.sender).ToHash());
+        logs.topics.push_back(AddressToDestination(msg.destination).ToHash());
+        vLogs.push_back(logs);
+
         CDestination from = AddressToDestination(msg.sender);
         uint256 amount(msg.value.bytes, sizeof(msg.value.bytes));
         amount.reverse();
