@@ -30,7 +30,7 @@ static const uint256 MIN_GAS_PRICE(10, 10);
 static const uint256 TX_BASE_GAS(21'000);
 static const uint256 DATA_GAS_PER_BYTE(50);
 static const uint256 DEF_TX_GAS_LIMIT(9'000'000);
-static const uint256 MAX_MONEY = COIN * uint256(1'000'000'000'000L);
+static const uint256 MAX_MONEY = COIN * uint256(21'000'000L);
 inline bool MoneyRange(const uint256& nValue)
 {
     return (nValue <= MAX_MONEY);
@@ -88,8 +88,8 @@ static const bool fCreateUserForkEnable = false;
 // CORE
 static const int64 MAX_CLOCK_DRIFT = 80;
 
-static const uint256 BBCP_TOKEN_INIT = 2'000'000 * COIN;
-static const uint256 BBCP_REWARD_INIT = COIN * 3 + COIN * 5 / 10;
+static const uint256 BBCP_TOKEN_INIT = 5'000'000 * COIN;
+static const uint256 BBCP_REWARD_INIT = COIN * 2 + COIN *618616 / 1000000;
 #define BBCP_REWARD_HALVE_CYCLE (DAY_HEIGHT * 365 * 6)
 
 static const uint256 DELEGATE_PROOF_OF_STAKE_ENROLL_MINIMUM_AMOUNT = 20'000 * COIN;
