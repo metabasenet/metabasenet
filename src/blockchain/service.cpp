@@ -1647,7 +1647,7 @@ Errno CService::SubmitWork(const vector<unsigned char>& vchWorkData,
     // uint256 nMintCoin(block.txMint.GetAmount());
     // block.txMint.SetAmount(block.txMint.GetAmount() + nTotalTxFee + nVoteRewardTxFee);
     block.AddMintCoinProof(block.txMint.GetAmount());
-    block.txMint.SetAmount(block.txMint.GetAmount() + nTotalTxFee);
+    block.txMint.SetAmount(0);
     block.nGasLimit = MAX_BLOCK_GAS_LIMIT;
 
     uint256 nTotalMintReward;

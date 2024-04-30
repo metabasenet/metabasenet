@@ -658,19 +658,19 @@ bool CBlockChain::GetBlockMintReward(const uint256& hashPrev, const bool fPow, u
 
     if (pIndexPrev->IsPrimary())
     {
-        //if (fPow)
-        //{
-        //    nReward = 0;
-        //}
-        //else
-        //{
+        if (fPow)
+        {
+            nReward = 0;
+        }
+        else
+        {
             nReward = GetPrimaryBlockReward(hashPrev);
             if (nReward < 0)
             {
                 StdLog("BlockChain", "Get block reward: Get block invest total reward fail, hashPrev: %s", hashPrev.ToString().c_str());
                 return false;
             }
-        //}
+        }
     }
     else
     {

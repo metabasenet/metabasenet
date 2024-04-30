@@ -483,8 +483,7 @@ bool CBlockState::DoBlockState(uint256& hashReceiptRoot, uint256& nBlockGasUsed,
     nTotalMintRewardOut = nOriginalBlockMintReward - nBlockFeeLeft;
 
     if (nBlockType == CBlock::BLOCK_GENESIS || nBlockType == CBlock::BLOCK_ORIGIN || 
-        (CBlock::BLOCK_PRIMARY == nBlockType && CTransaction::TX_STAKE ==  mintTx.GetTxType()) ||
-        (CBlock::BLOCK_PRIMARY == nBlockType && CTransaction::TX_WORK ==  mintTx.GetTxType()))
+        (CBlock::BLOCK_PRIMARY == nBlockType && CTransaction::TX_STAKE ==  mintTx.GetTxType())) 
     {
         auto mi = mapBlockState.find(destMint);
         if (mi == mapBlockState.end())
