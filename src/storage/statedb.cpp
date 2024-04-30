@@ -105,7 +105,7 @@ bool CForkStateDB::AddBlockState(const uint256& hashPrevRoot, const CBlockRootSt
                 return false;
             }
             mapCacheTrie.erase(it);
-            return true;
+            //return true;
         }
     }
 
