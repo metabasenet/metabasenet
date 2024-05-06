@@ -6119,8 +6119,7 @@ CRPCResultPtr CRPCMod::RPCEthGetCode(const CReqContext& ctxReq, CRPCParamPtr par
     CContractAddressContext ctxtContract;
     if (!pService->GeDestContractContext(ctxReq.hashFork, hashBlock, address, ctxtContract))
     {
-        StdLog("CRPCMod", "RPC EthGetCode: Get address context fail");
-        return nullptr;
+        return MakeCeth_getCodeResultPtr("0x");   
     }
 
     bytes btCode;
