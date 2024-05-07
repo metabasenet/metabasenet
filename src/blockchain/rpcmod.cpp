@@ -221,9 +221,9 @@ static CEthTransaction EthTxToJSON(const uint256& txid, const CTransaction& tx, 
     }
     txData.strType = "0x0";
     txData.strChainid = ToHexString(tx.GetChainId());
-    txData.strV = "0x";
-    txData.strR = "0x";
-    txData.strS = "0x";
+    txData.strV = "0x0";
+    txData.strR = "0x0";
+    txData.strS = "0x0";
 
     if (tx.GetTxType() == CTransaction::TX_ETH_CREATE_CONTRACT)
     {
