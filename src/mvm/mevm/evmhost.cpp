@@ -363,7 +363,9 @@ evmc::result CEvmHost::call(const evmc_message& msg) noexcept {
         return evmc::result(evmcResult);
     }
 
-    if (msg.input_size == 0)
+    uint256 amount(msg.value.bytes, sizeof(msg.value.bytes));
+    amount.reverse();
+    if (msg.input_size == 0 || amount > 0)
     {
         CTransactionLogs logs;
         //logs.address.SetBytes(&(msg.sender.bytes[0]), sizeof(msg.sender.bytes)); // addr show null
@@ -374,8 +376,6 @@ evmc::result CEvmHost::call(const evmc_message& msg) noexcept {
         vLogs.push_back(logs);
 
         CDestination from = AddressToDestination(msg.sender);
-        uint256 amount(msg.value.bytes, sizeof(msg.value.bytes));
-        amount.reverse();
 
         uint64 nGasLeft = msg.gas;
         if (!dbHost.ContractTransfer(from, to, amount, msg.gas, nGasLeft))
@@ -400,17 +400,6 @@ evmc::result CEvmHost::call(const evmc_message& msg) noexcept {
         return Create(msg);
     }
     
- uint256 amount(msg.value.bytes, sizeof(msg.value.bytes));
-        amount.reverse();
-    if (amount > 0) {
-        uint64 nGasLeft = msg.gas;
-         CDestination from = AddressToDestination(msg.sender);
-        if (!dbHost.ContractTransfer(from, to, amount, msg.gas, nGasLeft))
-        {
-            StdLog("CEvmHost", "call: Contract transfer fail, depth: %u, gas: %lu", msg.depth, msg.gas);
-            return { EVMC_REVERT, nGasLeft, nullptr, 0 };
-        }
-    }
     return Call(msg);
 }
 
@@ -713,7 +702,7 @@ evmc::result CEvmHost::Call(const evmc_message& msg)
         msg.sender,     // sender,
         msg.input_data, // input_data,
         msg.input_size, // input_size,
-        {},             // value,
+        msg.value,      // value,
         {}              // create2_salt
     };
 
