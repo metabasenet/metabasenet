@@ -325,6 +325,7 @@ evmc::result CEvmHost::call(const evmc_message& msg) noexcept {
     StdDebug("CEvmHost", "call: input_data: [%lu] %s", msg.input_size, ToHexString(msg.input_data, msg.input_size).c_str());
     StdDebug("CEvmHost", "call: depth: %u", msg.depth);
     StdDebug("CEvmHost", "call: gas: %lu", msg.gas);
+    StdDebug("CEvmHost", "call: value: %lu", msg.value);
 
     CDestination to = AddressToDestination(msg.destination);
     if (isFunctionContractAddress(to))
@@ -398,7 +399,18 @@ evmc::result CEvmHost::call(const evmc_message& msg) noexcept {
     {
         return Create(msg);
     }
-
+    
+ uint256 amount(msg.value.bytes, sizeof(msg.value.bytes));
+        amount.reverse();
+    if (amount > 0) {
+        uint64 nGasLeft = msg.gas;
+         CDestination from = AddressToDestination(msg.sender);
+        if (!dbHost.ContractTransfer(from, to, amount, msg.gas, nGasLeft))
+        {
+            StdLog("CEvmHost", "call: Contract transfer fail, depth: %u, gas: %lu", msg.depth, msg.gas);
+            return { EVMC_REVERT, nGasLeft, nullptr, 0 };
+        }
+    }
     return Call(msg);
 }
 
