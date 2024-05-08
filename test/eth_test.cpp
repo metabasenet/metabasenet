@@ -187,7 +187,7 @@ BOOST_AUTO_TEST_CASE(txtest)
         printf("value: %s\n", tx2.value().str().c_str());
         printf("gasPrice: %s\n", tx2.gasPrice().str().c_str());
         printf("gas: %s\n", tx2.gas().str(0, std::ios::hex | std::ios::showbase).c_str()); // | std::ios::uppercase
-        printf("nonce: 0x%s\n", tx2.nonce().str(0, _Ios_Fmtflags::_S_hex).c_str());
+        printf("nonce: 0x%s\n", tx2.nonce().str().c_str());
         printf("data: [%lu] %s\n", tx2.data().size(), ToHexString(tx2.data()).c_str());
 
         string strGas = tx2.gas().str(0, std::ios::hex | std::ios::showbase);

@@ -252,6 +252,15 @@ inline std::string ToHexString(const uint64 n)
     return std::string(obuf);
 }
 
+#ifdef __APPLE__
+inline std::string ToHexString(const std::size_t n)
+{
+    char obuf[64] = { 0 };
+    sprintf(obuf, "0x%lx", n);
+    return std::string(obuf);
+}
+#endif
+
 inline uint64 ParseNumericHexString(const std::string& str)
 {
     return (uint64)std::stoll(str, nullptr, 16);

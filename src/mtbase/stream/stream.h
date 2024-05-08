@@ -6,6 +6,7 @@
 #define MTBASE_STREAM_H
 
 #include <boost/asio.hpp>
+#include <boost/filesystem.hpp>
 #include <boost/type_traits.hpp>
 #include <fstream>
 #include <iomanip>
@@ -448,6 +449,10 @@ public:
       : nValue(nValueIn) {}
     CVarInt(const uint64 nValueIn)
       : nValue(nValueIn) {}
+#ifdef __APPLE__
+    CVarInt(const size_t nValueIn)
+      : nValue(nValueIn) {}
+#endif
 
     void SetValue(const uint64 nValueIn)
     {

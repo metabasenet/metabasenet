@@ -140,7 +140,7 @@ target_link_libraries(blockchain
     devcore
     devcrypto
     ethcore
-    devcommon
+    #devcommon
     consensus
 )
 

@@ -50,5 +50,5 @@ target_link_libraries(common
     devcore
     devcrypto
     ethcore
-    devcommon
+    #devcommon
 )

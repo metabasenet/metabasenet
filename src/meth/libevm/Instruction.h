@@ -5,6 +5,10 @@
 
 #include <cstdint>
 
+#ifdef __APPLE__
+#undef MSIZE	// compile for mac.
+#endif
+
 namespace dev
 {
 namespace eth

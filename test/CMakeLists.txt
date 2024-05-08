@@ -56,7 +56,7 @@ target_link_libraries(test_big
     devcore
     devcrypto
     ethcore
-    devcommon
+    #devcommon
     evm
     #ssvmCommon
     #ssvmEVMCUtilEVMCLoader

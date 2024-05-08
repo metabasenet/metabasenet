@@ -15,7 +15,7 @@
 #include <boost/regex.hpp>
 #include <regex>
 
-//#include <algorithm>
+#include <algorithm>
 
 #include "bloomfilter/bloomfilter.h"
 #include "core.h"
@@ -1203,7 +1203,7 @@ bool CRPCMod::GetVmExecResultInfo(const int nStatus, const bytes& btResult, stri
     {
         uint256 nTemp;
         nTemp.FromBigEndian(btResult.data() + (4 + 32), 32);
-        uint64 nInfoLen = std::min(nTemp.Get64(), btResult.size() - (4 + 32 * 2));
+        uint64 nInfoLen = std::min<uint64>(nTemp.Get64(), btResult.size() - (4 + 32 * 2));
         if (nInfoLen > 0)
         {
             strError.assign(btResult.data() + (4 + 32 * 2), btResult.data() + (4 + 32 * 2) + nInfoLen);

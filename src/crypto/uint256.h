@@ -1395,6 +1395,24 @@ public:
             pn[i] = 0;
     }
 
+#ifdef __APPLE__
+    uint256(const std::size_t b)
+	{
+        pn[0] = (unsigned int)b;
+        pn[1] = (unsigned int)(b >> 32);
+        for (int i = 2; i < WIDTH; i++)
+            pn[i] = 0;
+	}
+
+    uint256(const long b)
+	{
+        pn[0] = (unsigned int)b;
+        pn[1] = (unsigned int)(b >> 32);
+        for (int i = 2; i < WIDTH; i++)
+            pn[i] = 0;
+	}
+#endif
+
     uint256(const uint64 b[4])
     {
         for (int i = 0; i < 4; i++)

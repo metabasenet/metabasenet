@@ -1,5 +1,5 @@
 # sub directories
-add_subdirectory(devcommon)
+#add_subdirectory(devcommon)
 add_subdirectory(evmc)
 add_subdirectory(intx)
 add_subdirectory(libdevcore)

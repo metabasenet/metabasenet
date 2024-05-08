@@ -64,5 +64,5 @@ target_link_libraries(crypto
     bls
     devcore
     devcrypto
-    devcommon
+    #devcommon
 )

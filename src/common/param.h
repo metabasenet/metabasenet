@@ -30,7 +30,7 @@ static const uint256 MIN_GAS_PRICE(10, 10);
 static const uint256 TX_BASE_GAS(21'000);
 static const uint256 DATA_GAS_PER_BYTE(50);
 static const uint256 DEF_TX_GAS_LIMIT(9'000'000);
-static const uint256 MAX_MONEY = COIN * uint256(21'000'000L);
+static const uint256 MAX_MONEY = COIN * uint256(21'000'000);
 inline bool MoneyRange(const uint256& nValue)
 {
     return (nValue <= MAX_MONEY);
