@@ -738,9 +738,12 @@ bool CBlockState::GetContractRunCode(const CDestination& destContractIn, uint256
     CContractRunCodeContext ctxRunCode;
     if (!dbBlockBase.RetrieveContractRunCodeContext(hashFork, hashPrevBlock, ctxDestCode.hashContractRunCode, ctxRunCode))
     {
-        StdLog("CBlockState", "Get contract run code: Retrieve contract run code fail, hashContractRunCode: %s, contract address: %s",
+        ctxRunCode.btContractRunCode = mapCacheContractRunCodeContext[ctxDestCode.hashContractRunCode].btContractRunCode;
+        if (ctxRunCode.btContractRunCode.size() == 0) {
+            StdLog("CBlockState", "Get contract run code: Retrieve contract run code fail, hashContractRunCode: %s, contract address: %s",
                ctxDestCode.hashContractRunCode.GetHex().c_str(), destContractIn.ToString().c_str());
-        return false;
+            return false;
+        }
     }
 
     hashContractCreateCode = ctxDestCode.hashContractCreateCode;
