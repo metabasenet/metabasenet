@@ -473,14 +473,14 @@ bool CBlockState::AddTxState(const CTransaction& tx, const int nTxIndex)
 bool CBlockState::DoBlockState(uint256& hashReceiptRoot, uint256& nBlockGasUsed, bytes& btBlockBloomDataOut, uint256& nTotalMintRewardOut, uint256& hashCrosschainMerkleRoot, bool& fMoStatus)
 {
     nBlockGasUsed = uint256(nOriBlockGasLimit - nSurplusBlockGasLimit);
-
+    
     if (nOriginalBlockMintReward < nBlockFeeLeft)
     {
         StdLog("TEST", "Do block state: Original block mint reward error, nOriginalBlockMintReward: %s, nBlockFeeLeft: %s",
                nOriginalBlockMintReward.GetValueHex().c_str(), nBlockFeeLeft.GetValueHex().c_str());
-        return false;
+        //return false;
     }
-    nTotalMintRewardOut = nOriginalBlockMintReward - nBlockFeeLeft;
+    nTotalMintRewardOut = 0; //nOriginalBlockMintReward - nBlockFeeLeft;
 
     if (nBlockType == CBlock::BLOCK_GENESIS || nBlockType == CBlock::BLOCK_ORIGIN || 
         (CBlock::BLOCK_PRIMARY == nBlockType && CTransaction::TX_STAKE ==  mintTx.GetTxType())) 
