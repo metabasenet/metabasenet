@@ -478,9 +478,9 @@ bool CBlockState::DoBlockState(uint256& hashReceiptRoot, uint256& nBlockGasUsed,
     {
         StdLog("TEST", "Do block state: Original block mint reward error, nOriginalBlockMintReward: %s, nBlockFeeLeft: %s",
                nOriginalBlockMintReward.GetValueHex().c_str(), nBlockFeeLeft.GetValueHex().c_str());
-        //return false;
+        return false;
     }
-    nTotalMintRewardOut = 0; //nOriginalBlockMintReward - nBlockFeeLeft;
+    nTotalMintRewardOut = nOriginalBlockMintReward - nBlockFeeLeft;
 
     if (nBlockType == CBlock::BLOCK_GENESIS || nBlockType == CBlock::BLOCK_ORIGIN || 
         (CBlock::BLOCK_PRIMARY == nBlockType && CTransaction::TX_STAKE ==  mintTx.GetTxType())) 
@@ -1930,7 +1930,7 @@ bool CBlockState::DoRunResult(const uint256& txid, const CTransaction& tx, const
         stateDest.IncBalance(tx.GetGasPrice() * nGasLeftIn);
         SetDestState(tx.GetFromAddress(), stateDest);
 
-        nBlockFeeLeft += (tx.GetGasPrice() * nGasLeftIn);
+        nBlockFeeLeft += (tx.GetGasPrice() * nTxGasUsed);
     }
     nBlockFeeLeft += nTotalCodeFeeUsed;
     return true;
