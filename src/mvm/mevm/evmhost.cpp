@@ -370,7 +370,8 @@ evmc::result CEvmHost::call(const evmc_message& msg) noexcept {
         CTransactionLogs logs;
         //logs.address.SetBytes(&(msg.sender.bytes[0]), sizeof(msg.sender.bytes)); // addr show null
         logs.data.assign(msg.value.bytes, msg.value.bytes + sizeof(msg.value.bytes));
-        logs.topics.push_back(uint256((string("0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef"))));
+        static uint256 transfer("0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef");
+        logs.topics.push_back(transfer);
         logs.topics.push_back(AddressToDestination(msg.sender).ToHash());
         logs.topics.push_back(AddressToDestination(msg.destination).ToHash());
         vLogs.push_back(logs);
