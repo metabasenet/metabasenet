@@ -365,7 +365,7 @@ evmc::result CEvmHost::call(const evmc_message& msg) noexcept {
 
     uint256 amount(msg.value.bytes, sizeof(msg.value.bytes));
     amount.reverse();
-    if (msg.input_size == 0 || amount > 0)
+    if ((msg.kind != EVMC_DELEGATECALL) && (msg.input_size == 0 || amount > 0))
     {
         CTransactionLogs logs;
         //logs.address.SetBytes(&(msg.sender.bytes[0]), sizeof(msg.sender.bytes)); // addr show null
