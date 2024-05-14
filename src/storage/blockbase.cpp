@@ -338,7 +338,10 @@ bool CBlockState::AddTxState(const CTransaction& tx, const int nTxIndex)
 
                 mapBlockTxFeeUsed[txid] = nUsedFee;
                 nSurplusBlockGasLimit -= nTxBaseGas.Get64();
-                nBlockFeeLeft += nLeftFee;    // ToDo: nLeftFee equals zero
+                if (mapBlockTxFeeUsed.find(txid) == mapBlockTxFeeUsed.end()) {
+                    nBlockFeeLeft += nUsedFee;    // ToDo: nLeftFee equals zero
+                    StdLog("CBlockState", "line: %d", __LINE__);
+                }
 
                 // Fail receipt
                 CTransactionReceipt receipt;
@@ -442,7 +445,10 @@ bool CBlockState::AddTxState(const CTransaction& tx, const int nTxIndex)
         }
         mapBlockTxFeeUsed[txid] = nUsedFee;
         nSurplusBlockGasLimit -= nUsedGas.Get64();
-        nBlockFeeLeft += nLeftFee;
+        if (mapBlockTxFeeUsed.find(txid) == mapBlockTxFeeUsed.end()) {
+            nBlockFeeLeft += nUsedFee;
+            StdLog("CBlockState", "line: %d", __LINE__);
+        }
 
         // Common tx receipt
         receipt.nReceiptType = CTransactionReceipt::RECEIPT_TYPE_COMMON;
@@ -1930,9 +1936,15 @@ bool CBlockState::DoRunResult(const uint256& txid, const CTransaction& tx, const
         stateDest.IncBalance(tx.GetGasPrice() * nGasLeftIn);
         SetDestState(tx.GetFromAddress(), stateDest);
 
-        nBlockFeeLeft += (tx.GetGasPrice() * nTxGasUsed);
+        if (mapBlockTxFeeUsed.find(txid) == mapBlockTxFeeUsed.end()) {
+            nBlockFeeLeft += (tx.GetGasPrice() * nTxGasUsed);
+            StdLog("CBlockState", "line: %d", __LINE__);
+        }
     }
-    nBlockFeeLeft += nTotalCodeFeeUsed;
+    if (mapBlockTxFeeUsed.find(txid) == mapBlockTxFeeUsed.end()) {
+        nBlockFeeLeft += nTotalCodeFeeUsed;
+    }
+    StdLog("CBlockState", "line: %d", __LINE__);
     return true;
 }
 
@@ -2397,7 +2409,10 @@ bool CBlockState::DoFunctionContractTx(const uint256& txid, const CTransaction& 
         stateDest.IncBalance(tx.GetGasPrice() * nGasLeft);
         SetDestState(tx.GetFromAddress(), stateDest);
 
-        nBlockFeeLeft += (tx.GetGasPrice() * nGasLeft);
+        if (mapBlockTxFeeUsed.find(txid) == mapBlockTxFeeUsed.end()) {
+            nBlockFeeLeft += (tx.GetGasPrice() * nTxGasUsed);
+            StdLog("CBlockState", "line: %d", __LINE__);
+        }
     }
     return fRet;
 }
