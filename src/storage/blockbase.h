@@ -228,7 +228,7 @@ public:
     std::map<uint256, uint256> mapCoinPairCompletePrice; // key: coin pair hash, value: complete price
     std::map<CDexOrderHeader, std::vector<CCompDexOrderRecord>> mapCompDexOrderRecord;
     //uint2048 nBlockBloom;
-    uint256 nBlockFeeLeft;
+    uint256 nBlockFeeUsed;
     std::set<bytes> setBlockBloomData;
 };
 

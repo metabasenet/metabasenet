@@ -338,10 +338,11 @@ bool CBlockState::AddTxState(const CTransaction& tx, const int nTxIndex)
 
                 mapBlockTxFeeUsed[txid] = nUsedFee;
                 nSurplusBlockGasLimit -= nTxBaseGas.Get64();
-                if (mapBlockTxFeeUsed.find(txid) == mapBlockTxFeeUsed.end()) {
-                    nBlockFeeLeft += nUsedFee;    // ToDo: nLeftFee equals zero
-                    StdLog("CBlockState", "line: %d", __LINE__);
-                }
+                nBlockFeeUsed += mapBlockTxFeeUsed[txid];
+                StdDebug("CBlockState", "===txid: %s, line: %d, nBlockFeeUsed: %s, nUsedFee: %s",
+                    txid.ToString().c_str(), __LINE__,
+                    CoinToTokenBigFloat(nBlockFeeUsed).c_str(),
+                    CoinToTokenBigFloat(nUsedFee).c_str());
 
                 // Fail receipt
                 CTransactionReceipt receipt;
@@ -445,10 +446,11 @@ bool CBlockState::AddTxState(const CTransaction& tx, const int nTxIndex)
         }
         mapBlockTxFeeUsed[txid] = nUsedFee;
         nSurplusBlockGasLimit -= nUsedGas.Get64();
-        if (mapBlockTxFeeUsed.find(txid) == mapBlockTxFeeUsed.end()) {
-            nBlockFeeLeft += nUsedFee;
-            StdLog("CBlockState", "line: %d", __LINE__);
-        }
+        nBlockFeeUsed += mapBlockTxFeeUsed[txid];
+        StdDebug("CBlockState", "===txid: %s, line: %d, nBlockFeeUsed: %s, nUsedFee: %s",
+            txid.ToString().c_str(), __LINE__,
+            CoinToTokenBigFloat(nBlockFeeUsed).c_str(),
+            CoinToTokenBigFloat(nUsedFee).c_str());
 
         // Common tx receipt
         receipt.nReceiptType = CTransactionReceipt::RECEIPT_TYPE_COMMON;
@@ -480,13 +482,13 @@ bool CBlockState::DoBlockState(uint256& hashReceiptRoot, uint256& nBlockGasUsed,
 {
     nBlockGasUsed = uint256(nOriBlockGasLimit - nSurplusBlockGasLimit);
     
-    if (nOriginalBlockMintReward < nBlockFeeLeft)
+    if (nOriginalBlockMintReward < nBlockFeeUsed)
     {
-        StdLog("TEST", "Do block state: Original block mint reward error, nOriginalBlockMintReward: %s, nBlockFeeLeft: %s",
-               nOriginalBlockMintReward.GetValueHex().c_str(), nBlockFeeLeft.GetValueHex().c_str());
+        StdLog("TEST", "Do block state: Original block mint reward error, nOriginalBlockMintReward: %s, nBlockFeeUsed: %s",
+               nOriginalBlockMintReward.GetValueHex().c_str(), nBlockFeeUsed.GetValueHex().c_str());
         return false;
     }
-    nTotalMintRewardOut = nOriginalBlockMintReward - nBlockFeeLeft;
+    nTotalMintRewardOut = nOriginalBlockMintReward - nBlockFeeUsed;
 
     if (nBlockType == CBlock::BLOCK_GENESIS || nBlockType == CBlock::BLOCK_ORIGIN || 
         (CBlock::BLOCK_PRIMARY == nBlockType && CTransaction::TX_STAKE ==  mintTx.GetTxType())) 
@@ -1813,7 +1815,6 @@ bool CBlockState::DoRunResult(const uint256& txid, const CTransaction& tx, const
         mapBlockContractTransfer[txid].push_back(vd);
         receipt.vTransfer.push_back(vd);
     }
-    uint256 nTotalCodeFeeUsed;
     if (!tx.GetFromAddress().IsNull() && tx.GetGasLimit() > 0)
     {
         for (const auto& kv : mapCacheCodeDestGasUsed)
@@ -1834,7 +1835,6 @@ bool CBlockState::DoRunResult(const uint256& txid, const CTransaction& tx, const
                 SetDestState(destCodeOwner, stateCodeOwner);
 
                 mapBlockCodeDestFeeUsed[txid][destCodeOwner] += nCodeFeeUsed;
-                nTotalCodeFeeUsed += nCodeFeeUsed;
 
                 if (mapBlockAddressContext.find(destCodeOwner) == mapBlockAddressContext.end())
                 {
@@ -1894,6 +1894,11 @@ bool CBlockState::DoRunResult(const uint256& txid, const CTransaction& tx, const
     if (nTxGasUsed > 0)
     {
         mapBlockTxFeeUsed[txid] = nTxGasUsed * tx.GetGasPrice();
+        nBlockFeeUsed += mapBlockTxFeeUsed[txid];
+        StdDebug("CBlockState", "===txid: %s, line: %d, nBlockFeeUsed: %s, nTxGasUsedFee: %s",
+            txid.ToString().c_str(), __LINE__,
+            CoinToTokenBigFloat(nBlockFeeUsed).c_str(),
+            CoinToTokenBigFloat(tx.GetGasPrice() * nTxGasUsed).c_str());
     }
 
     receipt.nReceiptType = CTransactionReceipt::RECEIPT_TYPE_CONTRACT;
@@ -1935,14 +1940,6 @@ bool CBlockState::DoRunResult(const uint256& txid, const CTransaction& tx, const
         }
         stateDest.IncBalance(tx.GetGasPrice() * nGasLeftIn);
         SetDestState(tx.GetFromAddress(), stateDest);
-
-        if (mapBlockTxFeeUsed.find(txid) == mapBlockTxFeeUsed.end()) {
-            nBlockFeeLeft += (tx.GetGasPrice() * nTxGasUsed);
-            StdLog("CBlockState", "line: %d", __LINE__);
-        }
-    }
-    if (mapBlockTxFeeUsed.find(txid) == mapBlockTxFeeUsed.end()) {
-        nBlockFeeLeft += nTotalCodeFeeUsed;
     }
     StdLog("CBlockState", "line: %d", __LINE__);
     return true;
@@ -2358,6 +2355,12 @@ bool CBlockState::DoFunctionContractTx(const uint256& txid, const CTransaction& 
     if (nTxGasUsed > 0)
     {
         mapBlockTxFeeUsed[txid] = nTxGasUsed * tx.GetGasPrice();
+
+        nBlockFeeUsed += mapBlockTxFeeUsed[txid];
+        StdDebug("CBlockState", "===txid: %s, line: %d, nBlockFeeUsed: %s, nTxGasUsedFee: %s",
+            txid.ToString().c_str(), __LINE__,
+            CoinToTokenBigFloat(nBlockFeeUsed).c_str(),
+            CoinToTokenBigFloat(tx.GetGasPrice() * nTxGasUsed).c_str());
     }
 
     {
@@ -2408,11 +2411,6 @@ bool CBlockState::DoFunctionContractTx(const uint256& txid, const CTransaction& 
         }
         stateDest.IncBalance(tx.GetGasPrice() * nGasLeft);
         SetDestState(tx.GetFromAddress(), stateDest);
-
-        if (mapBlockTxFeeUsed.find(txid) == mapBlockTxFeeUsed.end()) {
-            nBlockFeeLeft += (tx.GetGasPrice() * nTxGasUsed);
-            StdLog("CBlockState", "line: %d", __LINE__);
-        }
     }
     return fRet;
 }
