@@ -1823,16 +1823,7 @@ bool CBlockState::DoRunResult(const uint256& txid, const CTransaction& tx, const
             {
                 const CDestination& destCodeOwner = kv.first;
                 uint256 nDestUsedGas(kv.second);
-                uint256 nCodeFeeUsed = (nDestUsedGas * tx.GetGasPrice()) * CODE_REWARD_USED / CODE_REWARD_PER;
-
-                CDestState stateCodeOwner;
-                if (!GetDestState(destCodeOwner, stateCodeOwner))
-                {
-                    stateCodeOwner.SetNull();
-                    stateCodeOwner.SetType(CDestination::PREFIX_PUBKEY); // WAIT_CHECK
-                }
-                stateCodeOwner.IncBalance(nCodeFeeUsed);
-                SetDestState(destCodeOwner, stateCodeOwner);
+                uint256 nCodeFeeUsed = 0;   // set code owner not have reward.
 
                 mapBlockCodeDestFeeUsed[txid][destCodeOwner] += nCodeFeeUsed;
 
