@@ -248,7 +248,7 @@ inline std::string ToHexString(const uint32 n)
 inline std::string ToHexString(const uint64 n)
 {
     char obuf[64] = { 0 };
-    sprintf(obuf, "0x%llx", n);
+    sprintf(obuf, "0x%lx", n);
     return std::string(obuf);
 }
 
