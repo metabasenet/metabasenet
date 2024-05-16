@@ -63,10 +63,10 @@ endif()
 
 # warnings
 if(UNIX AND NOT CYGWIN)
-    string(APPEND CMAKE_CXX_FLAGS "-Wall -Wextra -Wno-deprecated-copy -Wno-unused-variable -Wno-unused-but-set-variable -Wno-unused-variable -Wno-char-subscripts -Wno-unused-parameter -Wno-sign-compare -Wno-reorder -Wno-unused-local-typedefs -Wno-implicit-fallthrough -Wno-overloaded-virtual -Wno-strict-aliasing -Wno-narrowing -Wno-unused-variable -Wno-uninitialized -Wno-type-limits -Wno-non-pod-varargs -Wno-inconsistent-missing-override -Wno-null-pointer-subtraction")
+    string(APPEND CMAKE_CXX_FLAGS " -Wall -Wextra -Wno-deprecated-copy -Wno-unused-variable -Wno-unused-but-set-variable -Wno-unused-variable -Wno-char-subscripts -Wno-unused-parameter -Wno-sign-compare -Wno-reorder -Wno-unused-local-typedefs -Wno-implicit-fallthrough -Wno-overloaded-virtual -Wno-strict-aliasing -Wno-narrowing -Wno-unused-variable -Wno-uninitialized -Wno-type-limits -Wno-non-pod-varargs -Wno-inconsistent-missing-override -Wno-null-pointer-subtraction")
 
     if(APPLE)
-        string(APPEND CMAKE_CXX_FLAGS "-fvisibility-inlines-hidden -fvisibility=hidden -Wno-unknown-warning-option -Wno-tautological-overlap-compare -Wno-deprecated-declarations -Wno-format")
+        string(APPEND CMAKE_CXX_FLAGS " -fvisibility-inlines-hidden -fvisibility=hidden -Wno-unknown-warning-option -Wno-tautological-overlap-compare -Wno-deprecated-declarations -Wno-format")
     endif()
 elseif(MSVC)
     # C4018: 'expression' : signed/unsigned mismatch
@@ -86,7 +86,7 @@ if(CMAKE_BUILD_TYPE AND (CMAKE_BUILD_TYPE STREQUAL "Debug"))
 	message("Build Debug mode")
 else()
 	message("Build Release mode")
-	string(APPEND CMAKE_CXX_FLAGS "-static")
+	string(APPEND CMAKE_CXX_FLAGS " -static")
 endif()
 
 # libs & linkings
