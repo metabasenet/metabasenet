@@ -1433,7 +1433,7 @@ CTestNetCoreProtocol::CTestNetCoreProtocol()
 
 void CTestNetCoreProtocol::GetGenesisBlock(CBlock& block)
 {
-    CreateGenesisBlock(false, GetGenesisChainId(), "0x5962974eeb0b17b43edabfc9b747839317aa852f", block);
+    CreateGenesisBlock(false, GetGenesisChainId(), "0x8e6F14E6C2f79bC1aD054d93E69d7BDf3c9bA1c0", block);    // modify use new address
 }
 
 ///////////////////////////////
