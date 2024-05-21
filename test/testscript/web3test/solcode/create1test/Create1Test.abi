@@ -1,1 +1,0 @@
-[{"inputs":[],"stateMutability":"nonpayable","type":"constructor"},{"inputs":[],"name":"create1","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[],"name":"create1_addr","outputs":[{"internalType":"address","name":"","type":"address"}],"stateMutability":"view","type":"function"}]
