@@ -212,9 +212,9 @@ func (evm *EVM) Call(caller ContractRef, addr common.Address, input []byte, gas 
 	topics[1] = common.BytesToHash(caller.Address().Bytes())
 	topics[2] = common.BytesToHash(addr.Bytes())
 	evm.StateDB.AddLog(&types.Log{
-		Address: addr,
-		Topics:  topics,
-		Data:    value.Bytes(),
+		//Address: addr,
+		Topics: topics,
+		Data:   value.Bytes(),
 	})
 
 	// Capture the tracer start/end events in debug mode
