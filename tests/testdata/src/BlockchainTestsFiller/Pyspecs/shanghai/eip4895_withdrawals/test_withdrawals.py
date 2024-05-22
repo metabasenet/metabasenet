@@ -22,6 +22,7 @@ from ethereum_test_tools import (
     to_hash,
 )
 from ethereum_test_tools.vm.opcode import Opcodes as Op
+from evm_transition_tool import TransitionTool
 
 REFERENCE_SPEC_GIT_PATH = "EIPS/eip-4895.md"
 REFERENCE_SPEC_VERSION = "81af3b60b632bc9c03513d1d137f25410e3f4d34"
@@ -108,7 +109,7 @@ class TestUseValueInTx:
         if test_case == "tx_in_withdrawals_block":
             return {}
         if test_case == "tx_after_withdrawals_block":
-            return {TestAddress: Account(balance=ONE_GWEI)}
+            return {TestAddress: Account(balance=ONE_GWEI + 1)}
         raise Exception("Invalid test case.")
 
     def test_use_value_in_tx(
@@ -120,7 +121,7 @@ class TestUseValueInTx:
         """
         Test sending withdrawal value in a transaction.
         """
-        pre = {TestAddress: Account(balance=0)}
+        pre = {TestAddress: Account(balance=1)}
         blockchain_test(pre=pre, post=post, blocks=blocks)
 
 
@@ -136,7 +137,7 @@ def test_use_value_in_contract(blockchain_test: BlockchainTestFiller):
     pre = {
         TestAddress: Account(balance=1000000000000000000000, nonce=0),
         to_address(0x100): Account(balance=0, code=SEND_ONE_GWEI),
-        to_address(0x200): Account(balance=0),
+        to_address(0x200): Account(balance=1),
     }
     tx = Transaction(
         # Transaction sent from the `TestAddress`, which has 0 balance at start
@@ -171,7 +172,7 @@ def test_use_value_in_contract(blockchain_test: BlockchainTestFiller):
             }
         ),
         to_address(0x200): Account(
-            balance=ONE_GWEI,
+            balance=ONE_GWEI + 1,
         ),
     }
 
@@ -383,7 +384,7 @@ def test_self_destructing_account(blockchain_test: BlockchainTestFiller):
             balance=(100 * ONE_GWEI),
         ),
         to_address(0x200): Account(
-            balance=0,
+            balance=1,
         ),
     }
 
@@ -416,7 +417,7 @@ def test_self_destructing_account(blockchain_test: BlockchainTestFiller):
         ),
         to_address(0x200): Account(
             code=None,
-            balance=(100 * ONE_GWEI),
+            balance=(100 * ONE_GWEI) + 1,
         ),
     }
 
@@ -720,5 +721,46 @@ def test_large_amount(blockchain_test: BlockchainTestFiller):
         Block(
             withdrawals=withdrawals,
         )
+    ]
+    blockchain_test(pre=pre, post=post, blocks=blocks)
+
+
+@pytest.mark.parametrize("amount", [0, 1])
+@pytest.mark.with_all_precompiles
+def test_withdrawing_to_precompiles(
+    blockchain_test: BlockchainTestFiller, precompile: int, amount: int, t8n: TransitionTool
+):
+    """
+    Test withdrawing to all precompiles for a given fork.
+    """
+    if precompile == 3 and str(t8n.default_binary) == "ethereum-spec-evm":
+        pytest.xfail("ethereum-spec-evm doesn't support hash type ripemd160")
+    pre: Dict = {
+        TestAddress: Account(balance=1000000000000000000000, nonce=0),
+    }
+    post: Dict = {}
+
+    blocks = [
+        # First block performs the withdrawal
+        Block(
+            withdrawals=[
+                Withdrawal(
+                    index=0,
+                    validator=0,
+                    address=to_address(precompile),
+                    amount=amount,
+                )
+            ]
+        ),
+        # Second block sends a transaction to the precompile
+        Block(
+            txs=[
+                Transaction(
+                    nonce=0,
+                    gas_limit=100000,
+                    to=to_address(precompile),
+                ),
+            ],
+        ),
     ]
     blockchain_test(pre=pre, post=post, blocks=blocks)

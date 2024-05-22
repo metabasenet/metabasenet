@@ -8,14 +8,22 @@
                 "genesisBlockHeader" : {
                     "difficulty" : "0x020000",
                     "mixHash" : "0x0000000000000000000000000000000000000000000000000000000000000000",
-                    "baseFeePerGas" : "shouldnotexist"
+                    "baseFeePerGas" : "shouldnotexist",
+                    "withdrawalsRoot" : "shouldnotexist",
+                    "excessBlobGas" : "shouldnotexist",
+                    "blobGasUsed" : "shouldnotexist",
+                    "parentBeaconBlockRoot" : "shouldnotexist"
                 },
                 "blocks" : [
                     {
                         "blockHeader" : {
                             "difficulty" : "0x020000",
                             "mixHash" : "0x0000000000000000000000000000000000000000000000000000000000000000",
-                            "baseFeePerGas" : "shouldnotexist"
+                            "baseFeePerGas" : "shouldnotexist",
+                            "withdrawalsRoot" : "shouldnotexist",
+                            "excessBlobGas" : "shouldnotexist",
+                            "blobGasUsed" : "shouldnotexist",
+                            "parentBeaconBlockRoot" : "shouldnotexist"
                         }
                     }
                 ]
@@ -24,14 +32,22 @@
                 "genesisBlockHeader" : {
                     "difficulty" : "0x020000",
                     "mixHash" : "0x0000000000000000000000000000000000000000000000000000000000000000",
-                    "baseFeePerGas" : "0x0b"
+                    "baseFeePerGas" : "0x0b",
+                    "withdrawalsRoot" : "shouldnotexist",
+                    "excessBlobGas" : "shouldnotexist",
+                    "blobGasUsed" : "shouldnotexist",
+                    "parentBeaconBlockRoot" : "shouldnotexist"
                 },
                 "blocks" : [
                     {
                         "blockHeader" : {
                             "difficulty" : "0x020000",
                             "mixHash" : "0x0000000000000000000000000000000000000000000000000000000000000000",
-                            "baseFeePerGas" : "0x0a"
+                            "baseFeePerGas" : "0x0a",
+                            "withdrawalsRoot" : "shouldnotexist",
+                            "excessBlobGas" : "shouldnotexist",
+                            "blobGasUsed" : "shouldnotexist",
+                            "parentBeaconBlockRoot" : "shouldnotexist"
                         }
                     }
                 ]
@@ -40,14 +56,22 @@
                 "genesisBlockHeader" : {
                     "difficulty" : "0x00",
                     "mixHash" : "0x0000000000000000000000000000000000000000000000000000000000020000",
-                    "baseFeePerGas" : "0x0b"
+                    "baseFeePerGas" : "0x0b",
+                    "withdrawalsRoot" : "shouldnotexist",
+                    "excessBlobGas" : "shouldnotexist",
+                    "blobGasUsed" : "shouldnotexist",
+                    "parentBeaconBlockRoot" : "shouldnotexist"
                 },
                 "blocks" : [
                     {
                         "blockHeader" : {
                             "difficulty" : "0x00",
                             "mixHash" : "0x0000000000000000000000000000000000000000000000000000000000020000",
-                            "baseFeePerGas" : "0x0a"
+                            "baseFeePerGas" : "0x0a",
+                            "withdrawalsRoot" : "shouldnotexist",
+                            "excessBlobGas" : "shouldnotexist",
+                            "blobGasUsed" : "shouldnotexist",
+                            "parentBeaconBlockRoot" : "shouldnotexist"
                         }
                     }
                 ]
@@ -57,7 +81,10 @@
                     "difficulty" : "0x00",
                     "mixHash" : "0x0000000000000000000000000000000000000000000000000000000000020000",
                     "baseFeePerGas" : "0x0b",
-                    "withdrawalsRoot" : "0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421"
+                    "withdrawalsRoot" : "0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421",
+                    "excessBlobGas" : "shouldnotexist",
+                    "blobGasUsed" : "shouldnotexist",
+                    "parentBeaconBlockRoot" : "shouldnotexist"
                 },
                 "blocks" : [
                     {
@@ -65,7 +92,34 @@
                             "difficulty" : "0x00",
                             "mixHash" : "0x0000000000000000000000000000000000000000000000000000000000020000",
                             "baseFeePerGas" : "0x0a",
-                            "withdrawalsRoot" : "0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421"
+                            "withdrawalsRoot" : "0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421",
+                            "excessBlobGas" : "shouldnotexist",
+                            "blobGasUsed" : "shouldnotexist",
+                            "parentBeaconBlockRoot" : "shouldnotexist"
+                        }
+                    }
+                ]
+            },
+            "Cancun" : {
+                "genesisBlockHeader" : {
+                    "difficulty" : "0x00",
+                    "mixHash" : "0x0000000000000000000000000000000000000000000000000000000000020000",
+                    "baseFeePerGas" : "0x0b",
+                    "withdrawalsRoot" : "0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421",
+                    "excessBlobGas" : "0x00",
+                    "blobGasUsed" : "0x00",
+                    "parentBeaconBlockRoot" : "0x0000000000000000000000000000000000000000000000000000000000000000"
+                },
+                "blocks" : [
+                    {
+                        "blockHeader" : {
+                            "difficulty" : "0x00",
+                            "mixHash" : "0x0000000000000000000000000000000000000000000000000000000000020000",
+                            "baseFeePerGas" : "0x0a",
+                            "withdrawalsRoot" : "0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421",
+                            "excessBlobGas" : "0x00",
+                            "blobGasUsed" : "0x00",
+                            "parentBeaconBlockRoot" : "0x0000000000000000000000000000000000000000000000000000000000000000"
                         }
                     }
                 ]
@@ -75,7 +129,9 @@
                     "env" : {
                         "currentBaseFee" : "0x0a",
                         "currentDifficulty" : "0x020000",
-                        "currentRandom" : "0x0000000000000000000000000000000000000000000000000000000000020000"
+                        "currentRandom" : "0x0000000000000000000000000000000000000000000000000000000000020000",
+                        "currentWithdrawalsRoot" : "0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421",
+                        "currentBeaconRoot" : "0x0000000000000000000000000000000000000000000000000000000000000000"
                     }
         },
         "env" : {
@@ -88,7 +144,7 @@
         },
         "expect" : [
             {
-                "network" : ["Berlin", "London", "Merge", "Shanghai"],
+                "network" : [">=Berlin"],
                 "result" : {
                     "095e7baea6a6c7c4c2dfeb977efac326af552d87" : {
                         "code" : "0x600160010160005500",

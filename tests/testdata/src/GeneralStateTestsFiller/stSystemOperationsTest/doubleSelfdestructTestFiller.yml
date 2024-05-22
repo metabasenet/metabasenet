@@ -21,7 +21,8 @@ doubleSelfdestructTest:
     000000000000000000000000000000000000c0de:
       balance: 1_000_000
       code: |
-        :yul {
+        :yul berlin
+        {
            // If there's data, call this again and then
            // try to selfdestruct.
            // Necessary to use data, because delegatecall and staticcall don't
@@ -100,8 +101,6 @@ doubleSelfdestructTest:
   - indexes:
       data:
       - :label called-self-destruct
-      gas: !!int -1
-      value: !!int -1
     network:
     - '>=Istanbul'
     result:
@@ -117,10 +116,12 @@ doubleSelfdestructTest:
   - indexes:
       data:
       - :label caller-self-destruct
-      gas: !!int -1
-      value: !!int -1
     network:
-    - '>=Istanbul'
+    - 'Istanbul'
+    - 'Berlin'
+    - 'London'
+    - 'Merge'
+    - 'Shanghai'
     result:
       # Caller self destruct
       0000000000000000000000000000000000001001:
@@ -131,16 +132,34 @@ doubleSelfdestructTest:
       # The code itself
       000000000000000000000000000000000000c0de:
         shouldnotexist: 1
+  - indexes:
+      data:
+      - :label caller-self-destruct
+    network:
+    - '>=Cancun'
+    result:
+      # Caller self destruct
+      0000000000000000000000000000000000001001:
+        balance: 1000001
+        nonce: 0
+      # Called self destruct
+      0000000000000000000000000000000000001002:
+        shouldnotexist: 1
+      # The code itself
+      000000000000000000000000000000000000c0de:
+        nonce: 1
 
 
 
   - indexes:
       data:
       - :label code-self-destruct
-      gas: !!int -1
-      value: !!int -1
     network:
-    - '>=Istanbul'
+    - 'Istanbul'
+    - 'Berlin'
+    - 'London'
+    - 'Merge'
+    - 'Shanghai'
     result:
       # Caller self destruct
       0000000000000000000000000000000000001001:
@@ -148,3 +167,16 @@ doubleSelfdestructTest:
       # Called self destruct
       000000000000000000000000000000000000c0de:
         shouldnotexist: 1
+  - indexes:
+      data:
+      - :label code-self-destruct
+    network:
+    - '>=Cancun'
+    result:
+      # Caller self destruct
+      0000000000000000000000000000000000001001:
+        balance: 1000001
+        nonce: 0
+      # Called self destruct
+      000000000000000000000000000000000000c0de:
+        nonce: 1

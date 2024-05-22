@@ -7,7 +7,10 @@
                             "baseFeePerGas" : "shouldnotexist",
                             "difficulty" : "0x020000",
                             "mixHash" : "0x0000000000000000000000000000000000000000000000000000000000000000",
-                            "withdrawalsRoot" : "shouldnotexist"
+                            "withdrawalsRoot" : "shouldnotexist",
+                            "excessBlobGas" : "shouldnotexist",
+                            "blobGasUsed" : "shouldnotexist",
+                            "parentBeaconBlockRoot" : "shouldnotexist"
                         },
                         "blocks" : [
                             {
@@ -15,7 +18,10 @@
                                     "difficulty" : "0x020000",
                                     "mixHash" : "0x0000000000000000000000000000000000000000000000000000000000000000",
                                     "baseFeePerGas" : "shouldnotexist",
-                                    "withdrawalsRoot" : "shouldnotexist"
+                                    "withdrawalsRoot" : "shouldnotexist",
+                                    "excessBlobGas" : "shouldnotexist",
+                                    "blobGasUsed" : "shouldnotexist",
+                                    "parentBeaconBlockRoot" : "shouldnotexist"
                                 }
                             }
                         ]
@@ -25,7 +31,10 @@
                             "baseFeePerGas" : "0x10",
                             "difficulty" : "0x020000",
                             "mixHash" : "0x0000000000000000000000000000000000000000000000000000000000000000",
-                            "withdrawalsRoot" : "shouldnotexist"
+                            "withdrawalsRoot" : "shouldnotexist",
+                            "excessBlobGas" : "shouldnotexist",
+                            "blobGasUsed" : "shouldnotexist",
+                            "parentBeaconBlockRoot" : "shouldnotexist"
                         },
                         "blocks" : [
                             {
@@ -33,7 +42,10 @@
                                     "difficulty" : "0x020000",
                                     "mixHash" : "0x0000000000000000000000000000000000000000000000000000000000000000",
                                     "baseFeePerGas" : "0x0e",
-                                    "withdrawalsRoot" : "shouldnotexist"
+                                    "withdrawalsRoot" : "shouldnotexist",
+                                    "excessBlobGas" : "shouldnotexist",
+                                    "blobGasUsed" : "shouldnotexist",
+                                    "parentBeaconBlockRoot" : "shouldnotexist"
                                 }
                             }
                         ]
@@ -43,7 +55,10 @@
                             "baseFeePerGas" : "0x10",
                             "difficulty" : "0x00",
                             "mixHash" : "0x0000000000000000000000000000000000000000000000000000000000020000",
-                            "withdrawalsRoot" : "shouldnotexist"
+                            "withdrawalsRoot" : "shouldnotexist",
+                            "excessBlobGas" : "shouldnotexist",
+                            "blobGasUsed" : "shouldnotexist",
+                            "parentBeaconBlockRoot" : "shouldnotexist"
                         },
                         "blocks" : [
                             {
@@ -51,7 +66,10 @@
                                     "difficulty" : "0x00",
                                     "mixHash" : "0x0000000000000000000000000000000000000000000000000000000000020000",
                                     "baseFeePerGas" : "0x0e",
-                                    "withdrawalsRoot" : "shouldnotexist"
+                                    "withdrawalsRoot" : "shouldnotexist",
+                                    "excessBlobGas" : "shouldnotexist",
+                                    "blobGasUsed" : "shouldnotexist",
+                                    "parentBeaconBlockRoot" : "shouldnotexist"
                                 }
                             }
                         ]
@@ -61,7 +79,10 @@
                             "baseFeePerGas" : "0x10",
                             "difficulty" : "0x00",
                             "mixHash" : "0x0000000000000000000000000000000000000000000000000000000000020000",
-                            "withdrawalsRoot" : "0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421"
+                            "withdrawalsRoot" : "0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421",
+                            "excessBlobGas" : "shouldnotexist",
+                            "blobGasUsed" : "shouldnotexist",
+                            "parentBeaconBlockRoot" : "shouldnotexist"
                         },
                         "blocks" : [
                             {
@@ -69,7 +90,34 @@
                                     "difficulty" : "0x00",
                                     "mixHash" : "0x0000000000000000000000000000000000000000000000000000000000020000",
                                     "baseFeePerGas" : "0x0e",
-                                    "withdrawalsRoot" : "0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421"
+                                    "withdrawalsRoot" : "0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421",
+                                    "excessBlobGas" : "shouldnotexist",
+                                    "blobGasUsed" : "shouldnotexist",
+                                    "parentBeaconBlockRoot" : "shouldnotexist"
+                                }
+                            }
+                        ]
+            },
+            "Cancun" : {
+                        "genesisBlockHeader" : {
+                            "baseFeePerGas" : "0x10",
+                            "difficulty" : "0x00",
+                            "mixHash" : "0x0000000000000000000000000000000000000000000000000000000000020000",
+                            "withdrawalsRoot" : "0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421",
+                            "excessBlobGas" : "0x00",
+                            "blobGasUsed" : "0x00",
+                            "parentBeaconBlockRoot" : "0x0000000000000000000000000000000000000000000000000000000000000000"
+                        },
+                        "blocks" : [
+                            {
+                                "blockHeader" : {
+                                    "difficulty" : "0x00",
+                                    "mixHash" : "0x0000000000000000000000000000000000000000000000000000000000020000",
+                                    "baseFeePerGas" : "0x0e",
+                                    "withdrawalsRoot" : "0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421",
+                                    "excessBlobGas" : "0x00",
+                                    "blobGasUsed" : "0x00",
+                                    "parentBeaconBlockRoot" : "0x0000000000000000000000000000000000000000000000000000000000000000"
                                 }
                             }
                         ]

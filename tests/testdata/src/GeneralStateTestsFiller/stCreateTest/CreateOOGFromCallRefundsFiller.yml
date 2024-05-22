@@ -21,7 +21,8 @@ CreateOOGFromCallRefunds:
     aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa:
       balance: '0'
       code: |
-        :yul {
+        :yul berlin
+        {
           let init_addr := calldataload(4)
           let init_length := extcodesize(init_addr)
           extcodecopy(init_addr, 0, 0, init_length)
@@ -39,7 +40,8 @@ CreateOOGFromCallRefunds:
     000000000000000000000000000000000000001a:
       balance: '0'
       code: |
-        :yul {
+        :yul berlin
+        {
           sstore(0, 1)
           sstore(1, 1)
           sstore(1, 0)
@@ -51,7 +53,8 @@ CreateOOGFromCallRefunds:
     000000000000000000000000000000000000001b:
       balance: '0'
       code: |
-        :yul {
+        :yul berlin
+        {
           sstore(0, 1)
           sstore(1, 1)
           sstore(1, 0)
@@ -63,7 +66,8 @@ CreateOOGFromCallRefunds:
     000000000000000000000000000000000000001c:
       balance: '0'
       code: |
-        :yul {
+        :yul berlin
+        {
           sstore(0, 1)
           sstore(1, 1)
           sstore(1, 0)
@@ -76,7 +80,8 @@ CreateOOGFromCallRefunds:
     000000000000000000000000000000000000002a:
       balance: '0'
       code: |
-        :yul {
+        :yul berlin
+        {
           sstore(0, 1)
           pop(call(gas(), 0x00000000000000000000000000000000000c0deA, 0, 0, 0, 0, 0))
           return(0, 1)
@@ -87,7 +92,8 @@ CreateOOGFromCallRefunds:
     000000000000000000000000000000000000002b:
       balance: '0'
       code: |
-        :yul {
+        :yul berlin
+        {
           sstore(0, 1)
           pop(call(gas(), 0x00000000000000000000000000000000000c0deA, 0, 0, 0, 0, 0))
           return(0, 5000)
@@ -98,7 +104,8 @@ CreateOOGFromCallRefunds:
     000000000000000000000000000000000000002c:
       balance: '0'
       code: |
-        :yul {
+        :yul berlin
+        {
           sstore(0, 1)
           pop(call(gas(), 0x00000000000000000000000000000000000c0deA, 0, 0, 0, 0, 0))
           invalid()
@@ -110,7 +117,8 @@ CreateOOGFromCallRefunds:
     000000000000000000000000000000000000003a:
       balance: '0'
       code: |
-        :yul {
+        :yul berlin
+        {
           sstore(0, 1)
           sstore(1, 1)
           pop(delegatecall(gas(), 0x00000000000000000000000000000000000c0deA, 0, 0, 0, 0))
@@ -122,7 +130,8 @@ CreateOOGFromCallRefunds:
     000000000000000000000000000000000000003b:
       balance: '0'
       code: |
-        :yul {
+        :yul berlin
+        {
           sstore(0, 1)
           sstore(1, 1)
           pop(delegatecall(gas(), 0x00000000000000000000000000000000000c0deA, 0, 0, 0, 0))
@@ -134,7 +143,8 @@ CreateOOGFromCallRefunds:
     000000000000000000000000000000000000003c:
       balance: '0'
       code: |
-        :yul {
+        :yul berlin
+        {
           sstore(0, 1)
           sstore(1, 1)
           pop(delegatecall(gas(), 0x00000000000000000000000000000000000c0deA, 0, 0, 0, 0))
@@ -147,7 +157,8 @@ CreateOOGFromCallRefunds:
     000000000000000000000000000000000000004a:
       balance: '0'
       code: |
-        :yul {
+        :yul berlin
+        {
           sstore(0, 1)
           sstore(1, 1)
           pop(callcode(gas(), 0x00000000000000000000000000000000000c0deA, 0, 0, 0, 0, 0))
@@ -159,7 +170,8 @@ CreateOOGFromCallRefunds:
     000000000000000000000000000000000000004b:
       balance: '0'
       code: |
-        :yul {
+        :yul berlin
+        {
           sstore(0, 1)
           sstore(1, 1)
           pop(callcode(gas(), 0x00000000000000000000000000000000000c0deA, 0, 0, 0, 0, 0))
@@ -171,7 +183,8 @@ CreateOOGFromCallRefunds:
     000000000000000000000000000000000000004c:
       balance: '0'
       code: |
-        :yul {
+        :yul berlin
+        {
           sstore(0, 1)
           sstore(1, 1)
           pop(callcode(gas(), 0x00000000000000000000000000000000000c0deA, 0, 0, 0, 0, 0))
@@ -184,7 +197,8 @@ CreateOOGFromCallRefunds:
     000000000000000000000000000000000000005a:
       balance: '0'
       code: |
-        :yul {
+        :yul berlin
+        {
           sstore(0, 1)
           pop(call(gas(), 0x00000000000000000000000000000000000c0deD, 0, 0, 0, 0, 0))
           return(0, 1)
@@ -195,7 +209,8 @@ CreateOOGFromCallRefunds:
     000000000000000000000000000000000000005b:
       balance: '0'
       code: |
-        :yul {
+        :yul berlin
+        {
           sstore(0, 1)
           pop(call(gas(), 0x00000000000000000000000000000000000c0deD, 0, 0, 0, 0, 0))
           return(0, 5000)
@@ -206,7 +221,8 @@ CreateOOGFromCallRefunds:
     000000000000000000000000000000000000005c:
       balance: '0'
       code: |
-        :yul {
+        :yul berlin
+        {
           sstore(0, 1)
           pop(call(gas(), 0x00000000000000000000000000000000000c0deD, 0, 0, 0, 0, 0))
           invalid()
@@ -218,7 +234,8 @@ CreateOOGFromCallRefunds:
     000000000000000000000000000000000000006a:
       balance: '0'
       code: |
-        :yul {
+        :yul berlin
+        {
           sstore(0, 1)
           pop(call(gas(), 0x00000000000000000000000000000000000c0de0, 0, 0, 0, 0, 0))
           return(0, 1)
@@ -229,7 +246,8 @@ CreateOOGFromCallRefunds:
     000000000000000000000000000000000000006b:
       balance: '0'
       code: |
-        :yul {
+        :yul berlin
+        {
           sstore(0, 1)
           pop(call(gas(), 0x00000000000000000000000000000000000c0de0, 0, 0, 0, 0, 0))
           return(0, 5000)
@@ -240,7 +258,8 @@ CreateOOGFromCallRefunds:
     000000000000000000000000000000000000006c:
       balance: '0'
       code: |
-        :yul {
+        :yul berlin
+        {
           sstore(0, 1)
           pop(call(gas(), 0x00000000000000000000000000000000000c0de0, 0, 0, 0, 0, 0))
           invalid()
@@ -252,7 +271,8 @@ CreateOOGFromCallRefunds:
     000000000000000000000000000000000000007a:
       balance: '0'
       code: |
-        :yul {
+        :yul berlin
+        {
           sstore(0, 1)
           sstore(1, 1)
           sstore(1, 0)
@@ -268,7 +288,8 @@ CreateOOGFromCallRefunds:
     000000000000000000000000000000000000007b:
       balance: '0'
       code: |
-        :yul {
+        :yul berlin
+        {
           sstore(0, 1)
           sstore(1, 1)
           sstore(1, 0)
@@ -284,7 +305,8 @@ CreateOOGFromCallRefunds:
     000000000000000000000000000000000000007c:
       balance: '0'
       code: |
-        :yul {
+        :yul berlin
+        {
           sstore(0, 1)
           sstore(1, 1)
           sstore(1, 0)
@@ -301,7 +323,8 @@ CreateOOGFromCallRefunds:
     000000000000000000000000000000000000008a:
       balance: '0'
       code: |
-        :yul {
+        :yul berlin 
+        {
           sstore(0, 1)
           sstore(1, 1)
           sstore(1, 0)
@@ -322,7 +345,8 @@ CreateOOGFromCallRefunds:
     000000000000000000000000000000000000008b:
       balance: '0'
       code: |
-        :yul {
+        :yul berlin
+        {
           sstore(0, 1)
           sstore(1, 1)
           sstore(1, 0)
@@ -338,7 +362,8 @@ CreateOOGFromCallRefunds:
     000000000000000000000000000000000000008c:
       balance: '0'
       code: |
-        :yul {
+        :yul berlin
+        {
           sstore(0, 1)
           sstore(1, 1)
           sstore(1, 0)
@@ -356,7 +381,8 @@ CreateOOGFromCallRefunds:
     00000000000000000000000000000000000c0deA:
       balance: '0'
       code: |
-        :yul {
+        :yul berlin
+        {
           // Simple SSTORE to zero to get a refund
           sstore(1, 0)
         }
@@ -369,7 +395,8 @@ CreateOOGFromCallRefunds:
     00000000000000000000000000000000000c0deD:
       balance: '0'
       code: |
-        :yul {
+        :yul berlin
+        {
           selfdestruct(origin())
         }
       nonce: '1'
@@ -381,7 +408,8 @@ CreateOOGFromCallRefunds:
     00000000000000000000000000000000000c0de0:
       balance: '0'
       code: |
-        :yul {
+        :yul berlin
+        {
           mstore(0, 0xff)
           log0(0, 32)
           log1(0, 32, 0xfa)
@@ -398,7 +426,8 @@ CreateOOGFromCallRefunds:
     00000000000000000000000000000000000c0de1:
       balance: '0'
       code: |
-        :yul {
+        :yul berlin
+        {
           sstore(0, 1)
           sstore(0, 0)
           return(0, 1)
@@ -495,8 +524,6 @@ CreateOOGFromCallRefunds:
     - indexes:
         data: 
         - :label SStore_Refund_NoOoG
-        gas:  !!int -1
-        value: !!int -1
       network:
         - '>=London'
       result:
@@ -513,8 +540,6 @@ CreateOOGFromCallRefunds:
     - indexes:
         data: 
         - :label SStore_Refund_OoG
-        gas:  !!int -1
-        value: !!int -1
       network:
         - '>=London'
       result:
@@ -530,10 +555,10 @@ CreateOOGFromCallRefunds:
     - indexes:
         data: 
         - :label SelfDestruct_Refund_NoOoG
-        gas:  !!int -1
-        value: !!int -1
       network:
-        - '>=London'
+        - 'London'
+        - 'Merge'
+        - 'Shanghai'
       result:
 
         a94f5374fce5edbc8e2a8697c15331677e6ebf0b:
@@ -547,12 +572,29 @@ CreateOOGFromCallRefunds:
           }
         00000000000000000000000000000000000c0deD:
           shouldnotexist: 1
+    - indexes:
+        data: 
+        - :label SelfDestruct_Refund_NoOoG
+      network:
+        - '>=Cancun'
+      result:
+
+        a94f5374fce5edbc8e2a8697c15331677e6ebf0b:
+          nonce: 2
+
+        4501f8fa1e67827ebfb1f6d5510c606871c5a599:
+          nonce: 1
+          code: '0x00'
+          storage: {
+            '0': 1
+          }
+        00000000000000000000000000000000000c0deD:
+          balance: 0
+          nonce: 1
 
     - indexes:
         data: 
         - :label SelfDestruct_Refund_OoG
-        gas:  !!int -1
-        value: !!int -1
       network:
         - '>=London'
       result:
@@ -575,8 +617,6 @@ CreateOOGFromCallRefunds:
     - indexes:
         data: 
         - :label LogOp_NoOoG
-        gas:  !!int -1
-        value: !!int -1
       network:
         - '>=London'
       result:
@@ -593,8 +633,6 @@ CreateOOGFromCallRefunds:
     - indexes:
         data: 
         - :label LogOp_OoG
-        gas:  !!int -1
-        value: !!int -1
       network:
         - '>=London'
       result:
@@ -610,8 +648,6 @@ CreateOOGFromCallRefunds:
     - indexes:
         data: 
         - :label SStore_Create_Refund_NoOoG
-        gas:  !!int -1
-        value: !!int -1
       network:
         - '>=London'
       result:
@@ -633,8 +669,6 @@ CreateOOGFromCallRefunds:
     - indexes:
         data: 
         - :label SStore_Create_Refund_OoG
-        gas:  !!int -1
-        value: !!int -1
       network:
         - '>=London'
       result:
@@ -652,8 +686,6 @@ CreateOOGFromCallRefunds:
     - indexes:
         data: 
         - :label SStore_Create2_Refund_NoOoG
-        gas:  !!int -1
-        value: !!int -1
       network:
         - '>=London'
       result:
@@ -675,8 +707,6 @@ CreateOOGFromCallRefunds:
     - indexes:
         data: 
         - :label SStore_Create2_Refund_OoG
-        gas:  !!int -1
-        value: !!int -1
       network:
         - '>=London'
       result:

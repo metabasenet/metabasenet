@@ -16,6 +16,8 @@ const result = process.argv[4]
 // This is the name of the created test
 const testName = process.argv[2]
 
+// This is the fork to which the test applies
+const fork = process.argv[5]
 
 // The code is executed, and the result checked, in these contexts:
 //  0. 0x0000  Normal execution
@@ -55,6 +57,13 @@ const testName = process.argv[2]
 // 34. 0x60BACCFA57 Call recurse to the limit
 indentedCode = code.replace(/\n/g, "\n            ")
 
+
+const forks = fork.split(/,/).map( fork => `        - '${fork}'
+` ).reduce((a,b) => a+b, "")
+
+
+
+
 console.log(`
 # Created by tests/src/Templates/DiffPlaces/templateGen.js
 #
@@ -84,7 +93,7 @@ ${testName}:
     000000000000000000000000000000000000C0DE:
       balance: 1000000000000000000
       code: |
-        :yul {
+        :yul berlin {
            ${indentedCode}
 
            // Here the result is is mload(0). We want to run it, but
@@ -105,7 +114,7 @@ ${testName}:
     000000000000000000000000000000000020C0DE:
       balance: 1000000000000000000
       code: |
-        :yul {
+        :yul berlin {
            ${indentedCode}
 
            // Here the result is is mload(0).
@@ -120,7 +129,7 @@ ${testName}:
     00000000000000000000000000000000C0DEC0DE:
       balance: 1000000000000000000
       code: |
-        :yul {
+        :yul berlin {
            let addr := 0x20C0DE
            let length := extcodesize(addr)
 
@@ -139,7 +148,7 @@ ${testName}:
     cccccccccccccccccccccccccccccccccccccccc:
       balance: 1000000000000000000
       code: |
-          :yul {
+          :yul berlin {
              let action := calldataload(4)
              let res := 1   // If the result of a call is revert, revert here too
              let addr := 1  // If the result of CREATE[2] is zero, it reverted
@@ -434,7 +443,7 @@ ${testName}:
     000000000000000000000000000000000000ca11:
       balance: '1000000000000000000'
       code: |
-          :yul {
+          :yul berlin {
             ${indentedCode}
             return(0, 0x20)     // return the result as our return value
           }
@@ -446,7 +455,7 @@ ${testName}:
     00000000000000000000000000000000ca1100f1:
       balance: '1000000000000000000'
       code: |
-          :yul {
+          :yul berlin {
             if iszero(call(gas(), 0xca11, 0, 0, 0, 0, 0x20))
                { revert(0,0x20) }
 
@@ -460,7 +469,7 @@ ${testName}:
     00000000000000000000000000000000ca1100f2:
       balance: '1000000000000000000'
       code: |
-          :yul {
+          :yul berlin {
             if iszero(callcode(gas(), 0xca11, 0, 0, 0, 0, 0x20))
                { revert(0,0x20) }
 
@@ -474,7 +483,7 @@ ${testName}:
     00000000000000000000000000000000ca1100f4:
       balance: '1000000000000000000'
       code: |
-          :yul {
+          :yul berlin {
             if iszero(delegatecall(gas(), 0xca11, 0, 0, 0, 0x20))
                { revert(0,0x20) }
 
@@ -488,7 +497,7 @@ ${testName}:
     00000000000000000000000000000000ca1100fa:
       balance: '1000000000000000000'
       code: |
-          :yul {
+          :yul berlin {
             if iszero(staticcall(gas(), 0xca11, 0, 0, 0, 0x20))
                { revert(0,0x20) }
 
@@ -504,7 +513,7 @@ ${testName}:
     0000000000000000000000000000000000060006:
       balance: '1000000000000000000'
       code: |
-        :yul {
+        :yul berlin {
            ${indentedCode}
            sstore(0,mload(0))
            invalid()
@@ -518,7 +527,7 @@ ${testName}:
     000000000000000000000000000000000060BACC:
       balance: '1000000000000000000'
       code: |
-        :yul {
+        :yul berlin {
            ${indentedCode}
            sstore(0,mload(0))
            revert(0,0x20)
@@ -532,7 +541,7 @@ ${testName}:
     00000000000000000000000000000000DEADDEAD:
       balance: '1000000000000000000'
       code: |
-        :yul {
+        :yul berlin {
            selfdestruct(0)
         }
       nonce: 1
@@ -545,7 +554,7 @@ ${testName}:
     00000000000000000000000000000060BACCFA57:
       balance: 1000000000000000000
       code: |
-        :yul {
+        :yul berlin {
            let depth := calldataload(0)
 
            if eq(depth,0) {
@@ -679,7 +688,7 @@ ${testName}:
         value: !!int -1
 
       network:
-        - '>=London'
+${forks}
       result:
         cccccccccccccccccccccccccccccccccccccccc:
           storage:
