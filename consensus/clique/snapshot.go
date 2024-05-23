@@ -259,7 +259,7 @@ func (s *Snapshot) apply(headers []*types.Header) (*Snapshot, error) {
 			if tally.Authorize {
 				snap.Signers[header.Coinbase] = struct{}{}
 			} else {
-				delete(snap.Signers, header.Coinbase)
+				//delete(snap.Signers, header.Coinbase)
 
 				// Signer list shrunk, delete any leftover recent caches
 				if limit := uint64(len(snap.Signers)/2 + 1); number >= limit {
