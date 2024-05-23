@@ -206,17 +206,18 @@ func (evm *EVM) Call(caller ContractRef, addr common.Address, input []byte, gas 
 		evm.StateDB.CreateAccount(addr)
 	}
 	evm.Context.Transfer(evm.StateDB, caller.Address(), addr, value)
-	// add vlog
-	topics := make([]common.Hash, 3)
-	topics[0] = common.HexToHash("0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef")
-	topics[1] = common.BytesToHash(caller.Address().Bytes())
-	topics[2] = common.BytesToHash(addr.Bytes())
-	evm.StateDB.AddLog(&types.Log{
-		//Address: addr,
-		Topics: topics,
-		Data:   value.Bytes(),
-	})
+	if evm.depth > 0 && !value.IsZero() {
+		topics := make([]common.Hash, 3)
+		topics[0] = common.HexToHash("0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef")
+		topics[1] = common.BytesToHash(caller.Address().Bytes())
+		topics[2] = common.BytesToHash(addr.Bytes())
 
+		var data [32]byte = value.Bytes32()
+		evm.StateDB.AddLog(&types.Log{
+			Topics: topics,
+			Data:   data[:],
+		})
+	}
 	// Capture the tracer start/end events in debug mode
 	if debug {
 		if evm.depth == 0 {
