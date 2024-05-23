@@ -43,6 +43,7 @@ import (
 	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/ethereum/go-ethereum/rpc"
 	"github.com/ethereum/go-ethereum/trie"
+	"github.com/holiman/uint256"
 	"golang.org/x/crypto/sha3"
 )
 
@@ -66,8 +67,10 @@ var (
 
 	uncleHash = types.CalcUncleHash(nil) // Always Keccak256(RLP([])) as uncles are meaningless outside of PoW.
 
-	diffInTurn = big.NewInt(2) // Block difficulty for in-turn signatures
-	diffNoTurn = big.NewInt(1) // Block difficulty for out-of-turn signatures
+	diffInTurn      = big.NewInt(2)               // Block difficulty for in-turn signatures
+	diffNoTurn      = big.NewInt(1)               // Block difficulty for out-of-turn signatures
+	MineBlockReward = uint256.NewInt(1.30931e+18) // Block reward in wei for successfully mining a block
+	HalfBlockNumber = uint256.NewInt(63072000)    // 3 second/block, 6 years total blocks.
 )
 
 // Various error messages to mark blocks invalid. These should be private to
@@ -579,9 +582,9 @@ func (c *Clique) Prepare(chain consensus.ChainHeaderReader, header *types.Header
 }
 
 // Finalize implements consensus.Engine. There is no post-transaction
-// consensus rules in clique, do nothing here.
 func (c *Clique) Finalize(chain consensus.ChainHeaderReader, header *types.Header, state *state.StateDB, txs []*types.Transaction, uncles []*types.Header, withdrawals []*types.Withdrawal) {
-	// No block rewards in PoA, so the state remains as is
+	// Accumulate block rewards
+	accumulateRewards(chain.Config(), state, header)
 }
 
 // FinalizeAndAssemble implements consensus.Engine, ensuring no uncles are set,
@@ -778,4 +781,23 @@ func encodeSigHeader(w io.Writer, header *types.Header) {
 	if err := rlp.Encode(w, enc); err != nil {
 		panic("can't encode: " + err.Error())
 	}
+}
+
+// AccumulateRewards credits the coinbase of the given block with the mining
+// reward. The total reward consists of the static block reward
+func accumulateRewards(config *params.ChainConfig, state *state.StateDB, header *types.Header) {
+	hNum, _ := uint256.FromBig(header.Number)
+
+	r := new(uint256.Int)
+	r.Mul(HalfBlockNumber, uint256.NewInt(5))
+	if r.Cmp(hNum) == -1 {
+		return
+	}
+
+	halfCount := hNum.Div(hNum, HalfBlockNumber).Uint64()
+	blockReward := new(uint256.Int)
+	blockReward.SRsh(MineBlockReward, uint(halfCount))
+	// Accumulate the rewards for the miner
+	reward := new(uint256.Int).Set(blockReward)
+	state.AddBalance(header.Coinbase, reward)
 }
