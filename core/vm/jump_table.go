@@ -45,17 +45,17 @@ type operation struct {
 }
 
 var (
-	frontierInstructionSet         = newCancunInstructionSet() //newFrontierInstructionSet()
-	homesteadInstructionSet        = newCancunInstructionSet() //newHomesteadInstructionSet()
-	tangerineWhistleInstructionSet = newCancunInstructionSet() //newTangerineWhistleInstructionSet()
-	spuriousDragonInstructionSet   = newCancunInstructionSet() //newSpuriousDragonInstructionSet()
-	byzantiumInstructionSet        = newCancunInstructionSet() //newByzantiumInstructionSet()
-	constantinopleInstructionSet   = newCancunInstructionSet() //newConstantinopleInstructionSet()
-	istanbulInstructionSet         = newCancunInstructionSet() //newIstanbulInstructionSet()
-	berlinInstructionSet           = newCancunInstructionSet() //newBerlinInstructionSet()
-	londonInstructionSet           = newCancunInstructionSet() //newLondonInstructionSet()
-	mergeInstructionSet            = newCancunInstructionSet() //newMergeInstructionSet()
-	shanghaiInstructionSet         = newCancunInstructionSet() //newShanghaiInstructionSet()
+	frontierInstructionSet         = newFrontierInstructionSet()
+	homesteadInstructionSet        = newHomesteadInstructionSet()
+	tangerineWhistleInstructionSet = newTangerineWhistleInstructionSet()
+	spuriousDragonInstructionSet   = newSpuriousDragonInstructionSet()
+	byzantiumInstructionSet        = newByzantiumInstructionSet()
+	constantinopleInstructionSet   = newConstantinopleInstructionSet()
+	istanbulInstructionSet         = newIstanbulInstructionSet()
+	berlinInstructionSet           = newBerlinInstructionSet()
+	londonInstructionSet           = newLondonInstructionSet()
+	mergeInstructionSet            = newMergeInstructionSet()
+	shanghaiInstructionSet         = newShanghaiInstructionSet()
 	cancunInstructionSet           = newCancunInstructionSet()
 )
 
