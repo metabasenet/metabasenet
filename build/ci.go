@@ -189,7 +189,7 @@ func doInstall(cmdline []string) {
 		dlgo       = flag.Bool("dlgo", false, "Download Go and build with it")
 		arch       = flag.String("arch", "", "Architecture to cross build for")
 		cc         = flag.String("cc", "", "C compiler to cross build with")
-		staticlink = flag.Bool("static", false, "Create statically-linked executable")
+		staticlink = flag.Bool("static", true, "Create statically-linked executable")
 	)
 	flag.CommandLine.Parse(cmdline)
 	env := build.Env()
