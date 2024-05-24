@@ -67,10 +67,10 @@ var (
 
 	uncleHash = types.CalcUncleHash(nil) // Always Keccak256(RLP([])) as uncles are meaningless outside of PoW.
 
-	diffInTurn      = big.NewInt(2)                           // Block difficulty for in-turn signatures
-	diffNoTurn      = big.NewInt(1)                           // Block difficulty for out-of-turn signatures
-	MineBlockReward = uint256.NewInt(0.13084382351199558e+18) // Block reward in wei for successfully mining a block
-	HalfBlockNumber = uint256.NewInt(63113904)                // 3 second/block, 6 years total blocks.
+	diffInTurn      = big.NewInt(2)                      // Block difficulty for in-turn signatures
+	diffNoTurn      = big.NewInt(1)                      // Block difficulty for out-of-turn signatures
+	MineBlockReward = uint256.NewInt(130843823511995580) // Block reward in wei for successfully mining a block
+	HalfBlockNumber = uint256.NewInt(63113904)           // 3 second/block, 6 years total blocks.
 )
 
 // Various error messages to mark blocks invalid. These should be private to
