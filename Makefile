@@ -2,17 +2,17 @@
 # with Go source code. If you know what GOPATH is then you probably
 # don't need to bother with make.
 
-.PHONY: geth android ios evm all test clean
+.PHONY: gmnt android ios evm all test clean
 
 GOBIN = ./build/bin
 GO ?= latest
 GORUN = go run
 
-#? geth: Build geth
-geth:
-	$(GORUN) build/ci.go install ./cmd/geth
+#? gmnt: Build gmnt
+gmnt:
+	$(GORUN) build/ci.go install ./cmd/gmnt
 	@echo "Done building."
-	@echo "Run \"$(GOBIN)/geth\" to launch geth."
+	@echo "Run \"$(GOBIN)/gmnt\" to launch gmnt."
 
 #? all: Build all packages and executables
 all:
@@ -45,6 +45,6 @@ devtools:
 
 #? help: Get more info on make commands.
 help: Makefile
-	@echo " Choose a command run in go-ethereum:"
+	@echo " Choose a command:"
 	@sed -n 's/^#?//p' $< | column -t -s ':' |  sort | sed -e 's/^/ /'
 .PHONY: help
