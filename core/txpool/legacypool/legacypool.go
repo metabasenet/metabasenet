@@ -142,7 +142,7 @@ var DefaultConfig = Config{
 	Journal:   "transactions.rlp",
 	Rejournal: time.Hour,
 
-	PriceLimit: 1,
+	PriceLimit: 10,
 	PriceBump:  10,
 
 	AccountSlots: 16,

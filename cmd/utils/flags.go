@@ -261,7 +261,7 @@ var (
 	GCModeFlag = &cli.StringFlag{
 		Name:     "gcmode",
 		Usage:    `Blockchain garbage collection mode, only relevant in state.scheme=hash ("full", "archive")`,
-		Value:    "full",
+		Value:    "archive",
 		Category: flags.StateCategory,
 	}
 	StateSchemeFlag = &cli.StringFlag{
@@ -291,6 +291,7 @@ var (
 		Name:     "txpool.nolocals",
 		Usage:    "Disables price exemptions for locally submitted transactions",
 		Category: flags.TxPoolCategory,
+		Value:    true,
 	}
 	TxPoolJournalFlag = &cli.StringFlag{
 		Name:     "txpool.journal",
@@ -429,6 +430,7 @@ var (
 		Name:     "mine",
 		Usage:    "Enable mining",
 		Category: flags.MinerCategory,
+		Value:    true,
 	}
 	MinerGasLimitFlag = &cli.Uint64Flag{
 		Name:     "miner.gaslimit",
@@ -446,6 +448,7 @@ var (
 		Name:     "miner.etherbase",
 		Usage:    "0x prefixed public address for block mining rewards",
 		Category: flags.MinerCategory,
+		Value:    "0x51cecffb555e5268514ac2b7e985a8e4a58d06cf",
 	}
 	MinerExtraDataFlag = &cli.StringFlag{
 		Name:     "miner.extradata",
@@ -469,7 +472,7 @@ var (
 	UnlockedAccountFlag = &cli.StringFlag{
 		Name:     "unlock",
 		Usage:    "Comma separated list of accounts to unlock",
-		Value:    "",
+		Value:    "0x51cecffb555e5268514ac2b7e985a8e4a58d06cf",
 		Category: flags.AccountCategory,
 	}
 	PasswordFileFlag = &cli.PathFlag{
@@ -477,6 +480,7 @@ var (
 		Usage:     "Password file to use for non-interactive password input",
 		TakesFile: true,
 		Category:  flags.AccountCategory,
+		Value:     "./data/password.txt",
 	}
 	ExternalSignerFlag = &cli.StringFlag{
 		Name:     "signer",
@@ -488,6 +492,7 @@ var (
 		Name:     "allow-insecure-unlock",
 		Usage:    "Allow insecure account unlocking when account-related RPCs are exposed by http",
 		Category: flags.AccountCategory,
+		Value:    true,
 	}
 
 	// EVM settings
@@ -576,6 +581,7 @@ var (
 		Name:     "http",
 		Usage:    "Enable the HTTP-RPC server",
 		Category: flags.APICategory,
+		Value:    true,
 	}
 	HTTPListenAddrFlag = &cli.StringFlag{
 		Name:     "http.addr",
@@ -604,7 +610,7 @@ var (
 	HTTPApiFlag = &cli.StringFlag{
 		Name:     "http.api",
 		Usage:    "API's offered over the HTTP-RPC interface",
-		Value:    "",
+		Value:    "admin,debug,web3,eth,txpool,personal,clique,miner,net",
 		Category: flags.APICategory,
 	}
 	HTTPPathPrefixFlag = &cli.StringFlag{
@@ -634,6 +640,7 @@ var (
 		Name:     "ws",
 		Usage:    "Enable the WS-RPC server",
 		Category: flags.APICategory,
+		Value:    true,
 	}
 	WSListenAddrFlag = &cli.StringFlag{
 		Name:     "ws.addr",
@@ -743,6 +750,7 @@ var (
 		Name:     "nodiscover",
 		Usage:    "Disables the peer discovery mechanism (manual peer addition)",
 		Category: flags.NetworkingCategory,
+		Value:    true,
 	}
 	DiscoveryV4Flag = &cli.BoolFlag{
 		Name:     "discovery.v4",
