@@ -372,8 +372,8 @@ func (g *Genesis) configOrDefault(ghash common.Hash) *params.ChainConfig {
 		return params.SepoliaChainConfig
 	case ghash == params.GoerliGenesisHash:
 		return params.GoerliChainConfig
-	case ghash == params.MNTGenesisHash:
-		return params.MNTChainConfig
+	case ghash == params.TestnetGenesisHash:
+		return params.TestnetChainConfig
 	default:
 		return params.AllEthashProtocolChanges
 	}
@@ -500,10 +500,10 @@ func DefaultGenesisBlock() *Genesis {
 	}
 }
 
-// MNTGenesisBlock returns the metabasenet network genesis block.
-func DefaultMNTGenesisBlock() *Genesis {
+// TestnetGenesisBlock returns the testnet network genesis block.
+func DefaultTestnetGenesisBlock() *Genesis {
 	return &Genesis{
-		Config:     params.MNTChainConfig,
+		Config:     params.TestnetChainConfig,
 		Timestamp:  1715562000,
 		ExtraData:  hexutil.MustDecode("0x00000000000000000000000000000000000000000000000000000000000000005962974eeb0b17b43EDaBFc9b747839317AA852F0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"),
 		GasLimit:   0x0147b760,

@@ -64,9 +64,9 @@ var GoerliBootnodes = []string{
 	"enode://d2b720352e8216c9efc470091aa91ddafc53e222b32780f505c817ceef69e01d5b0b0797b69db254c586f493872352f5a022b4d8479a00fc92ec55f9ad46a27e@88.99.70.182:30303",
 }
 
-// MNTBootnodes are the enode URLs of the P2P bootstrap nodes running on the
+// TestnetBootnodes are the enode URLs of the P2P bootstrap nodes running on the
 // metabasenet test network.
-var MNTBootnodes = []string{}
+var TestnetBootnodes = []string{}
 
 var V5Bootnodes = []string{
 	// Teku team's bootnode
