@@ -426,6 +426,8 @@ func importHistory(ctx *cli.Context) error {
 			network = "sepolia"
 		case ctx.Bool(utils.GoerliFlag.Name):
 			network = "goerli"
+		case ctx.Bool(utils.MNTFlag.Name):
+			network = "metabasenet"
 		}
 	} else {
 		// No network flag set, try to determine network based on files

@@ -278,6 +278,9 @@ func main() {
 func prepare(ctx *cli.Context) {
 	// If we're running a known preset, log it for convenience.
 	switch {
+	case ctx.IsSet(utils.MNTFlag.Name):
+		log.Info("Starting Geth on metabasenet...")
+
 	case ctx.IsSet(utils.GoerliFlag.Name):
 		log.Info("Starting Geth on Görli testnet...")
 
@@ -306,12 +309,13 @@ func prepare(ctx *cli.Context) {
 `)
 
 	case !ctx.IsSet(utils.NetworkIdFlag.Name):
-		log.Info("Starting Geth on Ethereum mainnet...")
+		log.Info("Starting metabasenet...")
 	}
 	// If we're a full node on mainnet without --cache specified, bump default cache allowance
 	if !ctx.IsSet(utils.CacheFlag.Name) && !ctx.IsSet(utils.NetworkIdFlag.Name) {
 		// Make sure we're not on any supported preconfigured testnet either
-		if !ctx.IsSet(utils.HoleskyFlag.Name) &&
+		if !ctx.IsSet(utils.MNTFlag.Name) &&
+			!ctx.IsSet(utils.HoleskyFlag.Name) &&
 			!ctx.IsSet(utils.SepoliaFlag.Name) &&
 			!ctx.IsSet(utils.GoerliFlag.Name) &&
 			!ctx.IsSet(utils.DeveloperFlag.Name) {
@@ -456,9 +460,9 @@ func unlockAccounts(ctx *cli.Context, stack *node.Node) {
 	}
 	// If insecure account unlocking is not allowed if node's APIs are exposed to external.
 	// Print warning log to user and skip unlocking.
-	//if !stack.Config().InsecureUnlockAllowed && stack.Config().ExtRPCEnabled() {
-	//	utils.Fatalf("Account unlock with HTTP access is forbidden!")
-	//}
+	if !stack.Config().InsecureUnlockAllowed && stack.Config().ExtRPCEnabled() {
+		utils.Fatalf("Account unlock with HTTP access is forbidden!")
+	}
 	backends := stack.AccountManager().Backends(keystore.KeyStoreType)
 	if len(backends) == 0 {
 		log.Warn("Failed to unlock accounts, keystore is not available")

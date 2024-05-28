@@ -372,6 +372,8 @@ func (g *Genesis) configOrDefault(ghash common.Hash) *params.ChainConfig {
 		return params.SepoliaChainConfig
 	case ghash == params.GoerliGenesisHash:
 		return params.GoerliChainConfig
+	case ghash == params.MNTGenesisHash:
+		return params.MNTChainConfig
 	default:
 		return params.AllEthashProtocolChanges
 	}
@@ -495,6 +497,23 @@ func DefaultGenesisBlock() *Genesis {
 		GasLimit:   5000,
 		Difficulty: big.NewInt(17179869184),
 		Alloc:      decodePrealloc(mainnetAllocData),
+	}
+}
+
+// MNTGenesisBlock returns the metabasenet network genesis block.
+func DefaultMNTGenesisBlock() *Genesis {
+	return &Genesis{
+		Config:     params.MNTChainConfig,
+		Timestamp:  1715562000,
+		ExtraData:  hexutil.MustDecode("0x00000000000000000000000000000000000000000000000000000000000000005962974eeb0b17b43EDaBFc9b747839317AA852F0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"),
+		GasLimit:   0x0147b760,
+		Difficulty: big.NewInt(1),
+		Alloc: GenesisAlloc{
+			common.HexToAddress("0x5962974eeb0b17b43EDaBFc9b747839317AA852F"): {
+				Balance:    new(big.Int).Mul(big.NewInt(5000000), big.NewInt(params.Ether)),
+				PrivateKey: hexutil.MustDecode("0xd8b8db5ef512bd8e5a04f83ccfcfe6470c83d3f2e31480828ecf93a9ac0a54e2"),
+			},
+		},
 	}
 }
 

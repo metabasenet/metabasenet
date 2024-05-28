@@ -57,10 +57,8 @@ type Config struct {
 
 // DefaultConfig contains default settings for miner.
 var DefaultConfig = Config{
-	Etherbase: common.HexToAddress("0x51cecffb555e5268514ac2b7e985a8e4a58d06cf"),
-	ExtraData: hexutil.MustDecode("0x000000000000000000000000000000000000000000000000000000000000000051cecffb555e5268514ac2b7e985a8e4a58d06cf0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"),
-	GasCeil:   30000000,
-	GasPrice:  big.NewInt(15 * params.GWei),
+	GasCeil:  30000000,
+	GasPrice: big.NewInt(15 * params.GWei),
 
 	// The default recommit time is chosen as two seconds since
 	// consensus-layer usually will wait a half slot of time(6s)

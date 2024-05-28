@@ -30,6 +30,7 @@ var (
 	HoleskyGenesisHash = common.HexToHash("0xb5f7f912443c940f21fd611f12828d75b534364ed9e95ca4e307729a4661bde4")
 	SepoliaGenesisHash = common.HexToHash("0x25a5cc106eea7138acab33231d7160d69cb777ee0c2c553fcddf5138993e6dd9")
 	GoerliGenesisHash  = common.HexToHash("0xbf7e331f7f7c1dd2e05159666b3bf8bc7a8a3a9eb1d518969eab529dd9b88c1a")
+	MNTGenesisHash     = common.HexToHash("0x8c9dfc733bb5645013842a157d56246e2e7daee1e9cbe3e62db22ebb2973ddeb")
 )
 
 func newUint64(val uint64) *uint64 { return &val }
@@ -134,6 +135,32 @@ var (
 		CancunTime:                    newUint64(1705473120),
 		Clique: &CliqueConfig{
 			Period: 15,
+			Epoch:  30000,
+		},
+	}
+	// MNTChainConfig contains the chain parameters to run a node on the metabasenet test network.
+	MNTChainConfig = &ChainConfig{
+		ChainID:             big.NewInt(46655),
+		HomesteadBlock:      big.NewInt(0),
+		DAOForkBlock:        nil,
+		DAOForkSupport:      true,
+		EIP150Block:         big.NewInt(0),
+		EIP155Block:         big.NewInt(0),
+		EIP158Block:         big.NewInt(0),
+		ByzantiumBlock:      big.NewInt(0),
+		ConstantinopleBlock: big.NewInt(0),
+		PetersburgBlock:     big.NewInt(0),
+		IstanbulBlock:       big.NewInt(0),
+		MuirGlacierBlock:    big.NewInt(0),
+		BerlinBlock:         big.NewInt(0),
+		LondonBlock:         big.NewInt(0),
+		ArrowGlacierBlock:   nil,
+		//TerminalTotalDifficulty:       big.NewInt(10_790_000),
+		//TerminalTotalDifficultyPassed: true,
+		//ShanghaiTime:                  newUint64(1678832736),
+		//CancunTime:                    newUint64(1705473120),
+		Clique: &CliqueConfig{
+			Period: 3,
 			Epoch:  30000,
 		},
 	}
@@ -312,6 +339,7 @@ var (
 // NetworkNames are user friendly names to use in the chain spec banner.
 var NetworkNames = map[string]string{
 	MainnetChainConfig.ChainID.String(): "mainnet",
+	MNTChainConfig.ChainID.String():     "metabasenet",
 	GoerliChainConfig.ChainID.String():  "goerli",
 	SepoliaChainConfig.ChainID.String(): "sepolia",
 	HoleskyChainConfig.ChainID.String(): "holesky",

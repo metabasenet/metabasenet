@@ -131,13 +131,18 @@ var (
 	}
 	NetworkIdFlag = &cli.Uint64Flag{
 		Name:     "networkid",
-		Usage:    "Explicitly set network id (integer)(For testnets: use --goerli, --sepolia, --holesky instead)",
+		Usage:    "Explicitly set network id (integer)(For testnets: use --goerli, --sepolia, --holesky --metabasenet instead)",
 		Value:    ethconfig.Defaults.NetworkId,
 		Category: flags.EthCategory,
 	}
 	MainnetFlag = &cli.BoolFlag{
 		Name:     "mainnet",
 		Usage:    "Ethereum mainnet",
+		Category: flags.EthCategory,
+	}
+	MNTFlag = &cli.BoolFlag{
+		Name:     "metabasenet",
+		Usage:    "MNT network: pre-configured proof-of-authority test network",
 		Category: flags.EthCategory,
 	}
 	GoerliFlag = &cli.BoolFlag{
@@ -430,7 +435,6 @@ var (
 		Name:     "mine",
 		Usage:    "Enable mining",
 		Category: flags.MinerCategory,
-		Value:    true,
 	}
 	MinerGasLimitFlag = &cli.Uint64Flag{
 		Name:     "miner.gaslimit",
@@ -448,7 +452,6 @@ var (
 		Name:     "miner.etherbase",
 		Usage:    "0x prefixed public address for block mining rewards",
 		Category: flags.MinerCategory,
-		Value:    "0x51cecffb555e5268514ac2b7e985a8e4a58d06cf",
 	}
 	MinerExtraDataFlag = &cli.StringFlag{
 		Name:     "miner.extradata",
@@ -472,7 +475,6 @@ var (
 	UnlockedAccountFlag = &cli.StringFlag{
 		Name:     "unlock",
 		Usage:    "Comma separated list of accounts to unlock",
-		Value:    "0x51cecffb555e5268514ac2b7e985a8e4a58d06cf",
 		Category: flags.AccountCategory,
 	}
 	PasswordFileFlag = &cli.PathFlag{
@@ -480,7 +482,6 @@ var (
 		Usage:     "Password file to use for non-interactive password input",
 		TakesFile: true,
 		Category:  flags.AccountCategory,
-		Value:     "./data/password.txt",
 	}
 	ExternalSignerFlag = &cli.StringFlag{
 		Name:     "signer",
@@ -492,7 +493,6 @@ var (
 		Name:     "allow-insecure-unlock",
 		Usage:    "Allow insecure account unlocking when account-related RPCs are exposed by http",
 		Category: flags.AccountCategory,
-		Value:    true,
 	}
 
 	// EVM settings
@@ -581,7 +581,6 @@ var (
 		Name:     "http",
 		Usage:    "Enable the HTTP-RPC server",
 		Category: flags.APICategory,
-		Value:    true,
 	}
 	HTTPListenAddrFlag = &cli.StringFlag{
 		Name:     "http.addr",
@@ -640,7 +639,6 @@ var (
 		Name:     "ws",
 		Usage:    "Enable the WS-RPC server",
 		Category: flags.APICategory,
-		Value:    true,
 	}
 	WSListenAddrFlag = &cli.StringFlag{
 		Name:     "ws.addr",
@@ -921,6 +919,7 @@ Please note that --` + MetricsHTTPFlag.Name + ` must be set to start the server.
 var (
 	// TestnetFlags is the flag group of all built-in supported testnets.
 	TestnetFlags = []cli.Flag{
+		MNTFlag,
 		GoerliFlag,
 		SepoliaFlag,
 		HoleskyFlag,
@@ -944,6 +943,9 @@ var (
 // then a subdirectory of the specified datadir will be used.
 func MakeDataDir(ctx *cli.Context) string {
 	if path := ctx.String(DataDirFlag.Name); path != "" {
+		if ctx.Bool(MNTFlag.Name) {
+			return filepath.Join(path, "metabasenet")
+		}
 		if ctx.Bool(GoerliFlag.Name) {
 			return filepath.Join(path, "goerli")
 		}
@@ -1015,6 +1017,8 @@ func setBootstrapNodes(ctx *cli.Context, cfg *p2p.Config) {
 			urls = params.SepoliaBootnodes
 		case ctx.Bool(GoerliFlag.Name):
 			urls = params.GoerliBootnodes
+		case ctx.Bool(MNTFlag.Name):
+			urls = params.MNTBootnodes
 		}
 	}
 	cfg.BootstrapNodes = mustParseBootnodes(urls)
@@ -1436,6 +1440,8 @@ func SetDataDir(ctx *cli.Context, cfg *node.Config) {
 		cfg.DataDir = ctx.String(DataDirFlag.Name)
 	case ctx.Bool(DeveloperFlag.Name):
 		cfg.DataDir = "" // unless explicitly requested, use memory databases
+	case ctx.Bool(MNTFlag.Name) && cfg.DataDir == node.DefaultDataDir():
+		cfg.DataDir = filepath.Join(node.DefaultDataDir(), "metabasenet")
 	case ctx.Bool(GoerliFlag.Name) && cfg.DataDir == node.DefaultDataDir():
 		cfg.DataDir = filepath.Join(node.DefaultDataDir(), "goerli")
 	case ctx.Bool(SepoliaFlag.Name) && cfg.DataDir == node.DefaultDataDir():
@@ -1593,7 +1599,7 @@ func CheckExclusive(ctx *cli.Context, args ...interface{}) {
 // SetEthConfig applies eth-related command line flags to the config.
 func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *ethconfig.Config) {
 	// Avoid conflicting network flags
-	CheckExclusive(ctx, MainnetFlag, DeveloperFlag, GoerliFlag, SepoliaFlag, HoleskyFlag)
+	CheckExclusive(ctx, MainnetFlag, DeveloperFlag, MNTFlag, GoerliFlag, SepoliaFlag, HoleskyFlag)
 	CheckExclusive(ctx, DeveloperFlag, ExternalSignerFlag) // Can't use both ephemeral unlocked and external signer
 
 	// Set configurations from CLI flags
@@ -1762,6 +1768,12 @@ func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *ethconfig.Config) {
 		}
 		cfg.Genesis = core.DefaultGoerliGenesisBlock()
 		SetDNSDiscoveryDefaults(cfg, params.GoerliGenesisHash)
+	case ctx.Bool(MNTFlag.Name):
+		if !ctx.IsSet(NetworkIdFlag.Name) {
+			cfg.NetworkId = 46655
+		}
+		cfg.Genesis = core.DefaultMNTGenesisBlock()
+		SetDNSDiscoveryDefaults(cfg, params.MNTGenesisHash)
 	case ctx.Bool(DeveloperFlag.Name):
 		if !ctx.IsSet(NetworkIdFlag.Name) {
 			cfg.NetworkId = 1337
@@ -2071,6 +2083,8 @@ func MakeGenesis(ctx *cli.Context) *core.Genesis {
 		genesis = core.DefaultSepoliaGenesisBlock()
 	case ctx.Bool(GoerliFlag.Name):
 		genesis = core.DefaultGoerliGenesisBlock()
+	case ctx.Bool(MNTFlag.Name):
+		genesis = core.DefaultMNTGenesisBlock()
 	case ctx.Bool(DeveloperFlag.Name):
 		Fatalf("Developer chains are ephemeral")
 	}

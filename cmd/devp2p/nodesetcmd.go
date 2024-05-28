@@ -230,6 +230,8 @@ func ethFilter(args []string) (nodeFilter, error) {
 	switch args[0] {
 	case "mainnet":
 		filter = forkid.NewStaticFilter(params.MainnetChainConfig, core.DefaultGenesisBlock().ToBlock())
+	case "metabasenet":
+		filter = forkid.NewStaticFilter(params.MNTChainConfig, core.DefaultMNTGenesisBlock().ToBlock())
 	case "goerli":
 		filter = forkid.NewStaticFilter(params.GoerliChainConfig, core.DefaultGoerliGenesisBlock().ToBlock())
 	case "sepolia":
