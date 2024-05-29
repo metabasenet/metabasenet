@@ -51,4 +51,5 @@ logs/
 
 tests/spec-tests/
 
-tags
+run.sh
+debug.sh
