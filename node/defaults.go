@@ -28,9 +28,9 @@ import (
 )
 
 const (
-	DefaultHTTPHost = "0.0.0.0"   // Default host interface for the HTTP RPC server
+	DefaultHTTPHost = "localhost" // Default host interface for the HTTP RPC server
 	DefaultHTTPPort = 7545        // Default TCP port for the HTTP RPC server
-	DefaultWSHost   = "0.0.0.0"   // Default host interface for the websocket RPC server
+	DefaultWSHost   = "localhost" // Default host interface for the websocket RPC server
 	DefaultWSPort   = 7546        // Default TCP port for the websocket RPC server
 	DefaultAuthHost = "localhost" // Default host interface for the authenticated apis
 	DefaultAuthPort = 7551        // Default port for the authenticated apis

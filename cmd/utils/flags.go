@@ -477,6 +477,7 @@ var (
 	InsecureUnlockAllowedFlag = &cli.BoolFlag{
 		Name:     "allow-insecure-unlock",
 		Usage:    "Allow insecure account unlocking when account-related RPCs are exposed by http",
+		Value:    true,
 		Category: flags.AccountCategory,
 	}
 
@@ -566,6 +567,7 @@ var (
 		Name:     "http",
 		Usage:    "Enable the HTTP-RPC server",
 		Category: flags.APICategory,
+		Value:    true,
 	}
 	HTTPListenAddrFlag = &cli.StringFlag{
 		Name:     "http.addr",
@@ -624,6 +626,7 @@ var (
 		Name:     "ws",
 		Usage:    "Enable the WS-RPC server",
 		Category: flags.APICategory,
+		Value:    true,
 	}
 	WSListenAddrFlag = &cli.StringFlag{
 		Name:     "ws.addr",
@@ -1361,9 +1364,9 @@ func SetNodeConfig(ctx *cli.Context, cfg *node.Config) {
 	if ctx.IsSet(USBFlag.Name) {
 		cfg.USB = ctx.Bool(USBFlag.Name)
 	}
-	if ctx.IsSet(InsecureUnlockAllowedFlag.Name) {
-		cfg.InsecureUnlockAllowed = ctx.Bool(InsecureUnlockAllowedFlag.Name)
-	}
+	//if ctx.IsSet(InsecureUnlockAllowedFlag.Name) {
+	cfg.InsecureUnlockAllowed = ctx.Bool(InsecureUnlockAllowedFlag.Name)
+	//}
 	if ctx.IsSet(DBEngineFlag.Name) {
 		dbEngine := ctx.String(DBEngineFlag.Name)
 		if dbEngine != "leveldb" && dbEngine != "pebble" {
