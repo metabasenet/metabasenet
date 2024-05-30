@@ -567,7 +567,6 @@ var (
 		Name:     "http",
 		Usage:    "Enable the HTTP-RPC server",
 		Category: flags.APICategory,
-		Value:    true,
 	}
 	HTTPListenAddrFlag = &cli.StringFlag{
 		Name:     "http.addr",
@@ -626,7 +625,6 @@ var (
 		Name:     "ws",
 		Usage:    "Enable the WS-RPC server",
 		Category: flags.APICategory,
-		Value:    true,
 	}
 	WSListenAddrFlag = &cli.StringFlag{
 		Name:     "ws.addr",
