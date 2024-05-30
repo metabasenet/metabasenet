@@ -24,7 +24,9 @@ var MainnetBootnodes = []string{}
 
 // TestnetBootnodes are the enode URLs of the P2P bootstrap nodes running on the
 // metabasenet test network.
-var TestnetBootnodes = []string{}
+var TestnetBootnodes = []string{
+	"enode://c68f52a3ae56eeaecb09696ca0fad791749f7115d8cb9c3f2082187fd137de495ac0b262ac51133981d3e75bd95bfc8dd1be4a2b7b6cd7f177f6e9bea3272c64@18.162.51.194:30305",
+}
 
 var V5Bootnodes = []string{
 	// Teku team's bootnode
