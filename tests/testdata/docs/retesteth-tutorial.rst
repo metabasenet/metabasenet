@@ -185,7 +185,7 @@ configuration, these are the steps to follow.
    ::
 
       
-      docker run -p 8545:8545 -p 13001:30303 \
+      docker run -p 7545:7545 -p 13001:30305 \
            hyperledger/besu:latest retesteth --rpc-http-port 8545 \
            --host-allowlist '*'
 

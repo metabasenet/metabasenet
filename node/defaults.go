@@ -68,7 +68,7 @@ var DefaultConfig = Config{
 	BatchResponseMaxSize: 25 * 1000 * 1000,
 	GraphQLVirtualHosts:  []string{"localhost"},
 	P2P: p2p.Config{
-		ListenAddr: ":30303",
+		ListenAddr: ":30305",
 		MaxPeers:   50,
 		NAT:        nat.Any(),
 	},

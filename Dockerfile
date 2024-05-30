@@ -9,21 +9,21 @@ FROM golang:1.21-alpine as builder
 RUN apk add --no-cache gcc musl-dev linux-headers git
 
 # Get dependencies - will also be cached if we won't change go.mod/go.sum
-COPY go.mod /go-ethereum/
-COPY go.sum /go-ethereum/
-RUN cd /go-ethereum && go mod download
+COPY go.mod /metabasenet/
+COPY go.sum /metabasenet/
+RUN cd /metabasenet && go mod download
 
-ADD . /go-ethereum
-RUN cd /go-ethereum && go run build/ci.go install -static ./cmd/geth
+ADD . /metabasenet
+RUN cd /metabasenet && go run build/ci.go install -static ./cmd/geth
 
 # Pull Geth into a second stage deploy alpine container
 FROM alpine:latest
 
 RUN apk add --no-cache ca-certificates
-COPY --from=builder /go-ethereum/build/bin/geth /usr/local/bin/
+COPY --from=builder /metabasenet/build/bin/geth /usr/local/bin/
 
-EXPOSE 8545 8546 30303 30303/udp
-ENTRYPOINT ["geth"]
+EXPOSE 7545 7546 30305 30305/udp
+ENTRYPOINT ["gmnt"]
 
 # Add some metadata labels to help programatic image consumption
 ARG COMMIT=""
