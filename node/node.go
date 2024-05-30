@@ -499,7 +499,8 @@ func (n *Node) startRPC() error {
 		}
 	}
 	// Configure authenticated API
-	if len(openAPIs) != len(allAPIs) {
+	//if len(openAPIs) != len(allAPIs) {
+	if false {
 		jwtSecret, err := n.obtainJWTSecret(n.config.JWTSecret)
 		if err != nil {
 			return err
