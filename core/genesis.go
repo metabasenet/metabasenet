@@ -486,15 +486,21 @@ func (g *Genesis) MustCommit(db ethdb.Database, triedb *triedb.Database) *types.
 func DefaultGenesisBlock() *Genesis {
 	return &Genesis{
 		Config:     params.MainnetChainConfig,
-		Timestamp:  1716510000,
+		Nonce:      0x0,
+		Timestamp:  0x664fdd30,
 		ExtraData:  hexutil.MustDecode("0x0000000000000000000000000000000000000000000000000000000000000000670A235Efba2ee081aE09AeeBE53ae359F13F4f60000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"),
 		GasLimit:   0x0147b760,
 		Difficulty: big.NewInt(1),
+		Mixhash:    common.HexToHash("0x0000000000000000000000000000000000000000000000000000000000000000"),
+		Coinbase:   common.HexToAddress("0x0000000000000000000000000000000000000000"),
 		Alloc: GenesisAlloc{
 			common.HexToAddress("0x670A235Efba2ee081aE09AeeBE53ae359F13F4f6"): {
 				Balance: new(big.Int).Mul(big.NewInt(5000000), big.NewInt(params.Ether)),
 			},
 		},
+		Number:     0,
+		GasUsed:    0,
+		ParentHash: common.HexToHash("0x0000000000000000000000000000000000000000000000000000000000000000"),
 	}
 }
 

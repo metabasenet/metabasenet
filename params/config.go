@@ -37,8 +37,6 @@ var (
 	MainnetChainConfig = &ChainConfig{
 		ChainID:             big.NewInt(46655),
 		HomesteadBlock:      big.NewInt(0),
-		DAOForkBlock:        nil,
-		DAOForkSupport:      true,
 		EIP150Block:         big.NewInt(0),
 		EIP155Block:         big.NewInt(0),
 		EIP158Block:         big.NewInt(0),
@@ -46,14 +44,6 @@ var (
 		ConstantinopleBlock: big.NewInt(0),
 		PetersburgBlock:     big.NewInt(0),
 		IstanbulBlock:       big.NewInt(0),
-		MuirGlacierBlock:    big.NewInt(0),
-		BerlinBlock:         big.NewInt(0),
-		LondonBlock:         big.NewInt(0),
-		ArrowGlacierBlock:   nil,
-		//TerminalTotalDifficulty:       big.NewInt(10_790_000),
-		//TerminalTotalDifficultyPassed: true,
-		//ShanghaiTime:                  newUint64(1678832736),
-		//CancunTime:                    newUint64(1705473120),
 		Clique: &CliqueConfig{
 			Period: 3,
 			Epoch:  30000,
