@@ -35,7 +35,7 @@ type Config struct {
 	InfluxDBOrganization string `toml:",omitempty"`
 }
 
-// DefaultConfig is the default config for metrics used in go-ethereum.
+// DefaultConfig is the default config for metrics used in metabasenet.
 var DefaultConfig = Config{
 	Enabled:          false,
 	EnabledExpensive: false,
@@ -43,7 +43,7 @@ var DefaultConfig = Config{
 	Port:             6060,
 	EnableInfluxDB:   false,
 	InfluxDBEndpoint: "http://localhost:8086",
-	InfluxDBDatabase: "geth",
+	InfluxDBDatabase: "gmnt",
 	InfluxDBUsername: "test",
 	InfluxDBPassword: "test",
 	InfluxDBTags:     "host=localhost",
@@ -51,6 +51,6 @@ var DefaultConfig = Config{
 	// influxdbv2-specific flags
 	EnableInfluxDBV2:     false,
 	InfluxDBToken:        "test",
-	InfluxDBBucket:       "geth",
-	InfluxDBOrganization: "geth",
+	InfluxDBBucket:       "gmnt",
+	InfluxDBOrganization: "gmnt",
 }
