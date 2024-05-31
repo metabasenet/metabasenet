@@ -26,8 +26,8 @@ import (
 
 // Genesis hashes to enforce below configs on.
 var (
-	MainnetGenesisHash = common.HexToHash("0x8c9dfc733bb5645013842a157d56246e2e7daee1e9cbe3e62db22ebb2973ddeb")
-	TestnetGenesisHash = common.HexToHash("0x8c9dfc733bb5645013842a157d56246e2e7daee1e9cbe3e62db22ebb2973ddeb")
+	MainnetGenesisHash = common.HexToHash("0xbb715a2d725dad027c994747108c1974daf9d6005db3997e0cfe5ff48a8dc407")
+	TestnetGenesisHash = common.HexToHash("0x7aaef83451707aa33d1abd60387eff51caea8e45f4b5c02468e1a45b99f48db1")
 )
 
 func newUint64(val uint64) *uint64 { return &val }
